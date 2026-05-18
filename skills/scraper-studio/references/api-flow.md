@@ -42,6 +42,16 @@ Returns:
 { "id": "ia_xyz...", "queued": false }
 ```
 
+**Concurrent-job cap.** This endpoint enforces a per-account cap on the number of AI-Flow generations in flight at once (currently **3**). When exceeded, it returns:
+
+```
+429 Cannot run more than 3 jobs in parallel
+```
+
+The CLI handles this automatically with exponential backoff + full-jitter (base 30s, ceiling 240s, 4 attempts by default ≈ 7.5 min total max wait). Tune via `--max-retries <n>` or disable with `--no-retry`. During the wait the CLI prints stderr status lines so callers know it's blocked, not hung.
+
+**Note: the template POST in step 1 always succeeds even when you are over the cap.** That means a 429 here leaves a half-built collector — known as a stub — in the dashboard. Programmatic deletion is not yet exposed (no `DELETE /dca/collector/{id}`), so on terminal failure the CLI surfaces the stub's `view_url` for manual recovery. See `skills/scraper-studio/proposals/PR-11-backoff.md` for the open server-side asks (reject at step 1 / expose DELETE) that would eliminate stubs at the source.
+
 ### 3. Poll progress
 
 ```
