@@ -33,6 +33,7 @@ Halt and route to setup if either check fails. Both commands require an authenti
 | User describes data they want from a URL, no scraper exists yet | `bdata scraper create <url> "<description>"` → save the `collector_id` |
 | User has a `collector_id` and wants data from a URL | `bdata scraper run <collector_id> <url>` (default async + poll) |
 | Page is small and you want fast feedback (≤ ~50 s) | `bdata scraper run … --sync` |
+| User uses brief / marketing terms: PDP, Discovery, Discovery + PDP, Search | see [references/four-scraper-types.md](references/four-scraper-types.md) to map to `create`/`run` |
 | Site is a known platform (Amazon, LinkedIn, TikTok, …) | **stop — use `data-feeds` skill** |
 | You want SERP / discovery, not extraction | **use `search` skill** |
 | You want a one-off raw page fetch | **use `scrape` skill** |
