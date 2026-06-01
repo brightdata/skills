@@ -310,15 +310,11 @@ For more end-to-end recipes (batch run loops, error recovery, web-UI handoff), s
 
 8. **Vague descriptions in `create`.** A description like "scrape the page" produces a generic scraper. Name every field, name conditions ("if there's a sale price, capture both"), name disambiguators ("the price near the title, not in the recommendations sidebar"). See [references/prompts.md](references/prompts.md).
 
-9. **Re-running `create` to fix a broken scraper.** That builds a *new*
-   collector and orphans the old one. To fix an existing scraper, use
-   `bdata scraper heal <collector_id> "<what's wrong>"` — it mutates the
-   scraper in place so your saved `collector_id` keeps working and improves.
+9. **Fighting the AI-Flow concurrent-job cap manually.** The AI Flow caps concurrent `scraper create` generations per account (currently **3**). If you launch more in parallel, the API returns `429 Cannot run more than 3 jobs in parallel` and the CLI's auto-backoff waits + retries (default 4 attempts, exponential with jitter, ~7.5 min total). **Let it wait — do not re-launch on top of the existing backoff.** Re-launching just creates more stub collectors. Tune with `--max-retries <n>` if you need a different ceiling; use `--no-retry` only if you've explicitly built your own backoff loop.
 
-10. **Treating `awaiting_approval` as a failure.** It is the normal end state
-    of a heal — the fix is computed and waiting for your decision. Review
-    `preview_result`, then `bdata scraper approve <id>` (or `--reject`). Use
-    `heal --auto-approve` to skip the gate.
+10. **Re-running `create` to fix a broken scraper.** That builds a *new* collector and orphans the old one. To fix an existing scraper, use `bdata scraper heal <collector_id> "<what's wrong>"` — it mutates the scraper in place so your saved `collector_id` keeps working and improves.
+
+11. **Treating `awaiting_approval` as a failure.** It is the normal end state of a heal — the fix is computed and waiting for your decision. Review `preview_result`, then `bdata scraper approve <id>` (or `--reject`). Use `heal --auto-approve` to skip the gate.
 
 ---
 
@@ -330,6 +326,8 @@ For more end-to-end recipes (batch run loops, error recovery, web-UI handoff), s
 | `Invalid or expired API key` | Not logged in | `bdata login` (or `bdata login --device` for SSH). |
 | `create` returns no `id` | API call failed before template was created | Check `--timing` output for the failing request; verify network and account status. |
 | `Timeout after 600 seconds waiting for AI generation` | Page is complex; default poll exceeded | The `collector_id` is still printed. Open it in the web UI; or re-run with `--timeout 1200`. |
+| `Hit AI-Flow concurrent-job cap (429). Waiting Ns before retry…` (stderr) | You have ≥ 3 AI-Flow generations already in flight (account-wide). | **Expected behaviour — let the CLI wait.** The cap clears when one of the in-flight jobs finishes (2-11 min). Override the retry count with `--max-retries <n>`; disable retries with `--no-retry` only if you have your own backoff. |
+| `Cannot run more than N jobs in parallel` (after retries exhausted) | Cap stayed full for the entire backoff window. | Wait for in-flight generations to finish, then re-run. The CLI also prints a `Note:` pointing at the half-built collector's dashboard URL — open it to inspect or delete manually (programmatic deletion not yet exposed). |
 | `status: "failed"` from progress poll | AI Flow couldn't build the template | Improve the description — be more specific about fields and selectors. Try again with a cleaner URL (e.g. a canonical product page, not a search result). |
 | `--sync` 202 with `crawl_results_timeout` | Page took > sync server cap | Re-run **without** `--sync` to poll `/dca/get_result` for the printed `response_id`. |
 | `--sync-timeout must be between 25 and 50 seconds` | Out-of-range value | Use a value in `[25, 50]`. |
