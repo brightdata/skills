@@ -33,6 +33,7 @@ Halt and route to setup if either check fails. Both commands require an authenti
 | User describes data they want from a URL, no scraper exists yet | `bdata scraper create <url> "<description>"` → save the `collector_id` |
 | User has a `collector_id` and wants data from a URL | `bdata scraper run <collector_id> <url>` (default async + poll) |
 | Page is small and you want fast feedback (≤ ~50 s) | `bdata scraper run … --sync` |
+| Scraper ran but returned wrong / empty / partial data | inspect the output, then `bdata scraper heal <collector_id> "<what's wrong>"` → review preview → approve → re-run to verify |
 | Site is a known platform (Amazon, LinkedIn, TikTok, …) | **stop — use `data-feeds` skill** |
 | You want SERP / discovery, not extraction | **use `search` skill** |
 | You want a one-off raw page fetch | **use `scrape` skill** |
@@ -180,6 +181,93 @@ If the user only sees the notice and a long wait, that is expected — large job
 
 ---
 
+## Action 3 — `scraper heal`
+
+Fix an existing scraper **in place** when it ran but returned wrong, empty, or partial data. The scraper's `collector_id` stays the same — it is improved, not replaced.
+
+```bash
+bdata scraper heal <collector_id> "<what's wrong>" [--url <verify-url>] \
+    [--timeout <seconds>] [--max-retries <n>] [--no-retry] \
+    [--json | --pretty] [-o <path>] [--timing] [-k <api-key>]
+```
+
+**You are the detector.** The CLI never decides on its own that a scraper is broken — you inspect the run output and decide. A heal is slow and billable, so only heal when the data is actually wrong, not just legitimately empty.
+
+The `<prompt>` is required and is the most important input. Name exactly what is wrong and what the correct output should be: *"The price field returns null — the selector moved into a `<span data-testid=...>`. Capture price and currency again."* Vague prompts ("fix it") produce vague heals. The prompt is capped at 1000 characters.
+
+### What happens under the hood
+
+1. **`POST /dca/collectors/{collector_id}/refactor_template`** with `{prompt, custom_input: []}` — triggers the AI self-healing job.
+2. **`GET .../refactor_template/progress`** (polled) — waits for `status: "done"`, same job shape and timing as `automate_template`.
+
+### Output + the verify loop
+
+`heal` (without `--auto-approve`) usually ends at an **approval gate** rather
+than completing immediately. The response carries `status: "awaiting_approval"`
+with two key fields:
+
+- `preview_result` — sample rows the fixed scraper would produce, so you can
+  judge whether the fix is correct before committing it.
+- `diff_summary` — a summary of what changed in the template.
+- `next_step` — points at `bdata scraper approve <collector_id>` to commit
+  (or `--reject` to discard).
+
+```json
+{
+  "collector_id": "c_mp3tuab31lswoxvpws",
+  "status": "awaiting_approval",
+  "preview_result": [{"price": "29.99", "currency": "USD"}],
+  "diff_summary": "Updated price selector from .price to span[data-testid='price']",
+  "next_step": "bdata scraper approve c_mp3tuab31lswoxvpws"
+}
+```
+
+Review `preview_result`, then run `bdata scraper approve <collector_id>` to
+commit the fix — or pass `--reject` to discard it and re-heal with a sharper
+prompt. `approve` polls to `done` and hands back a `next_step` =
+`bdata scraper run <id> <url>` to verify.
+
+Pass `--url <verify-url>` to `heal` so the approve and run steps are concrete.
+The full self-healing loop is now:
+
+```
+run → inspect → heal → review preview → approve → run → verify
+```
+
+To skip the gate entirely, use `heal --auto-approve` — it approves automatically
+and polls through to `done`.
+
+### Failure is non-destructive
+
+If a heal fails (429 cap exhausted, timeout, terminal `failed`), the existing scraper is **unchanged and still works** as it did before. The CLI says so and prints the `collector_id`. Unlike a failed `create`, nothing half-built is left behind.
+
+---
+
+## Action 4 — `scraper approve`
+
+A `scraper heal` (without `--auto-approve`) stops at an approval gate:
+`status: "awaiting_approval"`, with `preview_result` (sample rows the fixed
+scraper would produce) and a `diff_summary`. Review the preview, then commit
+the fix:
+
+```bash
+bdata scraper approve <collector_id> [--reject] [--url <verify-url>] \
+    [--timeout <seconds>] [--json | --pretty] [-o <path>] [-k <api-key>]
+```
+
+- Approves by default (`POST /dca/collectors/{id}/resume_automation_job
+  {"message": true}`), then polls to `done` and hands back a
+  `next_step` = `bdata scraper run <id> <url>` to verify.
+- `--reject` sends `{"message": false}` to discard the proposed fix; re-heal
+  with a sharper prompt to try again.
+- If a heal needs multiple approvals, `approve` may stop at
+  `awaiting_approval` again — just run it again.
+
+`awaiting_approval` is **not** a failure — it means the fix is ready and
+waiting for your decision.
+
+---
+
 ## Full create-then-run workflow
 
 Capture the `collector_id` cleanly with `jq`, then chain into `run`:
@@ -223,6 +311,10 @@ For more end-to-end recipes (batch run loops, error recovery, web-UI handoff), s
 8. **Vague descriptions in `create`.** A description like "scrape the page" produces a generic scraper. Name every field, name conditions ("if there's a sale price, capture both"), name disambiguators ("the price near the title, not in the recommendations sidebar"). See [references/prompts.md](references/prompts.md).
 
 9. **Fighting the AI-Flow concurrent-job cap manually.** The AI Flow caps concurrent `scraper create` generations per account (currently **3**). If you launch more in parallel, the API returns `429 Cannot run more than 3 jobs in parallel` and the CLI's auto-backoff waits + retries (default 4 attempts, exponential with jitter, ~7.5 min total). **Let it wait — do not re-launch on top of the existing backoff.** Re-launching just creates more stub collectors. Tune with `--max-retries <n>` if you need a different ceiling; use `--no-retry` only if you've explicitly built your own backoff loop.
+
+10. **Re-running `create` to fix a broken scraper.** That builds a *new* collector and orphans the old one. To fix an existing scraper, use `bdata scraper heal <collector_id> "<what's wrong>"` — it mutates the scraper in place so your saved `collector_id` keeps working and improves.
+
+11. **Treating `awaiting_approval` as a failure.** It is the normal end state of a heal — the fix is computed and waiting for your decision. Review `preview_result`, then `bdata scraper approve <id>` (or `--reject`). Use `heal --auto-approve` to skip the gate.
 
 ---
 

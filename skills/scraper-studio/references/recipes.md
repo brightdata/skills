@@ -124,3 +124,34 @@ bdata scraper run "$COLLECTOR_ID" https://example.com/page \
 ```
 
 `--name` tags the run so you can find it later in the dashboard's run history.
+
+## Recipe 7 — self-healing loop (run → inspect → heal → approve → re-run)
+
+The agent is the detector AND the approver: run, inspect, heal, review the
+preview, approve, re-run.
+
+```bash
+COLLECTOR_ID="c_mp3tuab31lswoxvpws"
+URL="https://example.com/product/1"
+
+# 1. Run and inspect
+bdata scraper run "$COLLECTOR_ID" "$URL" --json -o out.json
+
+# 2. If the data is wrong, heal (stops at the approval gate)
+bdata scraper heal "$COLLECTOR_ID" \
+    "Price returns null — the selector moved; capture price + currency." \
+    --url "$URL" --pretty -o heal.json
+# heal.json: status=awaiting_approval, preview_result shows the fix
+
+# 3. Review preview_result, then approve (or --reject)
+if [ "$(jq -r '.status' heal.json)" = "awaiting_approval" ]; then
+    bdata scraper approve "$COLLECTOR_ID" --url "$URL" --pretty -o approve.json
+fi
+
+# 4. Verify the committed fix
+eval "$(jq -r '.next_step' approve.json) --json -o out.json"
+jq '{price, currency}' out.json
+```
+
+For a fully autonomous fix (no review), use `bdata scraper heal …
+--auto-approve`.
