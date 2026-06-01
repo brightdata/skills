@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://brightdata.com"><img src="https://img.shields.io/badge/Powered%20by-Bright%20Data-3D7FFC?style=for-the-badge" alt="Powered by Bright Data"></a>
   <a href="#license"><img src="https://img.shields.io/badge/License-MIT-10b981?style=for-the-badge" alt="MIT License"></a>
-  <a href="#skills"><img src="https://img.shields.io/badge/Skills-14-9D97F4?style=for-the-badge" alt="14 Skills"></a>
+  <a href="#skills"><img src="https://img.shields.io/badge/Skills-15-9D97F4?style=for-the-badge" alt="15 Skills"></a>
   <a href="#data-feeds-skill"><img src="https://img.shields.io/badge/Datasets-40+-15C1E6?style=for-the-badge" alt="40+ Datasets"></a>
   <a href="#bright-data-mcp-skill"><img src="https://img.shields.io/badge/MCP_Tools-60+-FF6B35?style=for-the-badge" alt="60+ MCP Tools"></a>
 </p>
@@ -26,6 +26,7 @@
   <a href="#competitive-intel-skill">Competitive Intel</a> •
   <a href="#scraper-builder-skill">Scraper Builder</a> •
   <a href="#scraper-studio-skill">Scraper Studio</a> •
+  <a href="#proxy-skill">Proxy</a> •
   <a href="#best-practices-skill">Best Practices</a> •
   <a href="#python-sdk-best-practices-skill">Python SDK</a> •
   <a href="#-setup">Setup</a> •
@@ -45,6 +46,7 @@ This plugin brings **Bright Data's powerful web infrastructure** directly into C
 - **Use the Bright Data CLI** — scrape, search, extract data, manage zones, and check budget directly from the terminal with `brightdata` / `bdata`
 - **Run competitive intelligence** — real-time competitor analysis, pricing monitoring, review mining, hiring signal analysis, and market landscape mapping using live web data
 - **Write correct Bright Data code** — built-in best practices for Web Unlocker, SERP API, Web Scraper API, and Browser API
+- **Route requests through proxies** — generate working code for Datacenter, ISP, Residential, and Mobile proxy networks, with the right network, IP pool type, targeting, and SSL setup
 - **Build with the Python SDK** — comprehensive guide for the `brightdata-sdk` package with patterns for async/sync clients, platform scrapers, SERP, datasets, and more
 
 Built on Bright Data's [Web Unlocker](https://brightdata.com/products/web-unlocker), [SERP API](https://brightdata.com/products/serp-api), and [Web Data APIs](https://brightdata.com/products/web-scraper), this plugin handles the complexity of web access so your AI agents can focus on what matters.
@@ -63,6 +65,7 @@ Built on Bright Data's [Web Unlocker](https://brightdata.com/products/web-unlock
 | **`scraper-builder`** | Build production-ready scrapers for any website — guides through site analysis, API selection, selector extraction, pagination, and complete implementation. Triggers on "build a scraper for..." |
 | **`scraper-studio`** | Build and run AI-generated Bright Data scrapers from the terminal via `bdata scraper create` (generate from a natural-language description) and `bdata scraper run` (execute against a URL). Handles async + poll, `--sync` fast-path, and silent auto-fallback to batch for paginated pages |
 | **`bright-data-best-practices`** | Built-in reference for Web Unlocker, SERP API, Web Scraper API, and Browser API — Claude consults this automatically when writing Bright Data code |
+| **`brightdata-proxy`** | Generate working code to route requests through Bright Data's Datacenter, ISP, Residential, and Mobile proxy networks — network and IP-pool selection, username targeting/session params, SSL CA setup, and integrations for cURL, Python (requests/httpx/aiohttp/Scrapy), Node (fetch/axios), Playwright, Puppeteer, and Selenium |
 | **`python-sdk-best-practices`** | Comprehensive guide for the `brightdata-sdk` Python package — async/sync clients, platform scrapers, SERP, datasets, Scraper Studio, Browser API, error handling, and common patterns |
 | **`brightdata-cli`** | Guide for using the Bright Data CLI (`brightdata` / `bdata`) to scrape, search, extract structured data from 40+ platforms, manage proxy zones, and check account budget — all from the terminal |
 | **`competitive-intel`** | Real-time competitive intelligence using live web data — competitor snapshots, pricing comparison, review mining, hiring signal analysis, content & SEO battles, and market landscape mapping. Replaces $15K+/yr enterprise CI tools at pennies per analysis |
@@ -369,6 +372,54 @@ The natural-language description is the only signal the AI Flow has. A strong de
 - [skills/scraper-studio/references/prompts.md](skills/scraper-studio/references/prompts.md) — How to write descriptions the AI Flow can act on (strong vs weak examples, field-listing patterns)
 - [skills/scraper-studio/references/recipes.md](skills/scraper-studio/references/recipes.md) — End-to-end recipes: create+run, batch over URLs, sync→async fallback, collector recovery
 - [skills/scraper-studio/references/api-flow.md](skills/scraper-studio/references/api-flow.md) — Underlying REST endpoints, status sentinels, and the two recoverable artefacts (`collector_id`, `response_id`)
+
+---
+
+## Proxy Skill
+
+The `brightdata-proxy` skill generates **working code and configuration** for Bright Data's four proxy networks. It covers usage and integration — choosing the right network, picking an IP pool type, composing the proxy username, and wiring the SSL certificate — but it does **not** walk through control-panel UI setup (the in-app proxy helper is the right surface for that).
+
+### The four networks
+
+| Network | When to use |
+|---------|-------------|
+| **Datacenter** | Cheapest and fastest. Unprotected targets, public APIs, light scraping, geo-bypass on permissive sites |
+| **ISP** | Static IPs that look residential. Long-lived sessions, account management, when IP reputation matters but you want speed |
+| **Residential** | Real-user IPs from a 100M+ pool. Default when DC/ISP get blocked; best success rate on hard targets. Requires SSL cert or KYC |
+| **Mobile** | 3G/4G/5G carrier IPs. Most expensive — reserve for extreme targets (Instagram, TikTok, some banking) |
+
+For Datacenter and ISP, the skill also helps choose an **IP pool type** — shared pool (pay-per-GB rotating), shared IPs (a leased set shared with others), or dedicated IPs (a set leased exclusively to you).
+
+### Canonical proxy facts
+
+These are easy to get wrong, so the skill anchors on them:
+
+```
+host:        brd.superproxy.io
+HTTP(S) port: 33335           # paired with the new CA (expires Sept 2034); legacy 22225 is deprecated
+SOCKS5 port:  22228
+username:    brd-customer-CUSTOMER_ID-zone-ZONE_NAME[-param-value...]
+test URL:    https://geo.brdtest.com/mygeo.json   # returns exit IP, country, city, ASN
+```
+
+The username carries all per-request config — country/state/city targeting, sticky sessions (`-session-`), dedicated-IP pinning (`-ip-`), DNS resolution, and more — appended with hyphens, not as query-string params. State, city, zip, ASN, OS, and carrier targeting are **Residential/Mobile only**; Datacenter and ISP honor `-country-` only.
+
+### Residential & Mobile SSL access
+
+Residential and Mobile enforce a network-access policy that DC and ISP don't. The skill defaults generated code to loading the **bundled CA** (`assets/brightdata_proxy_ca.crt`) directly in code — no system install, no separate download — and mentions KYC verification and `verify=False` as alternatives.
+
+### Bundled tools
+
+- **`assets/brightdata_proxy_ca.crt`** — the Bright Data Proxy Root CA (port 33335, valid until Sept 2034). Generated code references this path instead of telling the user to download it.
+- **`scripts/smoke_test.sh`** — cURL credential smoke test. Hits the geo endpoint through a zone and returns parsed JSON, with distinct exit codes for auth vs HTTP vs network failure.
+
+### Reference files
+
+- [skills/proxy/SKILL.md](skills/proxy/SKILL.md) — Main skill: network/pool decisions, username format, targeting & session params, core code patterns, SSL access, testing & debugging
+- [skills/proxy/references/code-templates.md](skills/proxy/references/code-templates.md) — Full working code for httpx, aiohttp, Scrapy, Playwright, Puppeteer, Selenium (extension-injection + SeleniumWire fallback), rotating sessions at scale, and SOCKS5
+- [skills/proxy/references/troubleshooting.md](skills/proxy/references/troubleshooting.md) — Symptom-based error catalog: auth/URL failures, TLS/cert errors, targeting & rotation issues, destination blocks, performance, and when to escalate to Web Unlocker / Browser / Scraper APIs
+- [skills/proxy/scripts/smoke_test.sh](skills/proxy/scripts/smoke_test.sh) — cURL credential smoke test
+- [skills/proxy/assets/brightdata_proxy_ca.crt](skills/proxy/assets/brightdata_proxy_ca.crt) — Bright Data Proxy Root CA
 
 ---
 
@@ -716,6 +767,15 @@ brightdata-plugin/
 │   │   ├── SKILL.md             # Python SDK patterns and best practices
 │   │   └── references/
 │   │       └── api-reference.md # Full API surface, payloads, constants
+│   ├── proxy/
+│   │   ├── SKILL.md             # Proxy networks, pool types, targeting, SSL, code patterns
+│   │   ├── references/
+│   │   │   ├── code-templates.md   # Framework integrations (httpx, Scrapy, Playwright, ...)
+│   │   │   └── troubleshooting.md  # Symptom-based error catalog and escalation order
+│   │   ├── scripts/
+│   │   │   └── smoke_test.sh    # cURL credential smoke test
+│   │   └── assets/
+│   │       └── brightdata_proxy_ca.crt  # Bright Data Proxy Root CA (port 33335)
 │   ├── scraper-builder/
 │   │   ├── SKILL.md             # Scraper builder workflow and decision tree
 │   │   └── references/
@@ -850,6 +910,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Scraper Studio Prompts](skills/scraper-studio/references/prompts.md) - Writing descriptions the AI Flow can act on
 - [Scraper Studio Recipes](skills/scraper-studio/references/recipes.md) - End-to-end shell recipes
 - [Scraper Studio API Flow](skills/scraper-studio/references/api-flow.md) - REST endpoints and recoverable artefacts
+- [Proxy Skill](skills/proxy/SKILL.md) - Route requests through Datacenter, ISP, Residential, and Mobile proxy networks
+- [Proxy Code Templates](skills/proxy/references/code-templates.md) - Framework integrations: httpx, aiohttp, Scrapy, Playwright, Puppeteer, Selenium, SOCKS5
+- [Proxy Troubleshooting](skills/proxy/references/troubleshooting.md) - Error catalog, TLS/cert fixes, rotation issues, escalation order
 - [Bright Data CLI](skills/brightdata-cli/SKILL.md) - Terminal tool for scraping, search, and data extraction
 - [CLI Commands Reference](skills/brightdata-cli/references/commands.md) - Full command reference with all flags
 - [CLI Pipelines Reference](skills/brightdata-cli/references/pipelines.md) - 40+ platform pipeline types

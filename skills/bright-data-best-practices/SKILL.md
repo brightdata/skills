@@ -25,6 +25,7 @@ Bright Data provides infrastructure for web data extraction at scale. Four prima
 | Structured data from Amazon, LinkedIn, Instagram, TikTok, etc. | Web Scraper API | Pre-built scrapers, no parsing needed |
 | Click, scroll, fill forms, run JS, intercept XHR | Browser API | Full browser automation |
 | Puppeteer / Playwright / Selenium automation | Browser API | Connects via CDP/WebDriver |
+| Route your own HTTP client through a raw proxy (DC/ISP/Residential/Mobile) | Proxy networks | When you need direct proxy access with your own request logic instead of a managed API — see the `proxy.md` skill |
 
 ## Authentication Pattern (All APIs)
 
@@ -374,3 +375,7 @@ See **[references/browser-api.md](references/browser-api.md)** for complete refe
 - **[references/serp-api.md](references/serp-api.md)** — SERP API: all Google params (Maps, Trends, Reviews, Lens, Hotels, Flights), Bing params, parsed JSON structure, async, billing
 - **[references/web-scraper-api.md](references/web-scraper-api.md)** — Web Scraper API: sync vs async, all parameters, polling, scraper types, output formats, billing
 - **[references/browser-api.md](references/browser-api.md)** — Browser API: connection strings, session rules, all CDP functions, geo-targeting, bandwidth optimization, CAPTCHA, debugging, error codes
+
+## Related Skills
+
+- **`brightdata-proxy`** — For routing requests through Bright Data's raw proxy networks (Datacenter, ISP, Residential, Mobile) with your own HTTP client instead of a managed API. Covers network/IP-pool selection, the `brd-customer-...` username format, targeting & sticky-session params, SSL CA setup for Residential/Mobile, and integrations for cURL, Python (requests/httpx/aiohttp/Scrapy), Node (fetch/axios), Playwright, Puppeteer, and Selenium. Hand off to it whenever the task is raw proxy access rather than Web Unlocker / SERP / Web Scraper / Browser API. Escalation order when proxies hit consistent blocks: raw proxy → Web Unlocker → Browser API → Web Scraper API.

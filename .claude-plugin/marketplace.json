@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Official Bright Data plugin for Claude Code - Web scraping, search, structured data extraction, and Python SDK",
-    "version": "1.6.2"
+    "version": "1.6.3"
   },
   "plugins": [
     {
       "name": "brightdata-plugin",
       "source": "./",
-      "description": "Web scraping, Google search, structured data extraction, and MCP server integration powered by Bright Data. Includes 14 skills: scrape any webpage as markdown (with bot detection/CAPTCHA bypass), search Google with structured JSON results, extract data from 40+ websites (Amazon, LinkedIn, Instagram, TikTok, YouTube, and more), orchestrate Bright Data's 60+ MCP tools, Bright Data CLI for terminal-based scraping/search/data extraction/zone management, real-time competitive intelligence (competitor snapshots, pricing comparison, review mining, hiring signals, market landscape mapping), built-in best practices for Web Unlocker, SERP API, Web Scraper API, and Browser API, Python SDK best practices for the brightdata-sdk package, scraper builder for any website, AI-generated Scraper Studio scrapers (`bdata scraper create` / `bdata scraper run`), SEO audits with live web data, agent onboarding, design system mirroring, and Browser API session debugging.",
-      "version": "1.6.2",
+      "description": "Web scraping, Google search, structured data extraction, and MCP server integration powered by Bright Data. Includes 15 skills: scrape any webpage as markdown (with bot detection/CAPTCHA bypass), search Google with structured JSON results, extract data from 40+ websites (Amazon, LinkedIn, Instagram, TikTok, YouTube, and more), orchestrate Bright Data's 60+ MCP tools, Bright Data CLI for terminal-based scraping/search/data extraction/zone management, real-time competitive intelligence (competitor snapshots, pricing comparison, review mining, hiring signals, market landscape mapping), built-in best practices for Web Unlocker, SERP API, Web Scraper API, and Browser API, proxy integration code for Datacenter/ISP/Residential/Mobile networks, Python SDK best practices for the brightdata-sdk package, scraper builder for any website, AI-generated Scraper Studio scrapers (`bdata scraper create` / `bdata scraper run`), SEO audits with live web data, agent onboarding, design system mirroring, and Browser API session debugging.",
+      "version": "1.6.3",
       "author": {
         "name": "Bright Data",
         "email": "support@brightdata.com",
