@@ -209,6 +209,8 @@ Supported dimensions include:
 - `datasets`  
 - `web_apis`  
 - `collectors`  
+- `dca_jobs`  
+- `dca_jobs_dynamic`  
 - `domains`  
 - `ws_api_snaps`  
 - `snapshots`
@@ -219,7 +221,8 @@ Choose the most specific dimension:
 | :---- | :---- |
 | Scraper API snapshot | `ws_api_snaps` |
 | Scraper API product or dataset | `web_apis` |
-| Scraper Studio collector | `collectors` |
+| Scraper Studio job | `dca_jobs` — or `dca_jobs_dynamic` when the job is virtual (`virtual: 1`) |
+| Scraper Studio collector rollup | `collectors` |
 | Web Unlocker, SERP, Browser API, or proxy zone | `zones` |
 | Target website | `domains` |
 | General product comparison | `products` |
@@ -413,8 +416,10 @@ If a job ID is available:
 - `Fails`  
 - `Pages`  
 - `Navigations`  
-3. Use Cost Breakdown with `dimension: "collectors"` to retrieve actual billed cost.  
+3. Check the job record for the `virtual` flag, then retrieve the actual billed cost per job with Cost Breakdown: `dimension: "dca_jobs"` for regular jobs, `dimension: "dca_jobs_dynamic"` for virtual jobs (`virtual: 1` in the job; virtual job ids are prefixed `vj_`, regular jobs `j_`).  
 4. Explain which job behavior contributed to consumption.
+
+Do not use `dimension: "collectors"` to explain a specific job's charge. It is a per-collector rollup, and collector totals can include charges not attributed to any single job — attributing the difference to the job under investigation would be wrong.
 
 Do not ask the user for page or output counts if job metadata is available.
 
