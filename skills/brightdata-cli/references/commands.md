@@ -266,7 +266,7 @@ Install Bright Data AI agent skills into coding agents (Claude Code, Cursor, Cop
 | `add <name>` | Install a specific skill directly |
 | `list` | List all available skills |
 
-Available skills: `search`, `scrape`, `data-feeds`, `bright-data-mcp`, `bright-data-best-practices`
+Available skills: `search`, `scrape`, `data-feeds`, `bright-data-mcp`, `bright-data-best-practices`, `bright-data-billing`
 
 ```bash
 bdata skill add              # Interactive
