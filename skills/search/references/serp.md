@@ -49,18 +49,18 @@ The CLI's own usage text prints `brightdata`, which is the same binary as `bdata
 
 ## What comes back - the organic array
 
-Parsed SERP JSON puts the results in an **`organic` array**. Each entry carries `rank`, `title`, `link` and `description`.
+Parsed SERP JSON puts the results in an **`organic` array**. Each entry carries `rank`, `global_rank`, `title`, `link` and `description`. `rank` is the position inside the organic array. `global_rank` is the position on the page counting non-organic blocks, so for a rank report read `global_rank`.
 
 ```json
 {"organic": [
-  {"rank": 1, "title": "Best CRM for Startups in 2026",
+  {"rank": 1, "global_rank": 3, "title": "Best CRM for Startups in 2026",
    "link": "https://www.example.com/best-crm",
    "description": "We scored 14 tools on price, setup time and support.",
    "display_link": "50+ comments · 2 months ago"}
 ]}
 ```
 
-**Cite `link`, never `display_link`.** `link` is the real URL and the only field to quote, follow or hand back to the user. `display_link` is the grey line Google prints under a title, which is sometimes the domain and just as often something like `50+ comments · 2 months ago`. It is display text, not an address, so a citation or a follow-up fetch built from it is broken or invented. For a question about position, read `rank` rather than counting positions in the array.
+**Cite `link`, never `display_link`.** `link` is the real URL and the only field to quote, follow or hand back to the user. `display_link` is the grey line Google prints under a title, which is sometimes the domain and just as often something like `50+ comments · 2 months ago`. It is display text, not an address, so a citation or a follow-up fetch built from it is broken or invented. For a question about position, read `global_rank` rather than counting positions in the array.
 
 ## Zones - one has to resolve, and a stale config value can block it
 
@@ -92,8 +92,10 @@ The remedy, in order:
 |---|---|
 | 1. Check what exists | `bdata zones --json` and read the names and types |
 | 2. Point the config at a zone that exists | `bdata config set default_zone_serp <zone>`, using a real unlocker zone from your own `bdata zones --json` output, usually `cli_unlocker` |
-| Cleaner alternative to step 2 | create a dedicated serp-type zone with `POST https://api.brightdata.com/zone`, Bearer auth, body `{"zone":{"name":"serp_live","type":"serp"},"plan":{"type":"serp"}}`, then `bdata config set default_zone_serp serp_live`. Do not name it `cli_serp`, that name is what the detection step above treats as a leftover |
+| Cleaner alternative to step 2 | create a dedicated serp-type zone with `POST https://api.brightdata.com/zone`, Bearer auth, body `{"zone":{"name":"serp_live","type":"serp"},"plan":{"type":"unblocker","serp":true}}`, then `bdata config set default_zone_serp serp_live` |
 | Either way | `--zone` on the call beats the config, so passing it explicitly fixes a single call without touching config |
+
+In that body `plan.type` must be `unblocker` with `serp` set to true. There is no `serp` plan type.
 
 ## The fast path - REST
 
@@ -119,18 +121,18 @@ The body needs a zone. Use a serp-type zone, or the `unblocker`-type zone the CL
 | Parsed JSON | keep `"format": "raw"` in the body and add `brd_json=1` to the search URL |
 | Raw HTML | keep `"format": "raw"` in the body and leave `brd_json` off the URL |
 
-Rows below are docs only, not verified live.
+Rows below are docs only.
 
 | Output wanted | How |
 |---|---|
-| Top 10 organic only, smallest payload | `"data_format": "parsed_light"` in the body |
+| Organic results plus Top Stories, smallest payload | `"data_format": "parsed_light"` in the body |
 | Markdown | `"data_format": "markdown"` in the body |
 
 ## Engines
 
 The CLI's `--engine` flag covers google (the default), bing and yandex. For anything else, use the REST call and put that engine's own search URL in `url`.
 
-Rows below are docs only, not verified live.
+Rows below are docs only.
 
 | Engine | Reach it by |
 |---|---|
@@ -147,9 +149,9 @@ Everything below goes in the search URL, not in the JSON body.
 | Images | `udm=2` when you build the URL yourself. The CLI's `--type images` still sends the old `tbm=isch` |
 | Shopping | `udm=28` (CLI `--type shopping`) |
 
-Maps, Hotels and Flights are reachable from a SERP call too, by putting the ordinary Google URL in the request. Each also has its own scraper, which returns far more. Both paths are in `google-scrapers.md`.
+Maps, Hotels and Flights are reachable from a SERP call too, by putting a Google URL in the request, but only Maps has a URL you can build from the ask: `google.com/maps/search/<query>/`. Hotels and Flights need an opaque entity id or a base64 `tfs` blob, so they are reachable this way only when the user already holds such a URL. Otherwise use the scraper in `google-scrapers.md`, which returns far more anyway.
 
-Rows below are docs only, not verified live.
+Rows below are docs only.
 
 | Vertical | How to select it |
 |---|---|
@@ -165,7 +167,7 @@ Rows below are docs only, not verified live.
 |---|---|
 | `gl` | two-letter country code for the country of search |
 | `hl` | two-letter language code for the page language |
-| `uule` | encoded location, or `lat,lon,radius` coordinates |
+| `uule` | encoded location, or `lat,lon,radius` coordinates (BETA) |
 | `start` | result offset, for paging |
 | `brd_mobile` | `0` desktop, `1` mobile, or `ios`, `iphone`, `ipad`, `ios_tablet`, `android`, `android_tablet` |
 | `brd_json` | `1` returns parsed JSON instead of raw HTML |
@@ -189,12 +191,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: npm install -g @brightdata/cli
-      - run: bdata search "best crm for startups" --country us --json -o "rank-$(date +%F).json"
+      - run: bdata search "best crm for startups" --zone cli_unlocker --country us --json -o "rank-$(date +%F).json"
         env:
           BRIGHTDATA_API_KEY: ${{ secrets.BRIGHTDATA_API_KEY }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rank-${{ github.run_id }}
+          path: rank-*.json
 ```
 
-A plain `crontab` line calling the same `bdata search` command does the same job on a machine that is always on. Store the key as a secret or an environment variable, never in the committed file.
+`--zone cli_unlocker` is on that line because a fresh runner has no config, so the zone must be passed explicitly. The upload step is there because the runner disk is discarded when the job ends, so a file left behind is lost.
+
+A plain `crontab` line calling the same `bdata search` command does the same job on a machine that is always on, and the same `--zone` applies there. Store the key as a secret or an environment variable, never in the committed file.
 
 ## Free moves, no credits
 

@@ -16,17 +16,19 @@ A SERP page asked for as raw HTML with no URL is still this skill - that is the 
 | The ask | Path | What it is |
 |---|---|---|
 | No volume word. **The default.** | **SERP API** | Structured JSON in one synchronous call, a couple of seconds end to end. About 10 results per request. |
-| "Top 100", "all the results", a rank report past page one | **Get top 100 Google results** | A Web Scraper API dataset job. Trigger, poll, download. Not instant. |
-| "daily", "weekly", "track this keyword" | **The same path, on a timer** | Google rank tracking is SERP API plus a cron the agent writes. Answer-engine tracking is a dataset job plus a cron, see [references/answer-engines.md](references/answer-engines.md). |
+| "Top 100", "all the results", a rank report past page one | **Web Scraper API - top 100 Google results** | A Web Scraper API dataset job. Trigger, poll, download. Not instant. One request for 100 results, against ten SERP requests for the same depth. |
+| "daily", "weekly", "track this keyword" | **SERP or the top-100 job, on a timer** | Recurring and only the top ten matters -> SERP plus a cron the agent writes. Recurring and the user wants all results and their ranks -> the top-100 job on a timer. Answer-engine tracking is a dataset job plus a cron, see [references/answer-engines.md](references/answer-engines.md). |
 | "top 5", "the first 3", any number under ten | **SERP API** | The normal fast path, then truncate the list to what was asked. |
 
 A volume word always means **more** than the default 10, never fewer. "Top 5" is not a smaller or cheaper job, it is this same one call with a shorter answer, so never route it anywhere else and never treat it as a reason to change product.
 
-Route silently, defaulting to SERP. Ask only when the ask names no engine, no vertical, no volume word, no latency word and no consumer signal. The question is one line: *"Ten results now, or a hundred as a job that takes longer?"*
+Route silently, defaulting to SERP.
 
-## Rank tracking is SERP on a timer
+A single agentic query can also run through the MCP server's search_engine tool - the `brightdata-mcp` skill covers that surface.
 
-SERP has no built-in scheduler, so the agent writes the cron job or the GitHub Actions workflow in the user's project. A repeating job never changes which product runs.
+## Rank tracking - pick depth first
+
+A top-ten snapshot on a timer is SERP plus a cron the agent writes. A full rank report every run is the top-100 dataset job on a timer, one request per run instead of ten.
 
 ## Example - the fast path
 
@@ -49,7 +51,7 @@ Then state the choice:
 
 What ChatGPT Search, Gemini Search, Perplexity or Bing Copilot answer about a brand is still a query in and an answer out. Each is its own pre-built scraper, so each runs as a dataset job, same shape as the top-100 path. All five engines' ids are bundled in the reference file, and none of them appears in the live catalogue, so the bundled rows are the only machine-readable source - read them there instead of searching.
 
-The CLI also ships `bdata discover` - a query in, AI-ranked results out, asynchronous behind a task id. Treat it as separate from the SERP paths above and run `bdata discover --help` before reaching for it. When Bright Data's announced AI search ships as a product, it becomes one more option inside this skill.
+When Bright Data's announced AI search ships as a product, it becomes one more option inside this skill.
 
 ## KYC
 
@@ -65,9 +67,9 @@ None for normal SERP use. Send the user to brightdata.com/cp/kyc only if a call 
 
 ## Red flags - stop if you catch yourself doing one of these
 
-- Promising 100 results in under a second, or calling the top-100 job instant
+- Promising 100 results at SERP speed, or calling the top-100 job instant
 - Reaching for the top-100 job when the user never asked for volume
 - Sending a results-list ask to `scrape`, or handling a records-from-a-known-place ask here
-- Switching product because the job repeats. "daily" is a scheduler, not a different product
+- Switching product because the job repeats. Depth picks the product, "daily" is only the scheduler
 - Guessing a `dataset_id` instead of looking it up live
 - Sending the user to KYC before a call is actually refused
