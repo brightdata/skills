@@ -6,7 +6,7 @@
  * Auth:   BRIGHTDATA_API_KEY env var, or the CLI's credentials.json.
  *         The key is never printed, not even on failure.
  * Output: records to stdout (or --out), progress to stderr, so the happy
- *         path stays pipeable:  node poll.mjs s_abc | jq '.[0]'
+ *         path stays pipeable:  node poll.mjs sd_abc | jq '.[0]'
  * Exit:   0 records written, 1 the job or the API said no, 2 bad arguments.
  *
  * Node 18 or newer, no dependencies.
@@ -146,20 +146,30 @@ async function get(url, key) {
 // ---------------------------------------------------------------- routing
 
 /**
- * Snapshot ids are prefixed "s_". Anything else is read through /dca.
+ * Snapshot ids carry an "s_" or an "sd_" prefix. BOTH FORMS ARE REAL: the live
+ * Web Scraper API hands back "sd_" ids today (sd_mt9xuudv23gyk8mxyr and others),
+ * while "s_" is the older form still in circulation and still documented. This
+ * test accepts either, because matching only "s_" sent every real trigger id
+ * down the /dca branch, where it 404s and the error blames the caller for an id
+ * that was perfectly good. Anything else is read through /dca.
  * The full id routing story lives in references/snapshots-and-jobs.md.
  */
 function routeFor(id) {
-  return id.startsWith('s_')
+  return /^sd?_/.test(id)
     ? {
         kind: 'Web Scraper API snapshot',
         progress: `${API}/datasets/v3/progress/${encodeURIComponent(id)}`,
         data: `${API}/datasets/v3/snapshot/${encodeURIComponent(id)}?format=json`,
+        notFound: 'Wrong id, wrong account, or the job has expired.',
       }
     : {
         kind: 'Scraper Studio job',
         progress: `${API}/dca/log/${encodeURIComponent(id)}`,
         data: `${API}/dca/dataset?id=${encodeURIComponent(id)}`,
+        // The /dca branch is the fallback, so a 404 here is as likely to mean
+        // "this id was routed to the wrong API" as "this id is wrong". Say the
+        // first possibility out loud rather than blaming the caller for it.
+        notFound: 'It was read as a Scraper Studio job. If this id came from a datasets trigger, the endpoints may have changed. Otherwise the id is wrong, the account is wrong, or the job has expired.',
       };
 }
 
@@ -261,7 +271,7 @@ async function main() {
     const res = await get(route.progress, key);
 
     if (res.status === 401) die('401 from the API. The key is invalid or revoked. Run: bdata login --device');
-    if (res.status === 404) die(`404 for ${id}. Wrong id, wrong account, or the job has expired.`);
+    if (res.status === 404) die(`404 for ${id}. ${route.notFound}`);
     if (!res.ok && !res.transient) {
       die(`HTTP ${res.status} while polling: ${asText(res.body)}`);
     }

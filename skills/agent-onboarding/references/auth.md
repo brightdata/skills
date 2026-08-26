@@ -20,6 +20,22 @@ Resolution order when a command runs:
 
 For CI and containers, use the environment variable. Set it from a secrets store, and do not echo it into logs or commit it to a file.
 
+## Reading the key in code
+
+After `bdata login`, `BRIGHTDATA_API_KEY` is **unset, and that is normal**. Login writes the key into `credentials.json` and nowhere else. An empty environment variable on a logged-in machine is not a logged-out machine. Do not run `bdata login` again because of it, and do not ask the user for a key.
+
+To use the key in your own REST call, read the file and put the value straight into a variable, or do the same read in-process. Never echo it to the terminal.
+
+```
+node -e "console.log(JSON.parse(require('fs').readFileSync(process.env.APPDATA+'/brightdata-cli/credentials.json')).api_key)"
+```
+
+That is the Windows path. On macOS and Linux, swap in the path from the table above. Send the output straight into a variable (`KEY=$(node -e ...)` in bash, `$key = node -e ...` in PowerShell) or do the same read inside the program that needs it. A key printed to a terminal or a log is a leaked key.
+
+The bundled scripts already do this for you. `check-auth.mjs`, `find-scraper.mjs`, `poll.mjs` and `trigger.mjs` each resolve the key themselves, from the environment variable first and then the same credentials paths, so they need no key argument and no environment variable set.
+
+**PowerShell.** The `$BRIGHTDATA_API_KEY` written throughout these docs is bash syntax. In PowerShell the same variable is `$env:BRIGHTDATA_API_KEY`. Copy the bash form into PowerShell and it expands to nothing, the request goes out with an empty `Bearer` header, and it comes back 401 or `Auth method is not supported` even though the machine is logged in.
+
 ## REST without the CLI
 
 ```

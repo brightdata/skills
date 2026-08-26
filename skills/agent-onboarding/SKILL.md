@@ -9,14 +9,15 @@ Install the CLI and the skills, log in once, then route to the task skill.
 
 **Never ask the user to paste an API key into chat.** Login is one browser approval. The key never touches the conversation.
 
-**Windows note:** type every command with `.cmd` - `bdata.cmd`, `npm.cmd`, `npx.cmd`. The PowerShell error "running scripts is disabled" means a command was typed without it. It is not a PATH problem.
+**Windows note:** type every command with `.cmd` - `bdata.cmd`, `npm.cmd`, `npx.cmd`. The PowerShell error "running scripts is disabled" means a command was typed without it. It is not a PATH problem. Reading files is the other Windows trap: PowerShell 5.1 misreads UTF-8 JSON written by the CLI or by these skills' scripts and hands back mojibake, so read those files with `[System.IO.File]::ReadAllText($path,[Text.Encoding]::UTF8)` instead of `Get-Content`.
 
 ## Already set up?
 
-Two free checks before doing any work:
+Three free checks before doing any work:
 
 1. `bdata --version` works: skip to Add the skills.
 2. `bdata zones --json` shows `cli_unlocker` and `cli_browser`: logged in, skip straight to the route table.
+3. The skill folders already exist in the project: the skills are installed, so skip Add the skills entirely rather than running the installs again.
 
 Only the first check passes: go to Log in. On Windows, "bdata is not recognized" can also mean installed but not on PATH - apply the PATH fix in Install before reinstalling.
 
@@ -40,6 +41,8 @@ cmd rejects that line. The cmd version:
 ```
 for /f "delims=" %p in ('npm.cmd config get prefix') do set PATH=%PATH%;%p
 ```
+
+Both lines die with the session. To make it permanent, the user adds npm's prefix directory, the path `npm.cmd config get prefix` prints, to their user PATH through the Windows environment variable settings (Start, "Edit the system environment variables", then Environment Variables). Do not reach for `setx` here. It truncates PATH at 1024 characters, so on a machine with a long PATH it destroys the value it was meant to extend.
 
 If `npm install -g` is blocked on the machine, skip installing: `npx -y @brightdata/cli <command>` (`npx.cmd` on Windows) runs the same CLI on demand, use it wherever a command says `bdata`.
 

@@ -26,8 +26,6 @@ The list endpoint needs the API key header. Without it the call returns 401, eve
 
 The CLI's own usage messages print `brightdata`, which is the same binary as `bdata`.
 
-The library keeps growing, so never quote a total to the user. Say "thousands".
-
 If a bundled `dataset_id` is rejected as unknown, do not retry it and do not guess a replacement. Fall back to `curl -H "Authorization: Bearer $BRIGHTDATA_API_KEY" https://api.brightdata.com/datasets/list` and match on the scraper name.
 
 Six of the 25 below have no CLI pipeline. For those the `dataset_id` is the only way to call them.
@@ -119,6 +117,9 @@ Reddit is a robots.txt-disallowed target, so calls can be refused until the acco
 | 17 | Zillow - property listings | `zillow_properties_listing` | `gd_lfqkr8wm13ixtbd8f5` | `url` (url) | none |
 | 21 | Google Maps - reviews | `google_maps_reviews` | `gd_luzfs1dn2oa0teb81` | `url` (url) | `sort_by` (text) |
 | 24 | X - posts | `x_posts` | `gd_lwxkxvnf1cynvib9co` | `url` (url) | none |
+| - | X - profiles | none | `gd_lwxmeb2u1cniijd7t4` | `url` (url) | none |
+
+X - profiles carries no usage rank because it is not one of the 25. It is bundled because a platform's presence in this table does not mean all its scrapers are listed, so when the row's object (posts, profiles, comments) does not match the ask, search the live catalogue instead of forcing the listed row.
 
 Three pipelines take a second positional argument on the CLI that is not in the REST input list:
 
@@ -146,10 +147,10 @@ bdata pipelines linkedin_company_profile https://www.linkedin.com/company/stripe
 POST https://api.brightdata.com/datasets/v3/trigger?dataset_id=gd_lkaxegm826bjpoo9m5
      Content-Type: application/json
      [{"url":"https://www.facebook.com/nasa"}]
-     returns {"snapshot_id":"s_..."}
+     returns {"snapshot_id":"sd_..."}
 
-GET  https://api.brightdata.com/datasets/v3/progress/s_...    poll until it reports ready
-GET  https://api.brightdata.com/datasets/v3/snapshot/s_...    the records
+GET  https://api.brightdata.com/datasets/v3/progress/sd_...    poll until it reports ready
+GET  https://api.brightdata.com/datasets/v3/snapshot/sd_...    the records
 ```
 
 The body is always a JSON array. One object per input.
@@ -164,7 +165,7 @@ After a REST trigger, one CLI call polls to completion: `bdata status <snapshot_
 | What fields does this scraper require? | POST an empty body `[{}]` to the trigger endpoint. Required fields come back in the `errors` array. Optional fields come back inside the `line` key, as an empty-valued JSON object. The call is rejected before any work starts, so nothing is billed. |
 | What comes back, and in what types? | `GET https://api.brightdata.com/datasets/<dataset_id>/metadata` returns every output field with its type. |
 
-For the 25 rows in the table above, the required and optional inputs are already listed. Do not probe them again. Call metadata only when the user asks which output fields come back.
+For the 25 rows above the inputs are already listed. Do not probe them again. Call metadata when you need the real output field names, and skip it only when the bundled row already answers the ask. The real names rarely match the words the user used, so metadata is what turns "follower count" into `followers` and "industry" into `industries`.
 
 On Windows PowerShell 5.1, run the probe with `curl.exe` or node. `Invoke-WebRequest` hides the 400 response body.
 

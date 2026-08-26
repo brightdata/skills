@@ -57,6 +57,11 @@ const USAGE_BLOCK = [
   '  <query>      part of a scraper name, or a gd_ dataset id',
   '  --schema     what the one matching scraper takes and returns',
   '  --json       one JSON object on stdout instead of the human listing',
+  // Two agents reading this script for the first time guessed the --json shape
+  // wrong before their first call. Every key is always present, so sketching
+  // them here costs one line and saves a run spent finding out.
+  '               shape: { ok, query, matches[{id,name}], skipped_internal,',
+  '                        schema{required, optional, outputs}, error }',
   '  -h, --help   this block',
   '',
   '  example:  node find-scraper.mjs instagram',
@@ -495,7 +500,13 @@ async function resolve() {
     if (skipped > 0) {
       lines.push(`  ${skipped} internal row${skipped === 1 ? '' : 's'} matched and were skipped, none of them usable`);
     }
-    lines.push('  nothing in the catalogue fits? Then no ready scraper covers this, so go to gate 2 and build one');
+    // Deliberately does NOT name gate 2. Gate 2 carries three further
+    // conditions that this script never checked (shared layout, a repeat run,
+    // or data that only appears after browser actions), and the gate table has
+    // a fall-through row underneath it for the one-time no-layout job. "No
+    // ready scraper" rules out gate 1 and nothing else, so the honest next step
+    // is the table, not the row this script cannot know applies.
+    lines.push('  nothing in the catalogue fits? Then no ready scraper covers this. Go back to the gate table in SKILL.md to pick the next path.');
     return { ...result, error: 'no_match', exit: 1, lines };
   }
 
@@ -593,7 +604,15 @@ async function resolve() {
   } else {
     lines.push(`output fields: ${outNames.length}`);
     const preview = outNames.slice(0, SAMPLE).map(n => `${n}:${outputs[n]}`).join('  ');
-    if (preview) lines.push(`${C.dim}  ${preview}${outNames.length > SAMPLE ? '  ...' : ''}${C.off}`);
+    if (preview) {
+      lines.push(`${C.dim}  ${preview}${C.off}`);
+      // A bare "..." tells the reader something was cut but not how much, and
+      // not how to see the rest. Both counts and the flag that lifts the limit
+      // go on the line, so nobody has to guess whether they saw everything.
+      if (outNames.length > SAMPLE) {
+        lines.push(`${C.dim}  ${outNames.length} fields, showing ${SAMPLE}. Add --json for all of them.${C.off}`);
+      }
+    }
   }
 
   lines.push(`${C.ok}ready to trigger${C.off}`);

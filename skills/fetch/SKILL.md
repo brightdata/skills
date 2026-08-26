@@ -19,6 +19,8 @@ bdata scrape https://example.com/article
 
 Markdown is the default. `bdata login` sets the zone default to `cli_unlocker`, so a fresh login needs no `--zone`. Override with `--zone <name>`, or `BRIGHTDATA_UNLOCKER_ZONE`, or `bdata config set default_zone_unlocker <name>`.
 
+If `bdata` is not recognized, npm's global directory is not on PATH, and the fix lives in the `agent-onboarding` skill's Install section. On Windows type `bdata.cmd`.
+
 **REST.** The same request, for any machine with no CLI.
 
 ```
@@ -40,6 +42,8 @@ POST https://api.brightdata.com/request
 | Raw HTML | `-f html` | `"format":"raw"`, no `data_format` | When the user's own code parses it |
 | Screenshot | `-f screenshot` | `"format":"raw","data_format":"screenshot"` | Binary PNG. The CLI writes `screenshot.png` unless `-o <path>` says otherwise |
 | Response metadata | `-f json` | `"format":"json"` | Status and headers around the body |
+
+One honest note on the markdown: links come back exactly as the page wrote them, so a relative link like `/pricing` stays relative and points nowhere once the text leaves the site. That is fine when the output feeds a model, an index or a RAG store. For a standalone document a person will read and click, resolve the links against the page URL first, and say that you did.
 
 The other flags that exist: `--country <code>`, `--async`, `-o <path>`, `--json`, `--pretty`, `--timing`, and `--mobile`, which v0.3.5 advertises but parses and never sends, so it is a silent no-op.
 

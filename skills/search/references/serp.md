@@ -10,7 +10,8 @@ SERP returns about 10 results per request, in under a second. Anything that need
 ## Contents
 
 - The fast path - CLI
-- Zones - the CLI needs one and a stale config value can block it
+- What comes back - the organic array
+- Zones - one has to resolve, and a stale config value can block it
 - The fast path - REST
 - Engines
 - Google verticals and query parameters
@@ -23,7 +24,7 @@ SERP returns about 10 results per request, in under a second. Anything that need
 bdata search "<query>" --engine google --country us --language en --type web --page 0 --pretty
 ```
 
-Every flag is optional, but the zone is not. It has its own section below. Defaults: `--engine google`, `--type web`, `--page 0`.
+Every flag is optional, `--zone` included. The rule is not that you have to pass a zone, it is that **a zone has to resolve**: the flag beats the environment variable, which beats the config key, which falls back to the unlocker zone. The section below has the full order and the one thing that breaks it. Defaults: `--engine google`, `--type web`, `--page 0`.
 
 | Flag | Values |
 |---|---|
@@ -46,7 +47,22 @@ What two of those flags really send:
 
 The CLI's own usage text prints `brightdata`, which is the same binary as `bdata`.
 
-## Zones - the CLI needs one and a stale config value can block it
+## What comes back - the organic array
+
+Parsed SERP JSON puts the results in an **`organic` array**. Each entry carries `rank`, `title`, `link` and `description`.
+
+```json
+{"organic": [
+  {"rank": 1, "title": "Best CRM for Startups in 2026",
+   "link": "https://www.example.com/best-crm",
+   "description": "We scored 14 tools on price, setup time and support.",
+   "display_link": "50+ comments · 2 months ago"}
+]}
+```
+
+**Cite `link`, never `display_link`.** `link` is the real URL and the only field to quote, follow or hand back to the user. `display_link` is the grey line Google prints under a title, which is sometimes the domain and just as often something like `50+ comments · 2 months ago`. It is display text, not an address, so a citation or a follow-up fetch built from it is broken or invented. For a question about position, read `rank` rather than counting positions in the array.
+
+## Zones - one has to resolve, and a stale config value can block it
 
 The CLI resolves the zone in this order:
 
@@ -62,7 +78,11 @@ A fresh install is not the problem. Source-verified in v0.3.5: the shipped `DEFA
 
 The break is a stale config value. The CLI never validates the zone it reads: it does not check that the name still exists before sending the request. So one leftover `default_zone_serp` naming a zone that was never created, or one that was deleted, ends the resolution order at step 3 because the value is truthy. The unlocker fallback in steps 4 and 5 never runs, and every `bdata search` comes back 422 Unknown zone. The usual leftover is `cli_serp` from an earlier experiment.
 
-Detect it with `bdata config get default_zone_serp`. If that returns `cli_serp`, check the name against `bdata zones --json`: on almost every account no such zone is there, so it is a leftover, not a zone anyone created.
+Detect it with `bdata config get default_zone_serp`, then check whatever name it returns against `bdata zones --json`. Two healthy answers and one broken one:
+
+- **The name is in the zone list.** The config is fine. Change nothing and make the call.
+- **The key is unset.** Also fine. The order falls through to the unlocker zone, which serves SERP.
+- **The name is not in the zone list.** This is the stale value described above, and the remedy table below fixes it.
 
 An `unblocker`-type zone does serve SERP requests. Verified live: `bdata search --zone cli_unlocker --json "test"` returned full parsed SERP JSON with a `search_time` of 0.39s. The fallback is legitimate, so the usual repair is one config line and no new zone.
 

@@ -18,6 +18,9 @@ A SERP page asked for as raw HTML with no URL is still this skill: use format `r
 | No volume word. **The default.** | **SERP API** | Structured JSON in under a second. About 10 results per request. Synchronous. |
 | "Top 100", "all the results", a rank report past page one | **Get top 100 Google results** | A Web Scraper API dataset job. Trigger, poll, download. Not instant. |
 | "daily", "weekly", "track this keyword" | **The same path, on a timer** | Google rank tracking is SERP API plus a cron the agent writes. Answer-engine tracking is a dataset job plus a cron, see [references/answer-engines.md](references/answer-engines.md). |
+| "top 5", "the first 3", any number under ten | **SERP API** | The normal fast path, then truncate the list to what was asked. |
+
+A volume word always means **more** than the default 10, never fewer. "Top 5" is not a smaller or cheaper job, it is this same one call with a shorter answer, so never route it anywhere else and never treat it as a reason to change product.
 
 Route silently, defaulting to SERP. Ask only when the ask names no engine, no vertical, no volume word, no latency word and no consumer signal. The question is one line: *"Ten results now, or a hundred as a job that takes longer?"*
 
@@ -39,8 +42,10 @@ The ask: *"what does Google show in the US for best crm for startups?"*
 2. No volume word, no "100". Fast path.
 
 ```
-bdata search "best crm for startups" --country us --pretty
+bdata search "best crm for startups" --zone cli_unlocker --country us --pretty
 ```
+
+`--zone cli_unlocker` is not decoration. A zone only has to resolve, and passing it explicitly beats every other source, which makes the call immune to the stale `default_zone_serp` that otherwise returns 422. Use whatever unlocker zone `bdata zones --json` shows on the account.
 
 Then state the choice:
 

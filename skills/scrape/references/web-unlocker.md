@@ -8,7 +8,17 @@ Only one row of the gate table lands here: a one-time job, no ready scraper, and
 
 ## The request
 
-One POST. Verified live against a real zone.
+Two ways in, one engine underneath. Reach for the CLI first, because it needs no zone name and no body.
+
+**The CLI.**
+
+```
+bdata scrape <url> -f html -o <file>
+```
+
+`-f html` asks for the raw page and `-o` writes it to a file. The command is spelled `scrape`, but it has nothing to do with this scrape skill. It is the `fetch` skill's engine, borrowed here because the fall-through needs raw pages.
+
+**The REST call.** One POST. Verified live against a real zone.
 
 ```
 POST https://api.brightdata.com/request
@@ -39,6 +49,8 @@ For volume, async mode is an opt-in zone setting (Advanced settings, "Asynchrono
 | Geo targeting | Country targeting, plus `x-unblock-city` and `x-unblock-zipcode` on supported targets |
 
 What it does not do is give you fields. There is no schema, no field list, and no metadata endpoint. Everything after the response body is the user's code.
+
+One trap to carry into that parser: on listing pages the visible link text is often cut short with an ellipsis, while the full value sits in an attribute such as `title`. Check the attributes before trusting what the page displays.
 
 ## KYC
 

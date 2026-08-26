@@ -75,6 +75,31 @@ The nine documented dimensions are `products`, `types`, `zones`, `datasets`, `we
 
 **A wrong dimension can look like a zero bill.** An unrecognized value such as `totally_bogus` returns 400, but `dca_jobs` and `dca_jobs_dynamic` are accepted and return 200 with an empty object every time (live). An agent that passes one of those and reports "no charges" is reporting the absence of a valid query, not the absence of spend. Stick to the nine.
 
+**How to tell an empty answer from a wrong question.** When a dimension comes back `{}`, do not report zero yet. Ask again for the same window with `dimension` set to `products`, which is the broad one. If `products` shows spend and the narrow dimension is still empty, the dimension name is wrong or unsupported on this account, so fix the name instead of reporting no charges. If both come back empty for that window, there was genuinely no spend in it, and you can say so plainly.
+
+### Calling it
+
+bash:
+
+```bash
+curl -s -X POST https://api.brightdata.com/costs/export/json \
+  -H "Authorization: Bearer $BRIGHTDATA_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"from":"2026-08-01","to":"2026-09-01","dimension":"products"}'
+```
+
+PowerShell 5.1, where the TLS line is not optional and the variable needs the `$env:` prefix:
+
+```powershell
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$body = '{"from":"2026-08-01","to":"2026-09-01","dimension":"products"}'
+Invoke-RestMethod -Method Post -Uri "https://api.brightdata.com/costs/export/json" `
+  -Headers @{ Authorization = "Bearer $env:BRIGHTDATA_API_KEY" } `
+  -ContentType "application/json" -Body $body
+```
+
+Change the two dates for the window you want, and remember `to` is exclusive. A whole month is the 1st of that month to the 1st of the next. **Month to date is the 1st of this month to the 1st of next month**, which is exactly what the body above asks for. Never put today's date in `to`, because that silently drops today.
+
 ### The JSON response
 
 Keyed by day, each day mapping a resource key to billed dollars for that day. **A `total` key sits alongside the dates** with the sum for the whole range, so iterating the keys as dates will count everything twice. The published schema and example show only date keys and no `total`, so this is live behavior the docs do not describe.
@@ -87,9 +112,13 @@ Keyed by day, each day mapping a resource key to billed dollars for that day. **
 }
 ```
 
-Resource keys are internal names that depend on the dimension. Seen live: `unblocker`, `data_api` and `dataset_api` for `products`, and `reqs_serp`, `reqs_unblocker` and `records` for `types`. For `zones` the keys are zone names (live). The docs also show opaque dataset ids sitting alongside them, docs only, not verified live. Days with no spend are simply absent, and a range with no spend returns `{}`.
+Resource keys are internal names that depend on the dimension. Seen live: `unblocker`, `data_api` and `dataset_api` for `products`, and `reqs_serp`, `reqs_unblocker` and `records` for `types`. The docs also show opaque dataset ids sitting alongside them, docs only, not verified live. Days with no spend are simply absent, and a range with no spend returns `{}`.
+
+**The `zones` dimension does not return plain zone names (live).** Most keys on a live account are synthetic per-dataset keys carrying a prefix, such as `v__ds_api_`, `v__cli_ds_api_` and `v__dca_ds_api_`, followed by a dataset identifier. The prefix is the meaningful part, because it decides the product line: `v__dca_ds_api_*` bills as `dataset_api`, while `v__ds_api_*` and `v__cli_ds_api_*` bill as `data_api`. Match on the prefix when you group these, do not try to read the suffix as a zone, and do not assume a key from this dimension can be passed to `/zone/cost`, which wants a real zone name.
 
 Exclusivity confirmed live. Asking `from=2026-06-11&to=2026-06-12` returns that day, and asking `from=2026-06-11&to=2026-06-11` returns nothing.
+
+**The current day lags (live).** For today, the export runs minutes behind `/zone/cost`, so a same-day read under-reports and two reads a few minutes apart will disagree with each other. The export is the source of truth for closed days only. Answer a today question from `/zone/cost`, and if a same-day export figure has to be reported at all, say plainly that the day is still settling.
 
 ### The CSV response
 
@@ -107,7 +136,9 @@ Docs only, not verified live: the export is rate limited to 1,000 requests a min
 
 **GET /customer/bw** and **GET /zone/bw** return bandwidth and request counts rather than money. The response is keyed by customer id, then by zone, then by metric, with names such as `bw_sum`, `bw_dn`, `bw_up`, `reqs_unblocker_billable` and `reqs_serp_billable` (live). They answer how much traffic moved, never how much it cost. They accept both `YYYY-MM-DD` and full ISO timestamps (live), and the docs do not say whether their `to` is exclusive.
 
-**GET /status** returns **200** with `status`, `customer`, `can_make_requests`, `auth_fail_reason` and `ip` (live). Use `can_make_requests` to answer whether the account is able to work, instead of firing a billable request to find out.
+**GET /status** returns **200** with `status`, `customer`, `can_make_requests`, `auth_fail_reason` and `ip` (live). It is a free way to ask whether the account can work, which beats firing a billable request to find out.
+
+Treat `can_make_requests` as a hint and never as proof. Live, it came back `false` with an `auth_fail_reason` of `zone_not_found` on an account that was successfully billing traffic in the same minute. A `false` here means one lookup behind the endpoint failed, not that the account is unable to work, so never report it to a user as a blocked or broken account and never stop work on the strength of it alone. Only a `true` is worth much, and even then the real answer comes from the cost reads above.
 
 ## What no API will tell you
 

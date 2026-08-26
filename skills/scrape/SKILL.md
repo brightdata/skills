@@ -16,7 +16,9 @@ Run the gates below to pick the product yourself - never ask the user which. Sta
 | **Gate 2 - build it.** No ready scraper covers these fields, and any one of these: many pages share one layout, the job will run again, or the data only appears after browser actions (typing, scrolling, waiting, CAPTCHA) and the user has no Playwright, Puppeteer or Selenium setup. | **Scraper Studio.** |
 | **Fall-through.** One-time job, no ready scraper, and the pages share no layout. | Back to `fetch` (Web Unlocker), and the user owns the parser. |
 
-**Gate 1 in practice.** Open [references/web-scraper-api.md](references/web-scraper-api.md) and check its bundled top-25 table first, which costs zero API calls. When nothing matches, run `node scripts/find-scraper.mjs <name or gd_ id>` - one free call searches the live catalogue, skips junk rows, and `--schema` adds required inputs and typed outputs. Manual fallbacks for the same lookup: `bdata pipelines list` for the pipelines the CLI ships, or `curl -H "Authorization: Bearer $BRIGHTDATA_API_KEY" https://api.brightdata.com/datasets/list`. All are free reads that trigger no job. Run the check and pick the scraper yourself, rather than asking the user which one to use. A single URL is not a reason to skip it. Web Scraper API has no built-in scheduler, so "daily" means the agent writes a cron job or a GitHub Actions workflow in the user's project.
+Many pages means many URLs. One page holding many items is still one page, and with no ready scraper and no recurrence it falls through to fetch, which is a normal outcome, not a failure.
+
+**Gate 1 in practice.** Open [references/web-scraper-api.md](references/web-scraper-api.md) and check its bundled top-25 table first, which costs zero API calls. When nothing matches, run `node scripts/find-scraper.mjs <name or gd_ id>` - one free call searches the live catalogue, skips junk rows, and `--schema` adds required inputs and typed outputs. Manual fallbacks for the same lookup: `bdata pipelines list` for the pipelines the CLI ships, or `curl -H "Authorization: Bearer $BRIGHTDATA_API_KEY" https://api.brightdata.com/datasets/list`. All are free reads that trigger no job. When the scraper you picked has no CLI pipeline, `node scripts/trigger.mjs <dataset_id> <url>` starts the job and `node scripts/poll.mjs <snapshot_id>` brings back the records. Run the check and pick the scraper yourself, rather than asking the user which one to use. A single URL is not a reason to skip it. Web Scraper API has no built-in scheduler, so "daily" means the agent writes a cron job or a GitHub Actions workflow in the user's project.
 
 **When the user has no URLs.** Many ready scrapers take a discovery input instead: a keyword, a category URL, a best-sellers URL, a location. Check the scraper's metadata before assuming it needs a URL. Sites with no ready scraper go to Scraper Studio, which covers single-page, search-discovery and multi-page patterns.
 
@@ -53,6 +55,8 @@ Then state the choice in one line while the job runs:
 
 > Using the maintained Instagram profiles scraper. It runs as a job, so this is not instant. Say `recurring` to put it on a schedule.
 
+When the records come back, check they describe the entity the user meant before reporting them. Vanity URLs collide, and `linkedin.com/company/anthropic` returns a venture fund rather than the AI lab.
+
 ## Read next
 
 - **Before the first Web Scraper API call:** [references/web-scraper-api.md](references/web-scraper-api.md) - the top-25 table, the name trap, and the free discovery moves.
@@ -61,6 +65,7 @@ Then state the choice in one line while the job runs:
 - **When every gate has said no and the data job has to fetch raw pages itself:** [references/web-unlocker.md](references/web-unlocker.md) - the one-POST request shape, the four KYC error codes, and the signal that means go back to gate 2.
 - **The moment a trigger hands back an id instead of data:** [references/snapshots-and-jobs.md](references/snapshots-and-jobs.md) - which endpoints match which id, and the delivery settings the agent never configures.
 - **When a bundled id is rejected or the site is not in the table:** [scripts/find-scraper.mjs](scripts/find-scraper.mjs) - live search by name or id, `--schema` for inputs and outputs, junk rows filtered, key never printed.
+- **When the scraper you picked has no CLI pipeline:** [scripts/trigger.mjs](scripts/trigger.mjs) - `node trigger.mjs <dataset_id> <url>` starts the job and prints the snapshot id, key never printed.
 - **When a job is running and you need the data without hand-writing a poll loop:** [scripts/poll.mjs](scripts/poll.mjs) - either id in, data out, key never printed.
 - **When a call is refused for auth:** the `agent-onboarding` skill. The REST 401 wording varies ("Credentials are invalid", "Invalid credentials") while the CLI prints "No API key found". All mean log in. Send 407 and `kyc_required` there too, along with missing zones.
 

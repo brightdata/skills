@@ -23,7 +23,7 @@ Never run a real job to find out what the account can do or what something costs
 | What each product, zone, dataset or domain cost | no CLI command, call it directly | `POST /costs/export/json` |
 | What scraping cost | no CLI command, call it directly | `POST /costs/export/json` with `dimension` `web_apis` for Web Scraper API, `collectors` for Scraper Studio |
 
-Base host is `https://api.brightdata.com` and auth is the header `Authorization: Bearer <key>`. Read the key from the environment or the CLI's own store. Never ask the user to paste a key into the conversation, and never print one.
+Base host is `https://api.brightdata.com` and auth is the header `Authorization: Bearer <key>`. Read the key from the environment or the CLI's own store. The exact file path for each OS, and the safe way to read it without printing it, live in the `agent-onboarding` skill's auth reference. That reference also has the thing that trips agents here: after a CLI login, `BRIGHTDATA_API_KEY` is unset, and that is normal rather than a sign the machine is logged out, because login writes the key to the CLI's store and never to the environment. Never ask the user to paste a key into the conversation, and never print one.
 
 `/zone/cost` only sees zone-backed products such as Web Unlocker, SERP, Browser API and the proxy networks. Web Scraper API and Scraper Studio spend is keyed by dataset id and collector rather than by zone name, so it never appears there. Those go to the cost export.
 
