@@ -82,9 +82,9 @@ The heal stops at `awaiting_approval` by default. Nothing changes until someone 
 
 ## The scheduler
 
-Studio has a built-in scheduler: hourly, daily, weekly, or custom. This is the only Bright Data scraping path with one. Web Scraper API and Web Unlocker need a cron job or a GitHub Actions workflow written into the user's own project.
+Studio has a built-in scheduler: hourly, daily, weekly, or custom. This is the only Bright Data scraping path with one.
 
-The CLI has no schedule subcommand. The schedule is set on the scraper in the control panel. The agent does not set it, and it should say so rather than inventing a flag.
+The CLI has no schedule subcommand - the schedule is set on the scraper in the control panel, so say that rather than inventing a flag.
 
 ## Scraper patterns
 

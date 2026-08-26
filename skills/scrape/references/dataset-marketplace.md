@@ -16,7 +16,7 @@ Any one of them false and the answer is scrape. Need it once, buy the dataset. N
 
 ## What the docs confirm
 
-- The marketplace is "a one-stop platform for discovering, customizing and purchasing high-quality datasets from over 250 domains", with 350+ ready-to-use datasets.
+- The marketplace is a one-stop platform for discovering, customizing and purchasing ready-to-use datasets - hundreds of them, across hundreds of domains.
 - Browsing happens in the control panel at `https://brightdata.com/cp/datasets/browse`.
 - Two purchase models: one-time or subscription.
 - Two freshness options. Pre-collected is "data that was collected recently and is ready for use". Fresh is "up-to-date and fresh, available immediately after it's collected".
