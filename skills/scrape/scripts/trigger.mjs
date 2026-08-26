@@ -3,9 +3,8 @@
  * trigger.mjs - start one collection job and hand back its snapshot id.
  *
  * find-scraper.mjs says which scraper to use and what it takes. poll.mjs turns
- * a snapshot id into records. Between them sat a gap that every agent filled by
- * hand-writing the same POST, so this is that POST, with the same auth, the
- * same timeout and the same no-leak rules as the rest of the scripts:
+ * a snapshot id into records. This script is the step between them - the
+ * trigger POST, with the same auth, timeout and no-leak rules as its siblings:
  *
  *   node find-scraper.mjs instagram --schema     what it takes
  *   node trigger.mjs gd_l1vikfch901nx3by4 https://www.instagram.com/nasa/
@@ -37,9 +36,8 @@ const API = process.env.BRIGHTDATA_API_BASE || 'https://api.brightdata.com';
 
 /**
  * Per-request ceiling. A server that accepts the socket and then says nothing
- * must not hang the agent that called this, so every request carries it.
- * The env var is a test seam: the suite proves the timeout fires, and it has to
- * do that in a couple of seconds rather than in fifteen of them.
+ * must not hang the caller, so every request carries it.
+ * BRIGHTDATA_REQUEST_TIMEOUT_MS overrides the default.
  */
 const REQUEST_TIMEOUT_MS = Number(process.env.BRIGHTDATA_REQUEST_TIMEOUT_MS) > 0
   ? Number(process.env.BRIGHTDATA_REQUEST_TIMEOUT_MS)
@@ -47,11 +45,7 @@ const REQUEST_TIMEOUT_MS = Number(process.env.BRIGHTDATA_REQUEST_TIMEOUT_MS) > 0
 
 const USAGE = 'Usage: node trigger.mjs <dataset_id> <input_url> [--json]';
 
-/**
- * What -h and --help print. The first line is the one every error path also
- * shows, so a reader who hit a mistake and a reader who asked for help are
- * looking at the same shape of answer.
- */
+/** What -h and --help print. Its first line is the one every error path shows. */
 const USAGE_BLOCK = [
   USAGE,
   '  <dataset_id> the gd_ id of the scraper to run',
@@ -118,19 +112,16 @@ const note = msg => process.stderr.write(`${msg}\n`);
 // ---------------------------------------------------------------- auth
 
 /**
- * Read JSON tolerating a UTF-8 BOM (Windows editors add one).
- * The BOM is written as the \uFEFF escape on purpose: as a literal it is an
- * invisible character inside a regex, which reads as a bug and gets "cleaned
- * up" by the next person to touch this line.
+ * Read JSON tolerating a UTF-8 BOM (Windows editors add one). The BOM is
+ * written as the \uFEFF escape because a literal one is invisible in a regex.
  */
 const readJson = p => JSON.parse(readFileSync(p, 'utf8').replace(/^\uFEFF/, ''));
 
 /**
  * A usable key is visible ASCII and nothing else, because that is all an HTTP
- * header value accepts. This is a safety rule as much as a correctness one: a
- * key carrying a newline makes the Authorization header invalid, and the error
- * text the HTTP stack raises for that quotes the offending header back, key
- * included. Catching the shape here keeps that string from ever being built.
+ * header value accepts. A key carrying a newline makes the Authorization header
+ * invalid, and the HTTP stack quotes the offending header back in its error,
+ * key included. Checking the shape here keeps that string from being built.
  */
 const KEY_SHAPE = /^[\x21-\x7e]+$/;
 
@@ -158,10 +149,9 @@ function findApiKey() {
 /**
  * Read the API key without ever printing it.
  *
- * Returns { key, illegal }. `illegal` means a value was found and it cannot be
+ * Returns { key, illegal }. `illegal` means a value was found and cannot be
  * used, which is a different fact from finding nothing: the fix is to repair
- * the credential, not to log in again. The value itself is never returned or
- * quoted anywhere, not even a fragment of it.
+ * the credential, not to log in again. The value is never returned or quoted.
  */
 function readApiKey() {
   const found = findApiKey();
@@ -213,7 +203,7 @@ async function call(url, key, init = {}) {
 const blank = () => ({ ok: false, snapshot_id: null, error: null });
 
 /**
- * A call that told us nothing. Always exit 2: the trigger was never answered,
+ * A call that answered nothing. Always exit 2: the trigger was never answered,
  * so the caller must not read this as "the job did not start".
  */
 function apiFailure(res, what) {
@@ -244,9 +234,7 @@ async function resolve() {
 
   // ---- arguments
 
-  // Help is answered before anything else, including a bad flag next to it:
-  // someone who asked what the flags are is exactly the person who just got
-  // one wrong. Asking for help is not a failure, so this exits 0.
+  // Help wins over every other argument, including bad ones, and exits 0.
   if (help) {
     return { ...blank(), ok: true, exit: 0, lines: USAGE_BLOCK };
   }
@@ -262,8 +250,7 @@ async function resolve() {
       '  no id yet? node find-scraper.mjs <part of the name>'] };
   }
 
-  // Both checks below are free and run before the billed call, because the
-  // cheapest way to not waste a job is to not start one.
+  // Both checks below are free and run before the billed call.
   const looksLikeUrl = s => /^https?:\/\//i.test(s.trim());
 
   if (looksLikeUrl(datasetId) && !looksLikeUrl(inputUrl)) {
@@ -284,9 +271,7 @@ async function resolve() {
 
   const { key, illegal } = readApiKey();
   if (illegal) {
-    // Deliberately says nothing about the value, not even its length or first
-    // characters: the whole point of this branch is that the key is never
-    // quoted anywhere.
+    // Never quotes the value, not even a prefix.
     return { ...blank(), error: 'bad_api_key', exit: 2, lines: [
       `${C.bad}x the API key cannot be used: the credential file or env var contains an illegal character${C.off}`,
       '  a key is printable ASCII with no spaces, so a stray newline or tab breaks it',
@@ -302,9 +287,9 @@ async function resolve() {
 
   // ---- the billed call
   //
-  // Said out loud, before the POST, and on stderr so that --json still parses
-  // and a redirected stdout still shows it. Everything above this line is free;
-  // everything below it can cost money.
+  // Said on stderr before the POST, so --json still parses and a redirected
+  // stdout still shows it. Everything above this line is free; everything
+  // below it can cost money.
   note(`${C.dim}triggering 1 job, 1 input (billed)${C.off}`);
 
   const url = `${API}/datasets/v3/trigger?dataset_id=${encodeURIComponent(datasetId)}`;

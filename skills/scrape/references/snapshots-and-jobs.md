@@ -25,6 +25,10 @@ GET https://api.brightdata.com/datasets/v3/snapshot/<snapshot_id>    the records
 
 Do not download early, and do not poll in a tight loop.
 
+A poll timeout only stops the waiting. The job keeps running on Bright Data's side, so polling the same id again later picks it up with nothing lost and nothing billed twice.
+
+For a large batch job, do not sit blocking in one poll call - hand the user the snapshot id, say it is running, and check it again later.
+
 One CLI call does the whole thing:
 
 ```
@@ -41,6 +45,8 @@ Two endpoints. One tells you how the job is going, the other hands over the reco
 GET https://api.brightdata.com/dca/log/{job_id}                            status and counters, never records
 GET https://api.brightdata.com/dca/dataset?id=<collection_id>&format=json  the records, once the job is done
 ```
+
+Batch collection ids start with `j_` and read through `/dca/dataset`. A single-URL run from `/dca/trigger_immediate` hands back a `response_id` instead, and its records come from `GET /dca/get_result?response_id=` - the two id kinds do not cross. Both verified live.
 
 `/dca/log` is status only. Every record comes from `/dca/dataset`, so a job that reports done still needs the second call.
 

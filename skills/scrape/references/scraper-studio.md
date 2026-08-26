@@ -27,10 +27,26 @@ Creating and running are two separate steps. Create once with the CLI, then run 
 
 ```
 bdata scraper create https://news.ycombinator.com "Extract the top 30 stories: title, url, points, author, comment count." --name hn-top --pretty
-bdata scraper run c_mp3tuab31lswoxvpws https://news.ycombinator.com --pretty
+bdata scraper run c_mta2a26z2nimsfu3ie https://news.ycombinator.com --pretty
 ```
 
-AI generation on `create` takes 5 to 10 minutes. Never promise the user a scraper in seconds.
+AI generation on `create` takes minutes - 3 in a live build, allow up to 10. Never promise the user a scraper in seconds.
+
+## The scraper is now an API
+
+The end product of a Studio build is a private API endpoint for that site. The `collector_id` is the address, so the user's own backend can call it with no CLI installed. All calls below were verified live. Every one needs `Authorization: Bearer $BRIGHTDATA_API_KEY`, base `https://api.brightdata.com`, and a JSON body.
+
+| Call | What comes back |
+|---|---|
+| `POST /dca/crawl?collector=<collector_id>&timeout=50s` body `{"url":"..."}` | The records in one response. Single URL, server cap 25 to 50 seconds. A 202 means the job outran the window - use the async pair below instead. |
+| `POST /dca/trigger_immediate?collector=<collector_id>` body `{"url":"..."}` | 202 with a `response_id`. One URL, async. |
+| `GET /dca/get_result?response_id=<response_id>` | 202 `{"pending":true}` while running, then 200 with the records. |
+| `POST /dca/trigger?collector=<collector_id>` body `[{"url":"..."}, ...]` | `{"collection_id":"j_...","start_eta":...}`. The batch door, one object per input. |
+| `GET /dca/dataset?id=<collection_id>&format=json` | 202 `{"status":"collecting"}` while running, then 200 with the records. |
+
+A deleted or unknown collector answers 404 "Collector not found" on every one of these. Do not retry or guess an id - the account's scrapers are listed at brightdata.com/cp/scrapers.
+
+For code the user keeps, prefer the SDK over raw REST: `client.scraperStudio.run(collectorId, {input})` is one line where the REST loop above is a dozen.
 
 ## Flags worth knowing
 
@@ -55,7 +71,7 @@ Only flags the CLI actually prints are listed here. Run any subcommand with `--h
 When a site changes, the scraper does not get rewritten by hand. It gets a prompt.
 
 ```
-bdata scraper heal c_mp3tuab31lswoxvpws "The price field returns null. The selector moved into a span with data-testid. Capture price and currency again."
+bdata scraper heal c_mta2a26z2nimsfu3ie "The comment_count field returns null. The selector moved into a span with a new class. Capture it again."
 ```
 
 The heal stops at `awaiting_approval` by default. Nothing changes until someone approves it.

@@ -29,15 +29,25 @@ import { homedir } from 'node:os';
 
 const API = process.env.BRIGHTDATA_API_BASE || 'https://api.brightdata.com';
 
+/** An hour. Past any sane ceiling, and well inside what AbortSignal accepts. */
+const MAX_TIMEOUT_MS = 3_600_000;
+
 /**
  * Per-request ceiling. A server that accepts the socket and then says nothing
- * must not hang the agent that called this, so every request carries it.
- * The env var is a test seam: the suite proves the timeout fires, and it has to
- * do that in a couple of seconds rather than in fifteen of them.
+ * must not hang the caller, so every request carries it.
+ * BRIGHTDATA_REQUEST_TIMEOUT_MS overrides the default.
+ *
+ * AbortSignal.timeout() takes a whole number of milliseconds in [0, 2^32-1] and
+ * throws ERR_OUT_OF_RANGE on anything else, and that throw would happen inside
+ * call(), where every exception is read as a transport failure. Anything that
+ * is not a positive whole number is not used at all, and anything absurd is
+ * clamped.
  */
-const REQUEST_TIMEOUT_MS = Number(process.env.BRIGHTDATA_REQUEST_TIMEOUT_MS) > 0
-  ? Number(process.env.BRIGHTDATA_REQUEST_TIMEOUT_MS)
-  : 15_000;
+const REQUEST_TIMEOUT_MS = (() => {
+  const asked = Number(process.env.BRIGHTDATA_REQUEST_TIMEOUT_MS);
+  if (!Number.isInteger(asked) || asked <= 0) return 15_000;
+  return Math.min(asked, MAX_TIMEOUT_MS);
+})();
 
 /** Human output stops after this many rows. --json always carries them all. */
 const MAX_LISTED = 20;
@@ -47,19 +57,12 @@ const SAMPLE = 8;
 
 const USAGE = 'Usage: node find-scraper.mjs <query> [--schema] [--json]';
 
-/**
- * What -h and --help print. The first line is the one every error path also
- * shows, so a reader who hit a mistake and a reader who asked for help are
- * looking at the same shape of answer.
- */
+/** What -h and --help print. Its first line is the one every error path shows. */
 const USAGE_BLOCK = [
   USAGE,
   '  <query>      part of a scraper name, or a gd_ dataset id',
   '  --schema     what the one matching scraper takes and returns',
   '  --json       one JSON object on stdout instead of the human listing',
-  // Two agents reading this script for the first time guessed the --json shape
-  // wrong before their first call. Every key is always present, so sketching
-  // them here costs one line and saves a run spent finding out.
   '               shape: { ok, query, matches[{id,name}], skipped_internal,',
   '                        schema{required, optional, outputs}, error }',
   '  -h, --help   this block',
@@ -113,19 +116,16 @@ const C = process.stdout.isTTY && !JSON_OUT
 // ---------------------------------------------------------------- auth
 
 /**
- * Read JSON tolerating a UTF-8 BOM (Windows editors add one).
- * The BOM is written as the \uFEFF escape on purpose: as a literal it is an
- * invisible character inside a regex, which reads as a bug and gets "cleaned
- * up" by the next person to touch this line.
+ * Read JSON tolerating a UTF-8 BOM (Windows editors add one). The BOM is
+ * written as the \uFEFF escape because a literal one is invisible in a regex.
  */
 const readJson = p => JSON.parse(readFileSync(p, 'utf8').replace(/^\uFEFF/, ''));
 
 /**
  * A usable key is visible ASCII and nothing else, because that is all an HTTP
- * header value accepts. This is a safety rule as much as a correctness one: a
- * key carrying a newline makes the Authorization header invalid, and the error
- * text the HTTP stack raises for that quotes the offending header back, key
- * included. Catching the shape here keeps that string from ever being built.
+ * header value accepts. A key carrying a newline makes the Authorization header
+ * invalid, and the HTTP stack quotes the offending header back in its error,
+ * key included. Checking the shape here keeps that string from being built.
  */
 const KEY_SHAPE = /^[\x21-\x7e]+$/;
 
@@ -153,10 +153,9 @@ function findApiKey() {
 /**
  * Read the API key without ever printing it.
  *
- * Returns { key, illegal }. `illegal` means a value was found and it cannot be
+ * Returns { key, illegal }. `illegal` means a value was found and cannot be
  * used, which is a different fact from finding nothing: the fix is to repair
- * the credential, not to log in again. The value itself is never returned or
- * quoted anywhere, not even a fragment of it.
+ * the credential, not to log in again. The value is never returned or quoted.
  */
 function readApiKey() {
   const found = findApiKey();
@@ -168,6 +167,19 @@ function readApiKey() {
 // ---------------------------------------------------------------- http
 
 /**
+ * Take the key out of any text on its way to stdout.
+ *
+ * Two surfaces need it. An HTTP stack that rejects a malformed header quotes
+ * that header back in its error, so a failure message can carry "Bearer <key>";
+ * and a proxy can echo request headers into its own error page, so a response
+ * body can carry it too, and this script quotes that body back when it cannot
+ * read it.
+ *
+ * Scrub before truncating: a slice taken first can leave a readable fragment.
+ */
+const scrub = (text, key) => (key ? String(text).split(key).join('<redacted>') : String(text));
+
+/**
  * One authenticated request. This never throws.
  *
  * A transport failure comes back as status 0 with the reason in `netError`, so
@@ -175,14 +187,11 @@ function readApiKey() {
  * The body is parsed when it is JSON and kept as raw text when it is not,
  * because the schema probe needs the body of a 400 just as much as of a 200.
  *
- * The failure text is scrubbed before it is handed back. An HTTP stack that
- * rejects a malformed header quotes that header in the error it raises, so the
- * raw message can carry "Bearer <key>" in it, and this function's return value
- * is printed and put in the --json error field. Nothing that leaves here is
- * allowed to contain the key.
+ * The failure text is scrubbed before it is handed back, because this
+ * function's return value is printed and put in the --json error field.
+ * Nothing that leaves here is allowed to contain the key.
  */
 async function call(url, key, init = {}) {
-  const scrub = m => String(m).split(key).join('<redacted>');
   try {
     const res = await fetch(url, {
       ...init,
@@ -195,7 +204,7 @@ async function call(url, key, init = {}) {
     return { status: res.status, ok: res.ok, body, parsed, text, netError: null };
   } catch (e) {
     // Fetch failed, DNS died, the socket hung, or the timeout fired.
-    return { status: 0, ok: false, body: null, parsed: false, text: '', netError: scrub(e?.message ?? String(e)) };
+    return { status: 0, ok: false, body: null, parsed: false, text: '', netError: scrub(e?.message ?? String(e), key) };
   }
 }
 
@@ -208,7 +217,7 @@ async function call(url, key, init = {}) {
 const blank = query => ({ ok: false, query, matches: [], skipped_internal: 0, schema: null, error: null });
 
 /**
- * A call that told us nothing. Always exit 2: the query was never answered, so
+ * A call that answered nothing. Always exit 2: the query was never answered, so
  * the caller must not read this as "no such scraper".
  */
 function apiFailure(query, res, what) {
@@ -216,7 +225,9 @@ function apiFailure(query, res, what) {
   if (res.netError) {
     return { ...base, error: `network: ${res.netError}`, exit: 2, lines: [
       `${C.bad}x could not reach ${API}${C.off}`,
-      `  ${res.netError} - the catalogue was never read, so this is not an auth failure`,
+      // Names the call that died: this function is reached from the catalogue
+      // read and from the input probe.
+      `  ${res.netError} - the call to ${what} never completed, so this is not an auth failure`,
       '  fix the network, proxy or DNS and run this again'] };
   }
   if (res.status === 401) {
@@ -232,25 +243,22 @@ function apiFailure(query, res, what) {
 // ---------------------------------------------------------------- catalogue
 
 /**
- * Internal junk the live catalogue really carries. Never offer one of these as
- * a scraper: they are staging rows, and several are scheduled for deletion.
+ * Internal junk the live catalogue carries. Never offer one of these as a
+ * scraper: they are staging rows, and several are scheduled for deletion.
  *
- * An audit of the live catalogue against the first version of these rules found
- * 48 junk rows caught and 106 still offered, so the marks below are the real
- * forms the account carries: "[Internal]" and "[Internal use]", "INTERNAL -",
- * "[DEPRECATED]", "(delete)" and "[delete]", "delete please", "Remove me!",
- * and a family of roughly ninety "<Brand> Products - test" rows.
+ * The forms the account carries are "[Internal]" and "[Internal use]",
+ * "INTERNAL -", "[DEPRECATED]", "(delete)" and "[delete]", "delete please",
+ * "Remove me!", and a family of roughly ninety "<Brand> Products - test" rows.
  *
- * THE BIAS IS DELIBERATE: prefer hiding a borderline row. Hiding one costs a
+ * The bias is deliberate: prefer hiding a borderline row. Hiding one costs a
  * search that comes back shorter, and an explicit gd_ id still reaches
- * anything, internal rows included. Offering one costs an agent building
- * against a staging row that is scheduled for deletion.
+ * anything, internal rows included. Offering one costs a build against a
+ * staging row that is scheduled for deletion.
  *
  * The "test" prefix rule is anchored and stops at a word boundary of its own,
  * so "test", "test-3" and "Test_old" are skipped while a real name such as
- * "Testimonials scraper" is not. A blunt startsWith('test') would eat the good
- * one. The suffix rule is anchored at the other end for the same reason: it
- * catches "Walmart Products - test" and "Amazon products (test)" without
+ * "Testimonials scraper" is not. The suffix rule is anchored at the other end,
+ * so it catches "Walmart Products - test" and "Amazon products (test)" without
  * touching a name that merely contains the word.
  */
 const INTERNAL_MARK = /\[internal[^\]]*\]|\[delete[^\]]*\]|\[deprecated\]|\(delete\)|^internal\b\s*-|\bremove me\b|\bdelete please\b/i;
@@ -278,10 +286,8 @@ function catalogueRows(body) {
     .map(r => ({ id: String(r?.id ?? ''), name: String(r?.name ?? '') }))
     .filter(r => r.id);
 
-  // Rows arrived and not one of them carried an id, so the id moved or was
-  // renamed. That is an unrecognized shape, not an empty catalogue: reporting
-  // it as "no rows" would send the agent off to build a scraper the account
-  // may already own.
+  // Rows arrived and not one of them carried an id, so the id key moved or was
+  // renamed. That is an unrecognized shape, not an empty catalogue.
   if (list.length > 0 && rows.length === 0) return null;
 
   return rows;
@@ -300,11 +306,14 @@ const looksLikeId = q => q.toLowerCase().startsWith('gd_');
  * dataset, not a failure of the run, so the caller reports it and carries on
  * with whatever the input probe found.
  *
- * A 404 and a 500 are different news and are worded differently. A 404 is
+ * Nothing here fails the run. Every answer this endpoint can give comes back as
+ * a note, a dead socket and a refused key included. The input contract is the
+ * half that makes a trigger possible, and it comes from a different call.
+ *
+ * The notes are worded apart because they are different news. A 404 is
  * permanent: this scraper has no metadata endpoint and running again will not
- * produce one. A 5xx or a 429 is this minute's weather, so the note says the
- * list is temporarily unavailable and to run again, which is the one case
- * where a second run is worth spending.
+ * produce one. A 5xx or a 429 is temporary, so that note says the list is
+ * unavailable for now and to run again.
  *
  * `outputs` is null on every one of these paths, never {}. An empty object has
  * to keep meaning "this scraper returns no fields at all".
@@ -312,8 +321,14 @@ const looksLikeId = q => q.toLowerCase().startsWith('gd_');
 async function fetchOutputs(id, key) {
   const res = await call(`${API}/datasets/${encodeURIComponent(id)}/metadata`, key);
 
-  if (res.netError) return { fail: res };
-  if (res.status === 401) return { fail: res };
+  if (res.netError) {
+    return { outputs: null, note: `the output list could not be read (network: ${res.netError}), so the output fields are not listed` };
+  }
+  if (res.status === 401) {
+    // The caller only prints this note when the input probe succeeded, so the
+    // same key was accepted one call earlier.
+    return { outputs: null, note: 'the metadata endpoint refused the key (HTTP 401), so the output fields are not listed - the same key was accepted by the input probe' };
+  }
   if (res.status === 404) return { outputs: null, note: 'this scraper has no metadata endpoint, so its output fields are not listed' };
   if (res.status === 429 || res.status >= 500) {
     return { outputs: null, note: `the output list is temporarily unavailable (HTTP ${res.status}), so run this again to get it` };
@@ -322,8 +337,14 @@ async function fetchOutputs(id, key) {
   if (!res.parsed) return { outputs: null, note: 'the metadata endpoint did not answer with JSON, so the output fields are not listed' };
 
   const fields = res.body?.fields;
-  if (!fields || typeof fields !== 'object') {
+  if (!fields) {
     return { outputs: null, note: 'the metadata answer carried no field list, so the output fields are not listed' };
+  }
+  // typeof [] === 'object', so an array has to be rejected here: Object.entries()
+  // below would turn its indices into field names such as "0". An invented field
+  // name is worse than a missing list, so this is a note too.
+  if (typeof fields !== 'object' || Array.isArray(fields)) {
+    return { outputs: null, note: 'the metadata field list was not in a shape this script understands, so the output fields are not listed' };
   }
 
   // Inactive fields are declared but never populated, so they are not output.
@@ -341,7 +362,7 @@ async function fetchOutputs(id, key) {
  *   Content-Type: application/json
  *   [{}]
  *
- * THE CALL IS FREE. The API validates the record before it starts any work,
+ * The call is free. The API validates the record before it starts any work,
  * and an empty record never passes validation, so the request is rejected and
  * nothing is queued, collected or billed. The rejection is the point: it is
  * the only place the API states a scraper's input contract.
@@ -350,13 +371,21 @@ async function fetchOutputs(id, key) {
  *   {"type":"validation","errors":[["url","Required field"]],"line":"{\"country\":\"\"}"}
  *
  * - `errors` is an array of [field, message] pairs. A message matching
- *   "required" names a REQUIRED input field.
+ *   "required" names a required input field.
  * - `line` is the record the API echoes back, as a JSON string, with every
- *   OPTIONAL field present and empty. Its keys are the optional inputs.
+ *   optional field present and empty. Its keys are the optional inputs.
  *
  * Two answers are not validation rejections and are handled separately:
  * a marketplace row refuses collection entirely, and a snapshot_id means the
- * probe started a real job, which is a bug worth shouting about.
+ * probe started a real job.
+ *
+ * Returns exactly one of:
+ *   { fail }          the call itself failed, and nothing was learned
+ *   { started }       the probe queued a real job
+ *   { marketplace }   the row cannot collect at all
+ *   { unreadable }    the answer was not in any shape this script knows
+ *   { unrecognized }  a validation rejection whose wording could not be read
+ *   { required, optional }   the input contract
  */
 async function probeSchema(id, key) {
   const res = await call(`${API}/datasets/v3/trigger?dataset_id=${encodeURIComponent(id)}`, key, {
@@ -369,42 +398,75 @@ async function probeSchema(id, key) {
   // a dead network or a refused key counts as a failure.
   if (res.netError || res.status === 401) return { fail: res };
 
-  // Marketplace rows are purchasable datasets, not scrapers. They have no
-  // input contract at all, so there is nothing further to ask them.
-  //
-  // THIS CHECK RUNS BEFORE THE not-JSON ONE ON PURPOSE. The live API refuses a
-  // marketplace row with status 400, content-type text/html and the bare body
-  // "This dataset does not support collection", which is not JSON. Behind the
-  // not-JSON branch this test never ran at all, and every marketplace row came
-  // out as an unreadable answer and exit 2. Matching the raw text also covers
-  // the JSON form of the same refusal, so one test is enough for both.
-  if (/does not support collection/i.test(res.text)) return { marketplace: true };
+  const body = res.parsed ? res.body : null;
 
-  if (!res.parsed) return { unreadable: res.text.slice(0, 120) };
-
-  const body = res.body;
+  // The validation shape is checked before the marketplace sniff below, and by
+  // its own key rather than by any text inside it. The sniff matches a phrase
+  // anywhere in the raw body, so a validation message that merely quoted that
+  // phrase would otherwise be read as "this is not a scraper".
+  if (body?.type === 'validation') return readValidation(body);
 
   if (body?.snapshot_id) {
-    // The empty-body probe is meant to be rejected at validation. If a job
-    // started anyway, name it so the operator can cancel it.
+    // The empty-body probe is rejected at validation. If a job started anyway,
+    // name it so the operator can cancel it.
     return { started: String(body.snapshot_id) };
   }
 
-  if (body?.type !== 'validation') {
-    const errText = typeof body?.error === 'string' ? body.error : '';
-    return { unreadable: (errText || res.text).slice(0, 120) };
-  }
+  // Marketplace rows are purchasable datasets, not scrapers. They have no
+  // input contract at all, so there is nothing further to ask them.
+  //
+  // This check runs before the not-JSON one: the live API refuses a marketplace
+  // row with status 400, content-type text/html and the bare body "This dataset
+  // does not support collection", which is not JSON. Matching the raw text also
+  // covers the JSON form of the same refusal.
+  if (/does not support collection/i.test(res.text)) return { marketplace: true };
 
-  const required = (Array.isArray(body.errors) ? body.errors : [])
-    .filter(e => Array.isArray(e) && /required/i.test(String(e[1] ?? '')))
-    .map(e => String(e[0]));
+  // The body is quoted back, so it goes through scrub() first: a proxy that
+  // echoes request headers into its own error page would otherwise put the
+  // Authorization header on stdout.
+  const errText = typeof body?.error === 'string' ? body.error : '';
+  return { unreadable: scrub(errText || res.text, key).slice(0, 120) };
+}
+
+/** One errors[] value as text. String({}) is "[object Object]", which is not. */
+const asText = v => (typeof v === 'string' ? v : JSON.stringify(v) ?? String(v));
+
+/** One errors[] entry, rendered for a human whatever shape it turned out to be. */
+const pairText = e => (Array.isArray(e) ? `${asText(e[0])}: ${asText(e[1])}` : asText(e));
+
+/**
+ * Read the input contract out of a validation rejection.
+ *
+ * A required field is found by matching "required" in the message prose, which
+ * is a guess about the API's wording. When pairs arrive and none of them reads
+ * as a required field, the conclusion is "the wording moved", not "this scraper
+ * needs no input".
+ */
+function readValidation(body) {
+  const errors = Array.isArray(body.errors) ? body.errors : [];
+
+  // A Set because two rules can reject the same field, arriving as one pair
+  // each: a required list of ["url", "url"] reads as two separate inputs. The
+  // field has to be a string - String() on anything else yields
+  // "[object Object]", which is not a field name.
+  const required = [...new Set(errors
+    .filter(e => Array.isArray(e)
+      && typeof e[0] === 'string' && e[0].trim() !== ''
+      && /required/i.test(String(e[1] ?? '')))
+    .map(e => e[0]))];
+
+  if (errors.length > 0 && required.length === 0) {
+    return { unrecognized: errors.map(pairText) };
+  }
 
   // `line` is a JSON string in every answer seen so far. Accept a plain object
   // too, so a shape change costs the optional list rather than the whole run.
+  // An array is rejected for the same reason the metadata field list is: its
+  // keys are "0", "1", ... and those are indices, not input names.
   let optional = [];
   try {
     const line = typeof body.line === 'string' ? JSON.parse(body.line) : body.line;
-    if (line && typeof line === 'object') optional = Object.keys(line);
+    if (line && typeof line === 'object' && !Array.isArray(line)) optional = Object.keys(line);
   } catch { /* keep the required list, which is the part that matters */ }
 
   return { required, optional: optional.filter(f => !required.includes(f)) };
@@ -413,22 +475,24 @@ async function probeSchema(id, key) {
 // ---------------------------------------------------------------- main
 
 async function resolve() {
-  const { query, schema: wantSchema, help, bad } = ARGS;
+  const { schema: wantSchema, help, bad } = ARGS;
+
+  // One trimmed value for the whole run: ids are pasted with a leading space
+  // more often than not.
+  const query = (ARGS.query ?? '').trim();
 
   // ---- arguments
 
-  // Help is answered before anything else, including a bad flag next to it:
-  // someone who asked what the flags are is exactly the person who just got
-  // one wrong. Asking for help is not a failure, so this exits 0.
+  // Help wins over every other argument, including bad ones, and exits 0.
   if (help) {
-    return { ...blank(query ?? ''), ok: true, exit: 0, lines: USAGE_BLOCK };
+    return { ...blank(query), ok: true, exit: 0, lines: USAGE_BLOCK };
   }
   if (bad) {
-    return { ...blank(query ?? ''), error: 'bad_argument', exit: 1, lines: [
+    return { ...blank(query), error: 'bad_argument', exit: 1, lines: [
       `${C.bad}x ${bad}${C.off}`, USAGE] };
   }
-  if (!query || !query.trim()) {
-    return { ...blank(query ?? ''), error: 'no_query', exit: 1, lines: [
+  if (!query) {
+    return { ...blank(query), error: 'no_query', exit: 1, lines: [
       `${C.bad}x give me something to look for: part of a scraper name, or a gd_ id${C.off}`,
       USAGE,
       '  example:  node find-scraper.mjs instagram',
@@ -439,9 +503,7 @@ async function resolve() {
 
   const { key, illegal } = readApiKey();
   if (illegal) {
-    // Deliberately says nothing about the value, not even its length or first
-    // characters: the whole point of this branch is that the key is never
-    // quoted anywhere.
+    // Never quotes the value, not even a prefix.
     return { ...blank(query), error: 'bad_api_key', exit: 2, lines: [
       `${C.bad}x the API key cannot be used: the credential file or env var contains an illegal character${C.off}`,
       '  a key is printable ASCII with no spaces, so a stray newline or tab breaks it',
@@ -473,15 +535,15 @@ async function resolve() {
 
   // ---- match
 
+  const isId = looksLikeId(query);
+  const want = query.toLowerCase();
   let matches, skipped = 0;
 
-  if (looksLikeId(query)) {
+  if (isId) {
     // An explicit id is an explicit choice, so an internal row is returned
     // rather than filtered away. The caller is told what it looks like.
-    const want = query.trim().toLowerCase();
     matches = rows.filter(r => r.id.toLowerCase() === want);
   } else {
-    const want = query.trim().toLowerCase();
     const hits = rows.filter(r => r.name.toLowerCase().includes(want));
     matches = hits.filter(r => !isInternal(r.name));
     skipped = hits.length - matches.length;
@@ -491,21 +553,21 @@ async function resolve() {
 
   if (matches.length === 0) {
     const lines = [`${C.bad}x no match for "${query}"${C.off}`];
-    if (looksLikeId(query)) {
+    if (isId) {
       lines.push('  that id is not in this account\'s catalogue. Check it, or search by name instead:',
         '  node find-scraper.mjs <part of the name>');
     } else {
       lines.push('  try a shorter or more general word, for example a platform name on its own');
     }
     if (skipped > 0) {
-      lines.push(`  ${skipped} internal row${skipped === 1 ? '' : 's'} matched and were skipped, none of them usable`);
+      lines.push(skipped === 1
+        ? '  1 internal row matched and was skipped, and it is not usable'
+        : `  ${skipped} internal rows matched and were skipped, none of them usable`);
     }
-    // Deliberately does NOT name gate 2. Gate 2 carries three further
-    // conditions that this script never checked (shared layout, a repeat run,
-    // or data that only appears after browser actions), and the gate table has
-    // a fall-through row underneath it for the one-time no-layout job. "No
-    // ready scraper" rules out gate 1 and nothing else, so the honest next step
-    // is the table, not the row this script cannot know applies.
+    // Points at the gate table, not at gate 2. Gate 2 carries three further
+    // conditions this script never checked (shared layout, a repeat run, or
+    // data that only appears after browser actions), so "no ready scraper"
+    // rules out gate 1 and nothing else.
     lines.push('  nothing in the catalogue fits? Then no ready scraper covers this. Go back to the gate table in SKILL.md to pick the next path.');
     return { ...result, error: 'no_match', exit: 1, lines };
   }
@@ -548,8 +610,13 @@ async function resolve() {
   }
 
   // ---- what it takes, and what it returns. Both calls are free.
+  //
+  // The two reads go out at once, because neither needs the other's answer.
+  // Every early exit below discards `meta` deliberately: a run that cannot
+  // state the input contract has nothing to attach an output list to. The cost
+  // is one wasted free read, which is a round trip and never a credit.
+  const [probe, meta] = await Promise.all([probeSchema(id, key), fetchOutputs(id, key)]);
 
-  const probe = await probeSchema(id, key);
   // The row was found and the internal rows were counted before this call
   // failed, so both facts survive the failure. apiFailure() returns the blank
   // shape, which would otherwise zero them.
@@ -581,18 +648,23 @@ async function resolve() {
       '  the input fields are unknown, so do not guess them'] };
   }
 
-  const meta = await fetchOutputs(id, key);
-  if (meta.fail) {
-    return { ...apiFailure(query, meta.fail, `${API}/datasets/{id}/metadata`), matches, skipped_internal: skipped };
+  // The rejection was a validation rejection and its fields could not be read
+  // as an input contract. The raw pairs are all there is, so the raw pairs are
+  // what the reader gets.
+  if (probe.unrecognized) {
+    return { ...result, error: 'unrecognized_validation_wording', exit: 1, lines: [
+      ...lines,
+      `${C.bad}x the probe was rejected, but not in a wording this script reads as an input contract${C.off}`,
+      ...probe.unrecognized.map(p => `  ${p}`),
+      '  those are the fields the API rejected an empty record over. Which of them are required is not stated here',
+      '  do not read this as "no required inputs"'] };
   }
 
   // A missing metadata endpoint costs the output list and nothing else, so the
   // run still succeeds on the strength of the input contract.
   //
-  // Null, not {}, when the list could not be determined. A caller reading
-  // outputs:{} has to be able to trust it means "this scraper returns no
-  // fields"; folding "we could not find out" into the same value turns a gap
-  // in our knowledge into a claim about the scraper.
+  // Null, not {}, when the list could not be determined: outputs:{} has to keep
+  // meaning "this scraper returns no fields".
   const outputs = meta.outputs;
   const outNames = outputs ? Object.keys(outputs) : [];
 
@@ -606,9 +678,8 @@ async function resolve() {
     const preview = outNames.slice(0, SAMPLE).map(n => `${n}:${outputs[n]}`).join('  ');
     if (preview) {
       lines.push(`${C.dim}  ${preview}${C.off}`);
-      // A bare "..." tells the reader something was cut but not how much, and
-      // not how to see the rest. Both counts and the flag that lifts the limit
-      // go on the line, so nobody has to guess whether they saw everything.
+      // Both counts and the flag that lifts the limit go on the line, so a
+      // truncated preview says how much was cut and how to see the rest.
       if (outNames.length > SAMPLE) {
         lines.push(`${C.dim}  ${outNames.length} fields, showing ${SAMPLE}. Add --json for all of them.${C.off}`);
       }
@@ -628,7 +699,9 @@ async function resolve() {
 
 const { lines, exit, ...result } = await resolve();
 
-if (JSON_OUT) console.log(JSON.stringify(result, null, 2));
+// --help wins over --json: there is no JSON rendering of a usage block, and the
+// blank report would be indistinguishable from a run that found nothing.
+if (JSON_OUT && !ARGS.help) console.log(JSON.stringify(result, null, 2));
 else for (const l of lines) console.log(l);
 
 // process.exitCode, never process.exit(): exiting while a fetch socket is
