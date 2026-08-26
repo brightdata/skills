@@ -8,21 +8,21 @@ A prompt goes in and one written answer comes back with its citations. Query in,
 
 Six engines are listed in the official library at docs.brightdata.com/datasets/scrapers/scrapers-library/ai-scrapers.
 
-| Engine | dataset_id | Status |
-|---|---|---|
-| ChatGPT | `gd_m7aof0k82r803d5bjm` | docs only, not verified live |
-| Google AI Mode | `gd_mcswdt6z2elth3zqr2` | docs only, not verified live |
-| Perplexity | not published | listed in the library, no id published |
-| Gemini | not published | listed in the library, no id published |
-| Copilot | not published | listed in the library, no id published |
+| Engine | dataset_id | Required inputs | Status |
+|---|---|---|---|
+| ChatGPT | `gd_m7aof0k82r803d5bjm` | see Inputs below | docs only, not verified live |
+| Google AI Mode | `gd_mcswdt6z2elth3zqr2` | see Inputs below | docs only, not verified live |
+| Perplexity | `gd_m7dhdot1vw9a7gc1n` | `url`, `prompt` (optional `country`, `additional_prompt`) | probe verified 2026-08-26 |
+| Gemini | `gd_mbz66arm2mf9cu856y` | `url`, `prompt` | probe verified 2026-08-26 |
+| Copilot | `gd_m7di5jy6s9geokz8w` | `url`, `prompt` (optional `country`) | probe verified 2026-08-26 |
 
-"Confirmed" has one definition for this skill, the three checks in `google-scrapers.md`, and it is not restated here. Both published ids were run through them and neither passes: neither appears in `GET /datasets/list` and metadata returns 404 for both, which is why both read as docs only, not verified live. That is the same signature as the top-100 id in that file, which triggers fine, so read that label as "this id cannot be confirmed from here", not as "wrong". Never guess an id from a name.
+None of the five ids appears in `GET /datasets/list`, and metadata returns 404 for all of them. The three probe-verified rows still answered the free empty-body trigger probe by naming their required inputs, so they are real and triggerable - the signature means "invisible to the discovery endpoints", not "wrong". These bundled rows are the only machine-reachable source for those ids, so when one is rejected, refresh it from the control panel page below rather than searching the catalogue. Never guess an id from a name.
 
 Google AI Mode is also a Google surface, so `google-scrapers.md` points here for it. This row is the one place its id is written down.
 
-## Getting an id when the docs do not print one
+## Refreshing an id
 
-Perplexity, Gemini and Copilot have no public id. The docs say the id is on that scraper's Web Scraper API page, under the API Request Builder tab. One page per engine:
+The ids above came from each scraper's control panel page (the API Request Builder tab), because the docs print none of them. When a bundled id is rejected, a person refreshes it from the same page:
 
 | Engine | Page |
 |---|---|
@@ -46,7 +46,7 @@ ChatGPT is the one engine with a full public input list, at docs.brightdata.com/
 | `additional_prompt` | no | a follow-up turn in the same session |
 | `country` | no | the country the session runs from. Named on the library page for the family, not on the ChatGPT page |
 
-The library page says the other engines take the same shape: `prompt`, `url`, `country`, `additional_prompt` and a follow-up. Two differences it calls out. Only ChatGPT and Grok expose `web_search`. Gemini decides internally whether to search, so prompt wording is the only lever there. Those rows are docs only, not verified live.
+Perplexity, Gemini and Copilot were probe-verified live on 2026-08-26: all three require `url` and `prompt`, Perplexity also accepts `country` and `additional_prompt`, Copilot also accepts `country`. The control panel examples show an `index` field too - that is input-array bookkeeping, not a required field. One docs-only difference worth knowing: Gemini decides internally whether to search the web, so prompt wording is the only lever there.
 
 Each engine ships in a limited set of countries. The docs say the lists are CSV files at github.com/brightdata/answer-engines-country-codes, one per engine. That repository was not opened from here, so treat the path as a docs claim and check it before quoting a country list.
 

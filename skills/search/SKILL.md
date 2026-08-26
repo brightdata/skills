@@ -47,7 +47,7 @@ Then state the choice:
 
 ## Answer engines belong here
 
-What ChatGPT Search, Gemini Search, Perplexity or Bing Copilot answer about a brand is still a query in and an answer out. Each is its own pre-built scraper, so each runs as a dataset job, same shape as the top-100 path. Only ChatGPT and Google AI Mode have published ids, so look the others up live before promising a run - the reference file carries what is known.
+What ChatGPT Search, Gemini Search, Perplexity or Bing Copilot answer about a brand is still a query in and an answer out. Each is its own pre-built scraper, so each runs as a dataset job, same shape as the top-100 path. All five engines' ids are bundled in the reference file, and none of them appears in the live catalogue, so the bundled rows are the only machine-readable source - read them there instead of searching.
 
 The CLI also ships `bdata discover` - a query in, AI-ranked results out, asynchronous behind a task id. Treat it as separate from the SERP paths above and run `bdata discover --help` before reaching for it. When Bright Data's announced AI search ships as a product, it becomes one more option inside this skill.
 
