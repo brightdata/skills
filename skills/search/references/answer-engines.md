@@ -15,7 +15,6 @@ Six engines are listed in the official library at docs.brightdata.com/datasets/s
 | Perplexity | not published | listed in the library, no id published |
 | Gemini | not published | listed in the library, no id published |
 | Copilot | not published | listed in the library, no id published |
-| Grok | not published | the library lists it as currently unavailable |
 
 "Confirmed" has one definition for this skill, the three checks in `google-scrapers.md`, and it is not restated here. Both published ids were run through them and neither passes: neither appears in `GET /datasets/list` and metadata returns 404 for both, which is why both read as docs only, not verified live. That is the same signature as the top-100 id in that file, which triggers fine, so read that label as "this id cannot be confirmed from here", not as "wrong". Never guess an id from a name.
 
