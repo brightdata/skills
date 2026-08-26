@@ -7,7 +7,7 @@ description: 'Use when the user wants one known URL returned as content: "get me
 
 One URL in, one page out, as markdown, HTML, or a screenshot. Nothing is parsed for you.
 
-The shape is borrowed from a built-in web fetch tool. The product is not. A built-in tool only asks for the page. This one unblocks it: IP rotation, browser fingerprints, cookies, CAPTCHA solving and automatic retries on every request, from a country you choose. JavaScript rendering is the one capability that is off by default. The REST body can ask for it with the `render` parameter, and the CLI has no flag for it in v0.3.5, so a CLI fetch never renders.
+Every request is unblocked: IP rotation, browser fingerprints, cookies, CAPTCHA solving and automatic retries, from a country you choose. JavaScript rendering is the one capability that is off by default. The REST body can ask for it with the `render` parameter, and the CLI has no flag for it in v0.3.5, so a CLI fetch never renders.
 
 ## The call
 
