@@ -80,8 +80,6 @@ The heal stops at `awaiting_approval` by default. Nothing changes until someone 
 | The fix is wrong, start over with a sharper prompt | `bdata scraper approve <collector_id> --reject` |
 | Trust it and run straight through | `bdata scraper heal ... --auto-approve --auto-save` |
 
-Studio heals itself. Web Scraper API is fixed by Bright Data engineers. The fall-through path is fixed by the user. Never confuse the three.
-
 ## The scheduler
 
 Studio has a built-in scheduler: hourly, daily, weekly, or custom. This is the only Bright Data scraping path with one. Web Scraper API and Web Unlocker need a cron job or a GitHub Actions workflow written into the user's own project.
