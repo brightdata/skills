@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://brightdata.com"><img src="https://img.shields.io/badge/Powered%20by-Bright%20Data-3D7FFC?style=for-the-badge" alt="Powered by Bright Data"></a>
   <a href="#license"><img src="https://img.shields.io/badge/License-MIT-10b981?style=for-the-badge" alt="MIT License"></a>
-  <a href="#skills"><img src="https://img.shields.io/badge/Skills-21-9D97F4?style=for-the-badge" alt="21 Skills"></a>
+  <a href="#skills"><img src="https://img.shields.io/badge/Skills-26-9D97F4?style=for-the-badge" alt="26 Skills"></a>
   <a href="#data-feeds-skill"><img src="https://img.shields.io/badge/Datasets-40+-15C1E6?style=for-the-badge" alt="40+ Datasets"></a>
   <a href="#bright-data-mcp-skill"><img src="https://img.shields.io/badge/MCP_Tools-60+-FF6B35?style=for-the-badge" alt="60+ MCP Tools"></a>
 </p>
@@ -65,21 +65,26 @@ Built on Bright Data's [Web Unlocker](https://brightdata.com/products/web-unlock
 
 | Skill | Description |
 |-------|-------------|
-| **`agent-onboarding`** | Entry point for agents new to Bright Data — one install command, then routes to the right path: live CLI tools, app integration, MCP server, auth-only, or REST without installing |
-| **`search`** | Search Google and get structured JSON results with titles, links, and descriptions |
-| **`scrape`** | Scrape any webpage as clean markdown with automatic bot detection bypass |
+| **`agent-onboarding`** | Entry point for every Bright Data skill. Installs the CLI, handles login and API keys, then routes to the right skill for the task. Auth for all the other skills lives here |
+| **`search`** | Start from a search query instead of a URL. Google, Bing and Yandex results, vertical pages such as news, images, shopping and maps, keyword rank tracking, and what AI answer engines say about a brand |
+| **`scrape`** | Extract structured records from any site. Profiles, posts, products, reviews, prices and listings, plus building a scraper, crawling for data, and discovery by keyword or category. Covers Web Scraper API and Scraper Studio |
+| **`fetch`** | Return one known URL as markdown, HTML, text or a screenshot. Backed by Web Unlocker, so a page that blocks a plain fetch still comes back |
+| **`browser`** | Run existing Playwright, Puppeteer or Selenium code against a cloud browser when a local headless run gets blocked or detected. Covers CDP and remote WebDriver connections |
 | **`data-feeds`** | Extract structured data from 40+ websites with automatic polling |
 | **`bright-data-mcp`** | Orchestrate 60+ Bright Data MCP tools for search, scraping, structured extraction, and browser automation |
+| **`brightdata-mcp`** | Connect an AI agent to Bright Data over MCP for live web access with no shell. Covers the remote server at mcp.brightdata.com, the self-hosted package, and which tool to route each job to |
 | **`scraper-builder`** | Build production-ready scrapers for any website — guides through site analysis, API selection, selector extraction, pagination, and complete implementation. Triggers on "build a scraper for..." |
 | **`scraper-studio`** | Build and run AI-generated Bright Data scrapers from the terminal via `bdata scraper create` (generate from a natural-language description) and `bdata scraper run` (execute against a URL). Handles async + poll, `--sync` fast-path, and silent auto-fallback to batch for paginated pages |
 | **`bright-data-best-practices`** | Built-in reference for Web Unlocker, SERP API, Web Scraper API, and Browser API — Claude consults this automatically when writing Bright Data code |
 | **`brightdata-proxy`** | Generate working code to route requests through Bright Data's Datacenter, ISP, Residential, and Mobile proxy networks — network and IP-pool selection, username targeting/session params, SSL CA setup, and integrations for cURL, Python (requests/httpx/aiohttp/Scrapy), Node (fetch/axios), Playwright, Puppeteer, and Selenium |
 | **`python-sdk-best-practices`** | Comprehensive guide for the `brightdata-sdk` Python package — async/sync clients, platform scrapers, SERP, datasets, Scraper Studio, Browser API, error handling, and common patterns |
 | **`js-sdk-best-practices`** | Comprehensive guide for the `@brightdata/sdk` JavaScript/TypeScript package (`bdclient`, Node ≥20, ESM+CJS) — web unlocker, 11 platform scrapers, SERP, Discover, datasets, Browser API, Scraper Studio, error classes, and batch/trigger orchestration |
+| **`brightdata-sdk`** | Call Web Scraper API, SERP, Web Unlocker and Scraper Studio from Python or Node.js application code. For jobs that repeat on a schedule or inside a pipeline |
 | **`discover-api`** | Use the Discover API — intent-ranked, AI-relevance-scored semantic web search with parsed page content. Covers REST (`POST`/`GET /discover`), CLI (`bdata discover`), the SDKs (`client.discover`), the standard/zeroRanking/deep/fast modes, and the trigger→poll flow. Foundation for `live-research` and `rag-pipeline` |
 | **`live-research`** | Produce a deep, multi-source, cited research brief — decompose a question into multiple intent-ranked Discover queries, pull page content, dedup and rank by relevance, then synthesize a structured report with inline citations |
 | **`rag-pipeline`** | Build a RAG pipeline or custom search engine on top of Discover — live web-grounded retrieval for an LLM, or ingestion into a vector store (discover → chunk → embed → retrieve). Provider-agnostic JS + Python code |
 | **`brightdata-cli`** | Guide for using the Bright Data CLI (`brightdata` / `bdata`) to scrape, search, extract structured data from 40+ platforms, manage proxy zones, and check account budget — all from the terminal |
+| **`billing`** | Check account balance, credits, spend history and cost per zone or dataset, and estimate what a job will cost before it runs. Read only, it never buys or changes anything |
 | **`competitive-intel`** | Real-time competitive intelligence using live web data — competitor snapshots, pricing comparison, review mining, hiring signal analysis, content & SEO battles, and market landscape mapping. Replaces $15K+/yr enterprise CI tools at pennies per analysis |
 | **`brand-listening`** | Social listening and brand reputation research — collects what people are saying about a brand across Reddit, X, Instagram, TikTok, YouTube, news, and review sites, then classifies sentiment, clusters themes, and delivers a cited digest with recommendations. Triggers on "what are people saying about us", "monitor mentions", "brand sentiment" |
 | **`price-comparison`** | Shopping price comparison using live retailer data — resolves a product (name, ASIN, or URL) across Amazon, Walmart, eBay, Best Buy, and Google Shopping, normalizes prices/availability/condition into one ranked table, and names the cheapest in-stock buy. Region-aware (currency, stock, local retailers). Triggers on "compare prices", "find the cheapest", "price check", "how much is X on Amazon vs Walmart" |
@@ -489,7 +494,6 @@ brightdata pipelines amazon_product "https://amazon.com/dp/xxx" --format csv > p
 
 - [skills/brightdata-cli/SKILL.md](skills/brightdata-cli/SKILL.md) — Main skill with command overview and usage patterns
 - [skills/brightdata-cli/references/commands.md](skills/brightdata-cli/references/commands.md) — Full command reference with all flags and options
-- [skills/brightdata-cli/references/pipelines.md](skills/brightdata-cli/references/pipelines.md) — 40+ pipeline types with platform-specific parameters
 
 ---
 
@@ -918,8 +922,7 @@ brightdata-plugin/
 │   ├── brightdata-cli/
 │   │   ├── SKILL.md             # CLI usage guide and command patterns
 │   │   └── references/
-│   │       ├── commands.md      # Full command reference with all flags
-│   │       └── pipelines.md     # 40+ pipeline types and parameters
+│   │       └── commands.md      # Full command reference with all flags
 │   ├── competitive-intel/
 │   │   ├── SKILL.md             # Competitive intelligence (6 analysis modules)
 │   │   └── references/
@@ -1047,7 +1050,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Proxy Troubleshooting](skills/proxy/references/troubleshooting.md) - Error catalog, TLS/cert fixes, rotation issues, escalation order
 - [Bright Data CLI](skills/brightdata-cli/SKILL.md) - Terminal tool for scraping, search, and data extraction
 - [CLI Commands Reference](skills/brightdata-cli/references/commands.md) - Full command reference with all flags
-- [CLI Pipelines Reference](skills/brightdata-cli/references/pipelines.md) - 40+ platform pipeline types
 - [Competitive Intelligence](skills/competitive-intel/SKILL.md) - Real-time competitor analysis with live web data
 - [CI Data Source Guide](skills/competitive-intel/references/data-source-guide.md) - CI needs mapped to bdata commands
 - [CI Analysis Frameworks](skills/competitive-intel/references/analysis-frameworks.md) - SWOT, Porter's, positioning, JTBD, Blue Ocean
