@@ -249,17 +249,13 @@ function apiFailure(query, res, what) {
 // ---------------------------------------------------------------- catalogue
 
 /**
- * Internal junk the live catalogue carries. Never offer one of these as a
- * scraper: they are staging rows, and several are scheduled for deletion.
- *
- * The forms the account carries are "[Internal]" and "[Internal use]",
- * "INTERNAL -", "[DEPRECATED]", "(delete)" and "[delete]", "delete please",
- * "Remove me!", and a family of roughly ninety "<Brand> Products - test" rows.
+ * Rows whose names mark them as internal, deprecated, or test entries.
+ * Never offer one of these as a scraper.
  *
  * The bias is deliberate: prefer hiding a borderline row. Hiding one costs a
  * search that comes back shorter, and an explicit gd_ id still reaches
  * anything, internal rows included. Offering one costs a build against a
- * staging row that is scheduled for deletion.
+ * row that was never meant to be used.
  *
  * The "test" prefix rule is anchored and stops at a word boundary of its own,
  * so "test", "test-3" and "Test_old" are skipped while a real name such as

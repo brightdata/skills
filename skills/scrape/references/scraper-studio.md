@@ -114,7 +114,7 @@ This is why gate 2 exists. Studio drives a real headless browser, so the user ne
 | Emulation | `emulate_device`, `emulate_geolocation`, `browser_size`, `font_exists` |
 | Capturing network traffic | `tag_response`, `tag_all_responses`, `tag_script`, `tag_window_field`, `tag_image`, `tag_video`, `tag_screenshot`, `tag_download`, `tag_serp`, `capture_graphql` |
 
-Open term: the exact wording of "Scraper Studio browser worker" is still being settled with the product team. Do not build user-facing copy on that phrase yet.
+"Scraper Studio browser worker" is not an established product term. Do not build user-facing copy on that phrase.
 
 ## After a run
 

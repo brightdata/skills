@@ -41,7 +41,7 @@ Variants keyed by username, hashtag, keyword or category are separate catalogue 
 | Instagram - Posts | `gd_lk5ns7kz21pck8jpis` | `url` required |
 | Tiktok posts by keyword | `gd_lilwhto81z415d9mdl` | `search_keyword` required |
 
-Two catalogue cautions, both hit live: some rows are purchasable datasets, not scrapers, and a trigger answers "This dataset does not support collection" (route those to the marketplace reference). And the list carries internal rows (names with "[Internal use]", "[delete]", "test") - never pick one of those.
+Two catalogue cautions, both hit live: some rows are purchasable datasets, not scrapers, and a trigger answers "This dataset does not support collection" (route those to the marketplace reference). And the list carries rows whose names mark them as internal or test entries - never pick one of those.
 
 ## Top 25 scrapers, grouped by platform
 
