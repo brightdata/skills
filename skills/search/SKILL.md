@@ -24,12 +24,6 @@ A volume word always means **more** than the default 10, never fewer. "Top 5" is
 
 Route silently, defaulting to SERP. Ask only when the ask names no engine, no vertical, no volume word, no latency word and no consumer signal. The question is one line: *"Ten results now, or a hundred as a job that takes longer?"*
 
-## The top-100 path is a job, not a bigger call
-
-Google removed the `num=100` parameter, so no single request returns 100 rows any more. Bright Data covers this with a dataset job that walks pages 1 to 10 and hands back one result set. It is asynchronous, so say so before starting it. A first-class option, never an instant one.
-
-The trade is now versus volume: about 10 results in one call, or 100 results as a job.
-
 ## Rank tracking is SERP on a timer
 
 SERP has no built-in scheduler, so the agent writes the cron job or the GitHub Actions workflow in the user's project. A repeating job never changes which product runs.

@@ -56,7 +56,7 @@ That list has no ownership marker and it includes marketplace datasets, so a hit
 
 ## Top 100 Google results - the one to know
 
-Dataset id `gd_mfz5x93lmsjjjylob`. About 10 results per page, so pages 1 to 10 is the top 100.
+Dataset id `gd_mfz5x93lmsjjjylob`. Google removed the `num=100` parameter, so no single request returns 100 rows any more - this job walks the pages instead and hands back one result set. About 10 results per page, so pages 1 to 10 is the top 100.
 
 This exact id does not appear in `GET /datasets/list`, verified, so that list cannot recover it, even though the same list does carry other Google SERP-family datasets. Its metadata endpoint returns 404 as well. It is verified live and documented at docs.brightdata.com/scraping-automation/serp-api/get-top-100-google-results, and it works on trigger even though the list omits it.
 
