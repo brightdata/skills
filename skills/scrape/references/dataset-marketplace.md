@@ -4,7 +4,7 @@ Answers the question "is this data already collected and for sale, and what is t
 
 ## The gate
 
-This check sits after gate 1 in the gate table, with one exception: a huge generic corpus needed once comes here first, before any scraper. It is a quick check. Three things must all be true.
+This check sits first in the gate table. It is quick, and three things must all be true - anything less and the ask falls through to the scraper gates.
 
 | Condition | Example that passes | Example that fails |
 |---|---|---|
@@ -27,7 +27,11 @@ Any one of them false and the answer is scrape. Need it once, buy the dataset. N
 
 The agent checks whether the marketplace covers the ask, then hands off. It does not buy.
 
-Evidence costs one free call. `node ../scripts/find-scraper.mjs "<topic>"` searches the same catalogue the scrapers live in, which also lists purchasable rows, and probing a match with `--schema` answers `marketplace dataset, not a scraper` when the row is a download for sale. A hit is proof for the line below. A miss proves nothing, because the marketplace's own inventory is browsed at the control panel link, not through this list.
+Evidence costs one free call. `node ../scripts/find-scraper.mjs "<topic>"` searches the same catalogue the scrapers live in, which also lists purchasable rows, and probing a match with `--schema` answers `marketplace dataset, not a scraper` when the row is a download for sale. A hit is proof for the line below. A miss proves nothing, because the marketplace's own inventory is browsed at the control panel link, not through this list. The empty-body probe is just as free against a marketplace row - it is rejected with "does not support collection" before any work starts.
+
+The direction can also reverse: a user arrives already holding a `dataset_id` that turns out to be a marketplace row and asks to trigger it. The first job is correcting the premise - it cannot be triggered, it is a download for sale - then offer the two real paths: buy it in the control panel, or scrape a defined target list with a real scraper.
+
+The agent cannot size a purchase. A marketplace catalogue row carries no record count and no price, so the total is decided at the sample preview in the control panel, not by the agent.
 
 Buying moves money. A person does it in the control panel, on their own account, after looking at a sample. There is no reason for an agent to be in that loop.
 

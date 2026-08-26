@@ -24,6 +24,8 @@ The table below is bundled so the common cases cost zero discovery calls. It is 
 
 The list endpoint needs the API key header. Without it the call returns 401, even though it is a free read.
 
+Without `--schema` the script's output is a listing only - it says nothing about whether a row can be triggered. The trigger verdict, including "marketplace dataset, not a scraper", comes from `--schema`.
+
 The CLI's own usage messages print `brightdata`, which is the same binary as `bdata`.
 
 If a bundled `dataset_id` is rejected as unknown, do not retry it and do not guess a replacement. Fall back to `curl -H "Authorization: Bearer $BRIGHTDATA_API_KEY" https://api.brightdata.com/datasets/list` and match on the scraper name.

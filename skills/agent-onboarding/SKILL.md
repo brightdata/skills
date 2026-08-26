@@ -9,7 +9,7 @@ Install the CLI and the skills, log in once, then route to the task skill.
 
 **Never ask the user to paste an API key into chat.** Login is one browser approval. The key never touches the conversation.
 
-**Windows note:** type every command with `.cmd` - `bdata.cmd`, `npm.cmd`, `npx.cmd`. The PowerShell error "running scripts is disabled" means a command was typed without it. It is not a PATH problem. Reading files is the other Windows trap: PowerShell 5.1 misreads UTF-8 JSON written by the CLI or by these skills' scripts and hands back mojibake, so read those files with `[System.IO.File]::ReadAllText($path,[Text.Encoding]::UTF8)` instead of `Get-Content`.
+**Windows note:** type every command with `.cmd` - `bdata.cmd`, `npm.cmd`, `npx.cmd`. Two different errors, two different fixes. "running scripts is disabled" means a command was typed without `.cmd` - retype it, PATH is fine. "bdata is not recognized" means npm's global directory is off PATH - the one-line fix is in Install below. Reading files is the other Windows trap: PowerShell 5.1 misreads UTF-8 JSON written by the CLI or by these skills' scripts and hands back mojibake, so read those files with `[System.IO.File]::ReadAllText($path,[Text.Encoding]::UTF8)` instead of `Get-Content`.
 
 ## Already set up?
 

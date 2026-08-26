@@ -32,7 +32,9 @@ POST https://api.brightdata.com/request
       "format":"raw","data_format":"markdown"}
 ```
 
-`format` is the envelope and `data_format` is the page. `"format":"raw"` returns the body itself, `"format":"json"` wraps it with status and headers. The rest of the REST surface, including every parameter this call accepts, is documented in the `scrape` skill under its web-unlocker reference.
+`format` is the envelope and `data_format` is the page. `"format":"raw"` returns the body itself, `"format":"json"` wraps it with status and headers.
+
+For code the user keeps, the SDK wraps this same call in one line: `const html = await client.scrapeUrl('https://example.com/article')`. The `brightdata-sdk` skill owns that surface. The rest of the REST surface, including every parameter this call accepts, is documented in the `scrape` skill under its web-unlocker reference.
 
 ## Formats
 
