@@ -32,9 +32,7 @@ Six of the 25 below have no CLI pipeline. For those the `dataset_id` is the only
 
 ## The input is not always a URL
 
-The ids bundled below are mostly the by-URL variants. Platforms also ship sibling scrapers keyed by username, hashtag, keyword, or category - separate catalogue rows with their own ids. A user who brings "posts for hashtag X" or "products for keyword Y" instead of a link is still served here: search the live list for the platform name and pick the variant whose name matches the input in hand.
-
-Verified example, two doors (both by free empty-body probes):
+Variants keyed by username, hashtag, keyword or category are separate catalogue rows with their own ids. Verified example, two doors (both by free empty-body probes):
 
 | Scraper | dataset_id | Rejection names |
 |---|---|---|
