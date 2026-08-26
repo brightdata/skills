@@ -31,7 +31,6 @@ Perplexity, Gemini and Copilot have no public id. The docs say the id is on that
 | Gemini | brightdata.com/cp/scrapers/browse?domain=gemini.google.com |
 | Copilot | brightdata.com/cp/scrapers/browse?domain=copilot.microsoft.com |
 | Google AI Mode | brightdata.com/cp/scrapers/browse?domain=google.com |
-| Grok | brightdata.com/cp/scrapers/browse?domain=grok.com |
 
 `curl -H "Authorization: Bearer $BRIGHTDATA_API_KEY" https://api.brightdata.com/datasets/list` is the other lookup, but it did not carry any answer engine when checked, so do not treat an empty result there as proof the scraper is missing.
 
