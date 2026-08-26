@@ -20,7 +20,7 @@ A skill is a folder with a SKILL.md plus reference files and scripts. Any agent 
 
 ## Install
 
-Three ways, pick one.
+Two ways, pick one.
 
 **With the Bright Data CLI** (installs into the current project for every agent it knows):
 
@@ -31,21 +31,10 @@ bdata skill add scrape
 
 On Windows type `npm.cmd` and `bdata.cmd`. Add each skill you want by name. A name the CLI does not know yet fails with "Unknown skill" and the rest still install - the CLI's list catches up to this repo one release behind.
 
-**As a Claude Code plugin**:
-
-```
-/plugin marketplace add brightdata/skills
-/plugin install brightdata-plugin
-```
-
 **By hand**: clone this repo and copy the folders you want from `skills/` into your agent's skills directory.
 
 ## Start with agent-onboarding
 
 `agent-onboarding` is the entry point. It installs, logs in (one browser approval, no key ever pasted into chat), and routes to the task skill. The other eight assume it ran once.
-
-## Checks
-
-Run `node --test tests/validate.mjs` before opening a PR. It checks structure, frontmatter, links, scripts, and CLI alignment. Every fact in these skills was verified against the live product - keep it that way: a PR that adds a claim should say how the claim was checked.
 
 MIT license.
