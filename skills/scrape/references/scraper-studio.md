@@ -30,8 +30,6 @@ bdata scraper create https://news.ycombinator.com "Extract the top 30 stories: t
 bdata scraper run c_mta2a26z2nimsfu3ie https://news.ycombinator.com --pretty
 ```
 
-AI generation on `create` takes minutes - 3 in a live build, allow up to 10. Never promise the user a scraper in seconds.
-
 ## The scraper is now an API
 
 The end product of a Studio build is a private API endpoint for that site. The `collector_id` is the address, so the user's own backend can call it with no CLI installed. All calls below were verified live. Every one needs `Authorization: Bearer $BRIGHTDATA_API_KEY`, base `https://api.brightdata.com`, and a JSON body.
