@@ -27,6 +27,8 @@ Any one of them false and the answer is scrape. Need it once, buy the dataset. N
 
 The agent checks whether the marketplace covers the ask, then hands off. It does not buy.
 
+Evidence costs one free call. `node ../scripts/find-scraper.mjs "<topic>"` searches the same catalogue the scrapers live in, which also lists purchasable rows, and probing a match with `--schema` answers `marketplace dataset, not a scraper` when the row is a download for sale. A hit is proof for the line below. A miss proves nothing, because the marketplace's own inventory is browsed at the control panel link, not through this list.
+
 Buying moves money. A person does it in the control panel, on their own account, after looking at a sample. There is no reason for an agent to be in that loop.
 
 What the agent should actually say, in one line:
