@@ -89,8 +89,8 @@ const USAGE_BLOCK = [
   '  reads it. Giving up costs nothing either - the job keeps running and the',
   '  same id still works later.',
   '',
-  '  example:  node poll.mjs sd_mt9xuudv23gyk8mxyr',
-  '  example:  node poll.mjs sd_mt9xuudv23gyk8mxyr --out records.json --timeout 900',
+  '  example:  node poll.mjs sd_abc123',
+  '  example:  node poll.mjs sd_abc123 --out records.json --timeout 900',
   '  no id yet? node trigger.mjs <dataset_id> <url>',
   '',
   '  in Windows PowerShell 5.1, pipe or redirect through cmd /c, or use',
@@ -600,7 +600,7 @@ async function resolve() {
     return { ...blank(id), error: 'bad_argument', exit: 1, lines: [
       `${C.bad}x this needs the id a trigger gave back${C.off}`,
       USAGE,
-      '  example:  node poll.mjs sd_mt9xuudv23gyk8mxyr',
+      '  example:  node poll.mjs sd_abc123',
       '  no id yet? node trigger.mjs <dataset_id> <url>'] };
   }
 
