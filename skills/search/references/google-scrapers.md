@@ -2,7 +2,7 @@
 
 Answers the question "which Google surface has its own pre-built scraper, and how do I trigger it".
 
-Each entry below is a Web Scraper API dataset, not a SERP mode. SERP returns about 10 results in under a second. These return the full set as a job. The trigger, poll, download mechanics live in the `scrape` skill's `references/web-scraper-api.md` and are not repeated here.
+Each entry below is a Web Scraper API dataset, not a SERP mode. SERP returns about 10 results in one call, a couple of seconds end to end. These return the full set as a job. The trigger, poll, download mechanics live in the `scrape` skill's `references/web-scraper-api.md` and are not repeated here.
 
 ## Contents
 

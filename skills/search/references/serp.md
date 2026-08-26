@@ -2,7 +2,7 @@
 
 Answers the question "how do I get live search results in one synchronous call, and why did the zone fail".
 
-SERP returns about 10 results per request, in under a second. Anything that needs more depth, a Google vertical with its own dataset, or an answer engine is a job instead. Those live in two sibling files:
+SERP returns about 10 results per request in one synchronous call, a couple of seconds end to end. Anything that needs more depth, a Google vertical with its own dataset, or an answer engine is a job instead. Those live in two sibling files:
 
 - `google-scrapers.md` for the top 100, Shopping, Maps, Hotels and Flights
 - `answer-engines.md` for ChatGPT, Perplexity, Gemini, Copilot and Google AI Mode
@@ -76,7 +76,7 @@ With none of the five it stops with `No zone specified.` It never auto-discovers
 
 A fresh install is not the problem. Source-verified in v0.3.5: the shipped `DEFAULTS` carry only `default_format` and `api_url`, so there is no `default_zone_serp` out of the box, and `login` writes only `default_zone_unlocker` next to the `cli_unlocker` and `cli_browser` zones it creates. On a truly fresh machine step 3 finds nothing, the order falls through to the unlocker zone, and `bdata search` works.
 
-The break is a stale config value. The CLI never validates the zone it reads: it does not check that the name still exists before sending the request. So one leftover `default_zone_serp` naming a zone that was never created, or one that was deleted, ends the resolution order at step 3 because the value is truthy. The unlocker fallback in steps 4 and 5 never runs, and every `bdata search` comes back 422 Unknown zone. The usual leftover is `cli_serp` from an earlier experiment.
+The break is a stale config value. The CLI never validates the zone it reads: it does not check that the name still exists before sending the request. So one leftover `default_zone_serp` naming a zone that was never created, or one that was deleted, ends the resolution order at step 3 because the value is truthy. The unlocker fallback in steps 4 and 5 never runs, and every `bdata search` comes back `Status: 400` with `zone "<name>" not found`. The usual leftover is `cli_serp` from an earlier experiment.
 
 Detect it with `bdata config get default_zone_serp`, then check whatever name it returns against `bdata zones --json`. Two healthy answers and one broken one:
 
@@ -84,7 +84,7 @@ Detect it with `bdata config get default_zone_serp`, then check whatever name it
 - **The key is unset.** Also fine. The order falls through to the unlocker zone, which serves SERP.
 - **The name is not in the zone list.** This is the stale value described above, and the remedy table below fixes it.
 
-An `unblocker`-type zone does serve SERP requests. Verified live: `bdata search --zone cli_unlocker --json "test"` returned full parsed SERP JSON with a `search_time` of 0.39s. The fallback is legitimate, so the usual repair is one config line and no new zone.
+An `unblocker`-type zone does serve SERP requests. Verified live: `bdata search --zone cli_unlocker --json "test"` returned full parsed SERP JSON. The fallback is legitimate, so the usual repair is one config line and no new zone.
 
 The remedy, in order:
 

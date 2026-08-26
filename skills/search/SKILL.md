@@ -9,13 +9,13 @@ One name for everything that starts from a search query: Google, Bing and the ot
 
 The line that decides: a query that **returns a results list** is this skill. Pulling records **from a known place**, like Google Maps reviews or a LinkedIn profile, is `scrape`. One known URL is `fetch`.
 
-A SERP page asked for as raw HTML with no URL is still this skill: use format `raw`. With a URL, it is `fetch`.
+A SERP page asked for as raw HTML with no URL is still this skill - that is the REST path with `brd_json` left off the search URL, because the CLI always returns parsed results for Google. With a URL, it is `fetch`.
 
 ## The fork - now versus volume
 
 | The ask | Path | What it is |
 |---|---|---|
-| No volume word. **The default.** | **SERP API** | Structured JSON in under a second. About 10 results per request. Synchronous. |
+| No volume word. **The default.** | **SERP API** | Structured JSON in one synchronous call, a couple of seconds end to end. About 10 results per request. |
 | "Top 100", "all the results", a rank report past page one | **Get top 100 Google results** | A Web Scraper API dataset job. Trigger, poll, download. Not instant. |
 | "daily", "weekly", "track this keyword" | **The same path, on a timer** | Google rank tracking is SERP API plus a cron the agent writes. Answer-engine tracking is a dataset job plus a cron, see [references/answer-engines.md](references/answer-engines.md). |
 | "top 5", "the first 3", any number under ten | **SERP API** | The normal fast path, then truncate the list to what was asked. |
@@ -28,7 +28,7 @@ Route silently, defaulting to SERP. Ask only when the ask names no engine, no ve
 
 Google removed the `num=100` parameter, so no single request returns 100 rows any more. Bright Data covers this with a dataset job that walks pages 1 to 10 and hands back one result set. It is asynchronous, so say so before starting it. A first-class option, never an instant one.
 
-The trade is now versus volume: about 10 results this second, or 100 results as a job.
+The trade is now versus volume: about 10 results in one call, or 100 results as a job.
 
 ## Rank tracking is SERP on a timer
 
@@ -45,7 +45,7 @@ The ask: *"what does Google show in the US for best crm for startups?"*
 bdata search "best crm for startups" --zone cli_unlocker --country us --pretty
 ```
 
-`--zone cli_unlocker` is not decoration. A zone only has to resolve, and passing it explicitly beats every other source, which makes the call immune to the stale `default_zone_serp` that otherwise returns 422. Use whatever unlocker zone `bdata zones --json` shows on the account.
+`--zone cli_unlocker` is not decoration. A zone only has to resolve, and passing it explicitly beats every other source, which makes the call immune to a stale `default_zone_serp` that otherwise fails every call with `Status: 400` and `zone "<name>" not found`. Use whatever unlocker zone `bdata zones --json` shows on the account.
 
 Then state the choice:
 
@@ -53,9 +53,9 @@ Then state the choice:
 
 ## Answer engines belong here
 
-What ChatGPT Search, Gemini Search, Perplexity or Bing Copilot answer about a brand is still a query in and an answer out. Each is its own pre-built scraper, so each runs as a dataset job, same shape as the top-100 path.
+What ChatGPT Search, Gemini Search, Perplexity or Bing Copilot answer about a brand is still a query in and an answer out. Each is its own pre-built scraper, so each runs as a dataset job, same shape as the top-100 path. Only ChatGPT and Google AI Mode have published ids, so look the others up live before promising a run - the reference file carries what is known.
 
-When Bright Data's new AI search ships, it becomes one more option inside this skill. No reference file exists for it yet, and one is added when the product ships.
+The CLI also ships `bdata discover` - a query in, AI-ranked results out, asynchronous behind a task id. Treat it as separate from the SERP paths above and run `bdata discover --help` before reaching for it. When Bright Data's announced AI search ships as a product, it becomes one more option inside this skill.
 
 ## KYC
 
