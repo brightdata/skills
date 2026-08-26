@@ -1,118 +1,74 @@
 ---
 name: search
-description: Search the web via the Bright Data CLI — `bdata search` for Google/Bing/Yandex SERP, `bdata discover` for intent-ranked semantic results. Use when the user wants SERP results, needs URLs to feed into scraping, or wants semantic web discovery with optional page content. Hands off to `scrape` once target URLs are chosen, and to `data-feeds` when the user wants structured data from a known platform. Requires the Bright Data CLI; proactively guides install + login if missing.
+description: 'Use when the task starts from a search query instead of a known URL: Google, Bing, Yandex or another search engine results, vertical result pages such as news, images, shopping, travel or maps, AI Mode, SERP API, "top 100 results", keyword rank tracking, or what ChatGPT, Gemini, Perplexity, Copilot or another answer engine answers about a brand. Not one known page (use fetch), not records from a known place like Google Maps reviews or LinkedIn profiles (use scrape), not cost or credits (use billing), not auth failures (use agent-onboarding).'
 ---
 
-# Bright Data — Search
+# Bright Data - Search
 
-Find things on the web. Two commands live in this skill:
+One name for everything that starts from a search query: Google, Bing and the other engines, the Google verticals, and the answer engines. **The user never has to name a product.** Pick one, do the work, and state the choice in one line the user can override with one word.
 
-- **`bdata search`** — classic keyword SERP (Google/Bing/Yandex). Best when you want "what ranks for keyword X."
-- **`bdata discover`** — AI intent-ranked discovery with optional page content. Best when you want "pages about topic Y that match intent Z."
+The line that decides: a query that **returns a results list** is this skill. Pulling records **from a known place**, like Google Maps reviews or a LinkedIn profile, is `scrape`. One known URL is `fetch`.
 
-For structured data from a known platform (Amazon, LinkedIn, TikTok, …), **stop and use `data-feeds` instead**.
+A SERP page asked for as raw HTML with no URL is still this skill: use format `raw`. With a URL, it is `fetch`.
 
-## Setup gate (run first)
+## The fork - now versus volume
 
-```bash
-if ! command -v bdata >/dev/null 2>&1; then
-    echo "bdata CLI not installed — see bright-data-best-practices/references/cli-setup.md"
-elif ! bdata zones >/dev/null 2>&1; then
-    echo "bdata not authenticated — run: bdata login  (or: bdata login --device for SSH)"
-fi
+| The ask | Path | What it is |
+|---|---|---|
+| No volume word. **The default.** | **SERP API** | Structured JSON in under a second. About 10 results per request. Synchronous. |
+| "Top 100", "all the results", a rank report past page one | **Get top 100 Google results** | A Web Scraper API dataset job. Trigger, poll, download. Not instant. |
+| "daily", "weekly", "track this keyword" | **The same path, on a timer** | Google rank tracking is SERP API plus a cron the agent writes. Answer-engine tracking is a dataset job plus a cron, see [references/answer-engines.md](references/answer-engines.md). |
+
+Route silently, defaulting to SERP. Ask only when the ask names no engine, no vertical, no volume word, no latency word and no consumer signal. The question is one line: *"Ten results now, or a hundred as a job that takes longer?"*
+
+## The top-100 path is a job, not a bigger call
+
+Google removed the `num=100` parameter, so no single request returns 100 rows any more. Bright Data covers this with a dataset job that walks pages 1 to 10 and hands back one result set. It is asynchronous, so say so before starting it. A first-class option, never an instant one.
+
+The trade is now versus volume: about 10 results this second, or 100 results as a job.
+
+## Rank tracking is SERP on a timer
+
+SERP has no built-in scheduler, so the agent writes the cron job or the GitHub Actions workflow in the user's project. A repeating job never changes which product runs.
+
+## Example - the fast path
+
+The ask: *"what does Google show in the US for best crm for startups?"*
+
+1. Starts from a query, not a URL. Stay in this skill.
+2. No volume word, no "100". Fast path.
+
+```
+bdata search "best crm for startups" --country us --pretty
 ```
 
-Halt and route to `skills/bright-data-best-practices/references/cli-setup.md` if either check fails.
+Then state the choice:
 
-## Pick your path
+> Ten live Google results through SERP API. Say `top 100` for the deeper set, which runs as a job and takes longer.
 
-| Situation | Action |
-|---|---|
-| Single keyword query, just SERP | `bdata search "<query>" --engine google --json --pretty` |
-| Paginated SERP (more results) | loop `--page 0`, `--page 1`, … (0-indexed) |
-| Multiple queries | shell loop over a queries file |
-| Intent-ranked / semantic (not keyword) | `bdata discover "<query>" --intent "<intent>" --num-results 20` |
-| Want page bodies along with results, one pass | `bdata discover ... --include-content` |
-| News / images / shopping SERP | `bdata search "<query>" --type news` (or `images`, `shopping`) |
-| Want Amazon/LinkedIn/TikTok/… structured data | **stop — hand off to `data-feeds`** |
-| Have URLs, want content | **hand off to `scrape`** |
+## Answer engines belong here
 
-## Action
+What ChatGPT Search, Gemini Search, Perplexity or Bing Copilot answer about a brand is still a query in and an answer out. Each is its own pre-built scraper, so each runs as a dataset job, same shape as the top-100 path.
 
-Core commands:
+When Bright Data's new AI search ships, it becomes one more option inside this skill. No reference file exists for it yet, and one is added when the product ships.
 
-```bash
-# Google SERP, structured JSON
-bdata search "site:example.com privacy policy" --engine google --json --pretty
+## KYC
 
-# Localized Bing (German results, German language)
-bdata search "datenschutz" --engine bing --country de --language de --json
+None for normal SERP use. Send the user to brightdata.com/cp/kyc only if a call is actually refused for that reason.
 
-# Second page of results (0-indexed)
-bdata search "machine learning papers" --page 1 --json
+## Read next
 
-# Mobile SERP (rankings differ from desktop)
-bdata search "best coffee shops" --device mobile --json
+- Read [references/serp.md](references/serp.md) before the first call, when the ask is a live results list from Google, Bing or Yandex, when the ask is Google Images, which has no scraper of its own, when a zone error blocks the call, or when the same query has to repeat on a timer.
+- Read [references/google-scrapers.md](references/google-scrapers.md) when the ask names a Google vertical or wants depth past page one: top 100 results, Shopping, Maps, Hotels or Flights.
+- Read [references/answer-engines.md](references/answer-engines.md) when the query targets ChatGPT, Perplexity, Gemini, Google AI Mode or Copilot.
+- **The general trigger, poll, download mechanics:** the `scrape` skill's `references/web-scraper-api.md`. Not repeated here.
+- **A refused call:** the `agent-onboarding` skill for "No API key found", 401, 407 and a missing `cli_unlocker` or `cli_browser`. A stale or missing serp zone is different: logging in again does not clear it, so fix it in [references/serp.md](references/serp.md)'s zone section. The `billing` skill for cost and credits.
 
-# News vertical
-bdata search "openai" --type news --json --pretty
+## Red flags - stop if you catch yourself doing one of these
 
-# Intent-ranked discovery
-bdata discover "enterprise LLM platforms" \
-    --intent "vendor pages with pricing" \
-    --num-results 15 --json
-
-# Discovery with page content in markdown
-bdata discover "webhook best practices" \
-    --include-content --num-results 10 -o results.json
-
-# Date-filtered discovery
-bdata discover "react server components" \
-    --start-date 2025-01-01 --end-date 2025-12-31 --num-results 20
-```
-
-Full flag reference: [`references/flags.md`](references/flags.md).
-
-### `search` vs `discover` — pick the right one
-
-| You want | Use |
-|---|---|
-| "What Google ranks for this exact keyword" | `search` |
-| "Pages that match this meaning/intent" | `discover` |
-| "News / images / shopping vertical SERP" | `search --type <vertical>` |
-| "Results + page bodies in one call" | `discover --include-content` |
-| "Dedup / semantic ranking across queries" | `discover` |
-
-## Verification gate
-
-1. **JSON parses cleanly:** `jq . <output>` returns 0.
-2. **Result array non-empty** — if empty, the query is legitimately zero-result; relax the query and re-run. Don't claim success on empty results without telling the user.
-3. **Required fields present:**
-   - `search`: results live at `.organic[]`; each has `title` + `link`
-   - `discover`: results live at `.results[]`; each has `title` + `link`; if `--include-content`, also `content`
-4. **For `discover --include-content`:** no block-page signatures in the `content` field (same list as scrape, case-insensitive):
-   - `Access Denied`
-   - `Just a moment`
-   - `Attention Required`
-   - `Checking your browser`
-   - `captcha`
-   - `cf-browser-verification`
-   - `cloudflare` *(with < 2KB total body)*
-5. **Geo sanity:** if the user expected country-specific results, inspect TLDs / languages of top results. If mis-localized, re-run with explicit `--country` and `--language`.
-
-## Red flags
-
-- Using `search` to *fetch content* from Amazon, LinkedIn, TikTok, etc. when `data-feeds` returns clean structured data in one call.
-- Scraping every SERP result blindly — filter first (domain allowlist, keyword in title, relevance heuristic).
-- Confusing `search` (keyword) with `discover` (semantic). They answer different questions.
-- Running multiple queries without deduping URLs across result sets before scraping.
-- Assuming SERP order is universal — it's personalized by geo + device. Always set `--country` and `--device` explicitly for reproducibility.
-- Using `--page` as a result count — it's a page index, not a limit. Each page returns ~10 results.
-- Assuming SERP results are at `.results[]` — for `bdata search` they live at `.organic[]`. (Discover uses `.results[]`.)
-- Hardcoding `--num-results 100` on `discover` without realizing the pipeline polls until that many are found; can be slow.
-
-## References
-
-- [`references/flags.md`](references/flags.md) — full flags for `search` and `discover` with when-to-use notes.
-- [`references/patterns.md`](references/patterns.md) — multi-query dedup, SERP → filter → scrape pipeline, `search` vs `discover` decision, legacy `curl` fallback, shared verification checklist.
-- [`references/examples.md`](references/examples.md) — (1) single Google query, (2) localized Bing, (3) batch queries + dedup into URL list, (4) `discover --include-content` end-to-end.
+- Promising 100 results in under a second, or calling the top-100 job instant
+- Reaching for the top-100 job when the user never asked for volume
+- Sending a results-list ask to `scrape`, or handling a records-from-a-known-place ask here
+- Switching product because the job repeats. "daily" is a scheduler, not a different product
+- Guessing a `dataset_id` instead of looking it up live
+- Sending the user to KYC before a call is actually refused

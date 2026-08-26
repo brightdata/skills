@@ -1,0 +1,107 @@
+# Scraper Studio - building a scraper when gate 2 fires
+
+Answers the question "gate 2 said build it, so what does the agent actually run".
+
+## What Studio is
+
+Studio builds a scraper from two things: a target URL and a plain-language description of the fields wanted. No selectors are written by hand. The scraper it produces is a stored template with a `collector_id`, and that id is what every later command takes.
+
+Studio's output is a dataset of fields, not an HTTP response. A user who wants the page itself - HTML, markdown or a screenshot - goes to `fetch`. (Studio functions can capture HTML or screenshots into a field, but that is a field in a dataset, not a page handed back.)
+
+## The four CLI commands
+
+These are the only `scraper` subcommands that exist. `bdata scraper --help` lists create, run, heal and approve.
+
+```
+brightdata scraper create <url> <description>          Build a scraper from a natural-language description using AI
+brightdata scraper run <collector_id> [url]            Run a Bright Data scraper on one or more URLs and return the data
+brightdata scraper heal <collector_id> <prompt>        Fix an existing scraper in place via AI self-healing
+brightdata scraper approve <collector_id>              Approve (or --reject) a heal that is awaiting approval
+```
+
+The description is capped at 500 characters. A heal prompt is capped at 1000.
+
+## Create then run
+
+Creating and running are two separate steps. Create once with the CLI, then run it from the CLI, the SDK (`client.scraperStudio.run(collectorId, {input})`, which also has `trigger`, `status` and `fetch`), or the REST endpoint. The SDK has no create method, so creation stays CLI only.
+
+```
+bdata scraper create https://news.ycombinator.com "Extract the top 30 stories: title, url, points, author, comment count." --name hn-top --pretty
+bdata scraper run c_mp3tuab31lswoxvpws https://news.ycombinator.com --pretty
+```
+
+AI generation on `create` takes 5 to 10 minutes. Never promise the user a scraper in seconds.
+
+## Flags worth knowing
+
+Only flags the CLI actually prints are listed here. Run any subcommand with `--help` for the rest.
+
+| Command | Flag | What it does |
+|---|---|---|
+| `create` | `--name <name>` | Names the template. Default is `cli-scraper-<timestamp>`. |
+| `create` | `--deliver-webhook <url>` | Sets the deliver stub. The default is a placeholder, so set this when wiring a real backend. |
+| `create`, `heal` | `--max-retries <n>` | Retries on the AI-Flow concurrent-job cap 429. Default 4, backoff up to about 4 minutes. |
+| `create`, `heal` | `--no-retry` | Fail immediately on the 429 instead of waiting through the cap. |
+| `run` | `--urls <list>` | Comma-separated batch through `/dca/trigger`. |
+| `run` | `--input-file <path>` | One URL per line, or a JSON array of strings, or a JSON array of `{"url": "..."}`. |
+| `run` | `--sync` | The synchronous `/dca/crawl` endpoint. Single URL only, server-side cap of 25 to 50 seconds. |
+| `run` | `--timeout <seconds>` | Async polling timeout. Default 600, batch mode 3600. |
+| `heal` | `--auto-approve` | Approve the heal at the gate and poll through to done. Default is to stop for review. |
+| `heal`, `approve` | `--auto-save` | Save the healed template once the job completes. On `heal` it pairs with `--auto-approve`. |
+| `approve` | `--reject` | Reject the proposed fix instead of approving it. |
+
+## Self-healing and the approval gate
+
+When a site changes, the scraper does not get rewritten by hand. It gets a prompt.
+
+```
+bdata scraper heal c_mp3tuab31lswoxvpws "The price field returns null. The selector moved into a span with data-testid. Capture price and currency again."
+```
+
+The heal stops at `awaiting_approval` by default. Nothing changes until someone approves it.
+
+| Situation | Command |
+|---|---|
+| Review the fix first, then accept it | `bdata scraper approve <collector_id>` |
+| The fix is wrong, start over with a sharper prompt | `bdata scraper approve <collector_id> --reject` |
+| Trust it and run straight through | `bdata scraper heal ... --auto-approve --auto-save` |
+
+Studio heals itself. Web Scraper API is fixed by Bright Data engineers. The fall-through path is fixed by the user. Never confuse the three.
+
+## The scheduler
+
+Studio has a built-in scheduler: hourly, daily, weekly, or custom. This is the only Bright Data scraping path with one. Web Scraper API and Web Unlocker need a cron job or a GitHub Actions workflow written into the user's own project.
+
+The CLI has no schedule subcommand. The schedule is set on the scraper in the control panel. The agent does not set it, and it should say so rather than inventing a flag.
+
+## Scraper patterns
+
+The docs describe scrapers by pattern, not by a type picker:
+
+| Pattern | Use it for |
+|---|---|
+| Single-page scraper | All the fields live on one page |
+| Search or discovery scraper | Starting from a keyword, a category, or a listing page |
+| Multi-page detail scraper | Discover the URLs, then visit each one for its fields |
+
+A crawl ask (walk a site, collect every matching page) is the multi-page pattern. `load_sitemap()` reads a site's sitemap to feed it.
+
+## The browser work Studio does for you
+
+This is why gate 2 exists. Studio drives a real headless browser, so the user never writes Playwright. The functions reference names these:
+
+| Group | Functions |
+|---|---|
+| Waiting | `wait`, `wait_any`, `wait_visible`, `wait_hidden`, `wait_for_text`, `wait_network_idle`, `wait_page_idle` |
+| Clicking and pointing | `click`, `right_click`, `hover`, `mouse_to`, `bounding_box` |
+| Typing | `type`, `press_key`, `select` |
+| Scrolling and lazy content | `scroll_to`, `scroll_to_all`, `load_more` |
+| Obstacles | `solve_captcha`, `close_popup`, `freeze_page` |
+| Emulation | `emulate_device`, `emulate_geolocation`, `browser_size`, `font_exists` |
+| Capturing network traffic | `tag_response`, `tag_all_responses`, `tag_script`, `tag_window_field`, `tag_image`, `tag_video`, `tag_screenshot`, `tag_download`, `tag_serp`, `capture_graphql` |
+
+Open term: the exact wording of "Scraper Studio browser worker" is still being settled with the product team. Do not build user-facing copy on that phrase yet.
+
+## After a run
+
+`scraper run` returns a job, not data. See [snapshots-and-jobs.md](snapshots-and-jobs.md) for reading a Studio job with `GET /dca/log/{job_id}` and for where the results can be delivered.

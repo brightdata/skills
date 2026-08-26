@@ -1,5 +1,5 @@
 ---
-name: brightdata-sdk
+name: python-sdk-best-practices
 description: |
   Web data extraction and discovery using the Bright Data Python SDK.
   Use when user asks to "scrape", "get data from", "extract", "search for",

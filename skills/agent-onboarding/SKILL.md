@@ -1,461 +1,105 @@
 ---
 name: agent-onboarding
-description: |
-  Onboard an agent to Bright Data. Use when a coding agent first
-  encounters Bright Data — for live web work (search, scrape,
-  structured data), for wiring Bright Data into product code, for
-  installing the agent skill bundle, or for getting an API key. One
-  install command sets up the CLI, agent skills, and authentication.
-  Routes the reader to the right path: live tools, app integration,
-  MCP, auth-only, or direct REST without any install.
-license: MIT
-metadata:
-  author: brightdata
-  version: "1.1.0"
+description: The entry point to all Bright Data skills - start here, and it guides the agent to the right skill for the task at hand - web data and scraping, fetching or unblocking a page, search, browser automation, and the CLI, SDK and MCP surfaces. Use when Bright Data is not set up or stops authenticating - the CLI is missing ("bdata is not recognized"), login is needed or fails ("No API key found"), a call is refused with 401, 407 or another auth error, an expected zone like cli_unlocker is missing, a key must be set in a project's .env, CI, or a container (BRIGHTDATA_API_KEY), or the user asks to install Bright Data, log in, get started, or which skill fits their task. Auth for every other Bright Data skill lives here.
 ---
 
-# Bright Data — Agent Onboarding
+# Bright Data - Start Here
 
-Bright Data gives agents reliable access to the open web: SERP results
-that look like a real browser, clean markdown from any URL (with
-CAPTCHA + JS handled), structured datasets for 40+ platforms (Amazon,
-LinkedIn, Instagram, TikTok, YouTube, Reddit, Crunchbase, …), and a
-Browser API for pages that need real interaction.
+Install the CLI and the skills, log in once, then route to the task skill.
 
-This skill is the entry point. Read it once, pick a path, then hand
-off to the narrower skill that owns that path.
+**Never ask the user to paste an API key into chat.** Login is one browser approval. The key never touches the conversation.
+
+**Windows note:** type every command with `.cmd` - `bdata.cmd`, `npm.cmd`, `npx.cmd`. The PowerShell error "running scripts is disabled" means a command was typed without it. It is not a PATH problem.
+
+## Already set up?
+
+Two free checks before doing any work:
+
+1. `bdata --version` works: skip to Add the skills.
+2. `bdata zones --json` shows `cli_unlocker` and `cli_browser`: logged in, skip straight to the route table.
+
+Only the first check passes: go to Log in. On Windows, "bdata is not recognized" can also mean installed but not on PATH - apply the PATH fix in Install before reinstalling.
 
 ## Install
 
-One command installs the CLI **and** the agent skills, and walks the
-human through OAuth in the browser:
+| OS | Command |
+|---|---|
+| Windows | `npm.cmd install -g @brightdata/cli`, then run the CLI as `bdata.cmd` |
+| macOS and Linux | `npm install -g @brightdata/cli`, or `curl -fsSL https://cli.brightdata.com/install.sh \| bash` |
 
-```bash
-# macOS / Linux — fastest install
-curl -fsSL https://cli.brightdata.com/install.sh | bash
+The curl script is for interactive machines only: it runs `bdata login` by itself at the end, so on a headless machine it exits 1 after installing, and on a logged-in machine it replaces the saved key. In CI and containers use npm or npx.
 
-# Cross-platform (or if you don't want the install script)
-npm install -g @brightdata/cli
+The npm command needs Node.js. Windows notes: if `npm` is missing, install Node.js LTS first (nodejs.org or `winget install OpenJS.NodeJS.LTS`), then retry. If `bdata` is still not recognized after install, npm's global directory is not on PATH. Fix it for this session and tell the user to add it permanently. In PowerShell:
 
-# One-off, no install
-npx --yes --package @brightdata/cli brightdata <command>
+```
+$env:PATH += ";$(npm.cmd config get prefix)"
 ```
 
-Requires Node.js >= 20. After install, both `brightdata` and `bdata`
-(shorthand) are available.
+cmd rejects that line. The cmd version:
 
-Then authenticate **once**:
+```
+for /f "delims=" %p in ('npm.cmd config get prefix') do set PATH=%PATH%;%p
+```
 
-```bash
+If `npm install -g` is blocked on the machine, skip installing: `npx -y @brightdata/cli <command>` (`npx.cmd` on Windows) runs the same CLI on demand, use it wherever a command says `bdata`.
+
+## Add the skills
+
+These are the skills the agent will route to. Run each line (semicolon chaining breaks in cmd, separate lines work in every shell):
+
+```
+bdata skill add scrape
+bdata skill add fetch
+bdata skill add search
+bdata skill add browser
+bdata skill add brightdata-cli
+bdata skill add brightdata-mcp
+bdata skill add brightdata-sdk
+bdata skill add billing
+```
+
+Always pass the skill name - a bare `bdata skill add` needs a person. Run it from the project root, because it installs into the current directory's agent folders. A name the registry does not carry yet fails with "Unknown skill" and prints the list it does carry: skip that name and continue, the rest still install.
+
+## Log in
+
+```
 bdata login
 ```
 
-This single command:
+The browser opens on the user's machine, they approve once, and the CLI writes the key by itself. Nothing to paste anywhere.
 
-1. Opens the browser for OAuth (or use `bdata login --device` on
-   headless / SSH machines)
-2. Saves the API key locally — you never need to paste a token again
-3. Auto-creates the required proxy zones (`cli_unlocker`,
-   `cli_browser`)
-4. Sets sensible default configuration
+On SSH, in containers, or on any machine without a browser, use `bdata login --device` instead. It prints a pairing code and a URL (to stderr), show both to the user, they approve from any device, and the command waits and then writes the key. The code expires after about 15 minutes. Bare `bdata login` cannot work there: it hangs waiting for a local browser, and its printed fallback URL only works on the machine running the command.
 
-For non-interactive setups you can pass the key directly:
+**Never run login on a machine that already passes the zones check.** With an active browser session, login completes by itself and silently replaces the saved API key, which breaks anything still using the old key. The curl install script counts too - it runs login by itself.
 
-```bash
-bdata login --api-key <key>
-# or
-export BRIGHTDATA_API_KEY=<key>
-```
+Do not use `bdata login --github` in scripts or unattended runs. It shells out to `gh`, and on any failure it drops into an interactive prompt. With no terminal attached (CI, scripts), that prompt never returns.
 
-Verify the install before doing real work:
+To confirm login actually worked, run `node scripts/check-auth.mjs --json` ([scripts/check-auth.mjs](scripts/check-auth.mjs) - the same zones check, packaged for scripts). One free call, and it exits nonzero on any failure.
 
-```bash
-bdata version
-bdata config            # confirms auth + zones
-bdata zones             # should list cli_unlocker, cli_browser
-bdata budget            # confirms account + balance
-```
+## Route to the task skill
 
-**Branch deterministically on the result** — don't eyeball it:
+Users ask for data, not for tools. When two rows both fit, prefer `scrape`: ready scrapers and Scraper Studio cover most real jobs end to end.
 
-- If `bdata config` or `bdata budget` exits **non-zero**, route to Path C
-  (auth) before continuing.
-- If either exits zero but its output contains an auth or zone error
-  string (e.g. `unauthorized`, `invalid api key`, `not logged in`, `no
-  such zone`, `zone not found`), treat it as a failure and route to
-  Path C.
-- Only proceed to a path below when both commands exit zero **and** show
-  an authenticated account with the `cli_unlocker` / `cli_browser` zones.
-
-## Install agent skills (optional, recommended)
-
-The CLI ships an installer that drops Bright Data skills directly into
-your coding agent's skill directory:
-
-```bash
-# Interactive picker — choose skills + target agent
-bdata skill add
-
-# Install a specific skill
-bdata skill add scrape
-bdata skill add data-feeds
-bdata skill add competitive-intel
-
-# See everything available
-bdata skill list
-```
-
-These are the skills you'll hand off to from the paths below
-(`scrape`, `search`, `data-feeds`, `scraper-builder`,
-`brightdata-cli`, `bright-data-mcp`, …).
-
-## Choose your path
-
-All paths share the same install + auth above. The difference is what
-you do next.
-
-| Situation | Path |
+| The user wants | Skill |
 |---|---|
-| Need web data **during this session** | **Path A** — live CLI tools |
-| Need to **add Bright Data to app code** | **Path B** — SDK / REST integration |
-| Want a **drop-in tool layer for an LLM agent** | **Path M** — MCP server |
-| Need an **API key first** | **Path C** — auth only |
-| Don't want to install anything | **Path D** — REST API directly |
+| To scrape a site, or data or information from it (LinkedIn, Amazon, ...) | `scrape` |
+| A page as markdown, HTML, or a screenshot | `fetch` |
+| Anything starting from a search query | `search` |
+| To point their own browser code at our cloud browser - Playwright, Puppeteer, Selenium, or an AI that clicks by itself | `browser` |
+| Setup, building or testing scrapers, quick one-off checks | `brightdata-cli` |
+| Their AI app to decide at run time | `brightdata-mcp` |
+| Code that repeats the same job on a schedule | `brightdata-sdk` |
+| To build their own API or service on top of Bright Data ("build me a scraper API") | `brightdata-sdk` |
+| Balance, charges, credits used, or what a job will cost | `billing` |
 
-If your task spans paths, do them in order: auth → live tools to
-explore → app integration once the shape is known.
+Torn between CLI, SDK, MCP, or plain REST for the same task: read [references/interfaces.md](references/interfaces.md).
 
----
+## No-install path (CI, containers, restricted machines)
 
-## Path A — Live web tools (CLI)
+The npx fallback above gives the full CLI with nothing installed. Otherwise set `BRIGHTDATA_API_KEY` from the account settings page and call the REST API directly. Write the key into the environment or a secrets store without printing it. Read [references/auth.md](references/auth.md) for the endpoints and the credential order.
 
-Use this when the agent itself needs web data right now: discovering
-URLs, fetching clean content, pulling structured records from a known
-platform, or running a quick competitive scan.
+## When a call is refused
 
-After install + login, hand off to the narrower skills:
+`Error: No API key found` means this machine is not logged in: log in (see Log in above), or set `BRIGHTDATA_API_KEY`. A 401 means the key is invalid or revoked: log in again. Nearly every use case (Scraper API, Scraper Studio, SERP, Unlocker, Browser API) needs no KYC. If a call ever comes back with a KYC error, [references/auth.md](references/auth.md) says what to do.
 
-- `brightdata-cli` — overall command surface (`scrape`, `search`,
-  `pipelines`, `status`, `zones`, `budget`, `config`)
-- `search` — discovery via `bdata search` (Google / Bing / Yandex
-  SERP, structured JSON)
-- `scrape` — clean content from a known URL via `bdata scrape`
-  (markdown / HTML / JSON / screenshot)
-- `data-feeds` — structured records from 40+ supported platforms via
-  `bdata pipelines <type>` (Amazon, LinkedIn, Instagram, TikTok,
-  YouTube, Reddit, Crunchbase, Google Maps, …)
-- `discover-api` — intent-ranked semantic web search via
-  `bdata discover` (relevance-scored results + optional page content)
-- `scraper-studio` — generate and run an AI-built scraper from a
-  plain-English description via `bdata scraper create` / `bdata scraper run`
-- `competitive-intel` — packaged competitor / pricing / review /
-  hiring / SEO analyses on top of the CLI
-- `price-comparison` — "where is this cheapest, in stock?" across
-  Amazon, Walmart, eBay, Best Buy, Google Shopping, into one ranked table
-- `brand-listening` — social-listening / sentiment digest of what
-  people are saying about a brand across Reddit, X, TikTok, news, reviews
-- `live-research` — multi-query Discover → dedup → a cited research brief
-- `seo-audit` — sitemap-stratified live SEO audits
-
-Default flow for live web work:
-
-1. **Search first** when you need discovery
-   `bdata search "query" --json`
-2. **Pipelines next** if the target is a supported platform — you get
-   structured JSON with no parsing
-   `bdata pipelines amazon_product "https://amazon.com/dp/..."`
-3. **Scrape** when you have a URL and no platform pipeline applies
-   `bdata scrape "https://example.com" -f markdown`
-4. **Browser API** only when the page truly needs clicks, forms, or
-   login (see the `brightdata-cli` skill for `bdata browser` and the
-   `bright-data-best-practices` browser-api reference)
-
-When the task shifts from "fetch data now" to "wire this into an
-app," switch to Path B.
-
----
-
-## Path B — Integrate Bright Data into an app
-
-Use this when you're building an application, agent, or workflow that
-calls Bright Data from code and needs `BRIGHTDATA_API_KEY` (and a
-zone) in `.env` or runtime config.
-
-The required question on this path is:
-
-> **What should Bright Data do in the product?**
-
-Use the answer to pick the API:
-
-| Job in product | API | Skill |
-|---|---|---|
-| Fetch a single page as markdown / HTML / JSON | Web Unlocker | `bright-data-best-practices` → `web-unlocker.md` |
-| Search engine results in structured JSON | SERP API | `bright-data-best-practices` → `serp-api.md` |
-| Structured records from supported platforms | Web Scraper API | `bright-data-best-practices` → `web-scraper-api.md` |
-| JS-heavy / interactive pages with Playwright/Puppeteer | Browser API | `bright-data-best-practices` → `browser-api.md` |
-| Build a custom scraper for an arbitrary site | All four, picked by site shape | `scraper-builder` |
-
-### Pick a stack
-
-- **Python** → use the official SDK
-  ```bash
-  pip install brightdata-sdk
-  ```
-  Hand off to `python-sdk-best-practices` for client setup
-  (async/sync), platform scrapers, SERP, datasets, Browser API, and
-  error handling.
-
-- **Node / TypeScript** → use the official JS/TS SDK
-  ```bash
-  npm install @brightdata/sdk
-  ```
-  Hand off to `js-sdk-best-practices` for client setup (`bdclient`),
-  platform scrapers, SERP, Discover, datasets, Browser API, Scraper
-  Studio, and error handling.
-
-- **Shell / other languages** → call the REST API directly (Path D
-  below has the endpoints), or use the CLI as a library via
-  `npx @brightdata/cli`.
-
-- **Raw proxy access (route HTTP through Bright Data IPs)** → hand off
-  to `proxy` for network/pool choice, the `brd-customer-` username
-  format, SSL CA setup, and framework integrations.
-
-- **Web-grounded retrieval / RAG for an LLM** → hand off to
-  `rag-pipeline` (Discover as the retrieval / ingestion layer).
-
-- **LLM tool layer (Claude, ChatGPT, etc.)** → use the MCP server
-  (Path M).
-
-### Set credentials
-
-```dotenv
-BRIGHTDATA_API_KEY=...
-BRIGHTDATA_UNLOCKER_ZONE=cli_unlocker   # created automatically by `bdata login`
-BRIGHTDATA_SERP_ZONE=cli_unlocker       # or a dedicated SERP zone
-```
-
-If you don't have a key yet, do Path C first.
-
-### Smoke test before writing real code
-
-Always run one real Bright Data request before scaling up integration
-work — catches auth, zone, and quota issues before they hide inside
-your app's error paths.
-
-```bash
-# Web Unlocker via REST
-curl -sS https://api.brightdata.com/request \
-  -H "Authorization: Bearer $BRIGHTDATA_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "url": "https://example.com",
-    "zone": "'"$BRIGHTDATA_UNLOCKER_ZONE"'",
-    "format": "raw",
-    "data_format": "markdown"
-  }' | head -40
-```
-
-If this prints clean markdown, you're wired up. If not, check the
-zone name and key.
-
----
-
-## Path M — MCP server (LLM tool layer)
-
-Use this when the consumer is an LLM agent that should call Bright
-Data as tools (e.g., Claude Code, ChatGPT desktop, custom agent
-loops). The MCP server exposes 60+ tools — search, scrape, structured
-data per platform, browser automation — over a single URL.
-
-Connect with:
-
-```
-https://mcp.brightdata.com/mcp?token=YOUR_BRIGHTDATA_API_TOKEN
-```
-
-Optional URL parameters:
-
-| Parameter | Effect |
-|---|---|
-| `pro=1` | Enable all 60+ Pro tools |
-| `groups=<name>` | Enable a tool group (`social`, `ecommerce`, `business`, `finance`, `research`, `app_stores`, `travel`, `browser`, `advanced_scraping`) |
-| `tools=<names>` | Enable a specific tool list, comma-separated |
-
-Hand off to the `bright-data-mcp` skill for tool selection, tool-group
-auto-enabling, and workflow patterns. That skill explicitly replaces
-WebFetch / WebSearch with Bright Data MCP equivalents.
-
-MCP requests run on the Unlocker API and draw from the **same monthly
-free-credit pool described under Path C** — there's no separate MCP
-allowance.
-
----
-
-## Path C — Get an API key (auth only)
-
-Use this when the human still needs to sign up, sign in, or generate
-a key. Skip this path if `bdata config` already shows an authenticated
-account, or if `BRIGHTDATA_API_KEY` is already set in the environment.
-
-> **Free tier — no card needed to start.** Every new account gets
-> **5,000 free credits / month (~$7.50)** from one shared pool, so you can
-> build and test before depositing anything. The docs are the source of
-> truth for these numbers:
-> https://docs.brightdata.com/general/account/billing-and-pricing/free-tier
->
-> - **Shared pool** across Unlocker API, SERP API, Web Scraper API, and
->   Scraper Studio — **1 credit per request/record** (Scraper Studio:
->   1 credit per page load).
-> - **Bright Data MCP server requests draw from the same pool** — MCP
->   runs on the Unlocker API.
-> - **Hard stop** when credits run out if no funds are deposited — never
->   a surprise bill.
-> - Credits **reset on the 1st** of each month and **do not roll over**.
-> - **Not covered by monthly credits:** Proxy products and the Browser
->   API. Those use a separate one-time **$2 trial (7 days)** plus a **$5
->   bonus (30 days)** after adding a payment method.
-> - **Not eligible:** custom-PAYG and pre-commit plans.
-
-### Easiest: use the CLI's OAuth flow
-
-```bash
-bdata login            # browser-based OAuth
-bdata login --device   # headless / SSH (device-code flow)
-```
-
-This handles signup-or-signin, key generation, zone creation, and
-local config in one step. Prefer this over manual flows.
-
-### Manual: dashboard
-
-If the human prefers the web UI:
-
-1. Go to https://brightdata.com/cp (sign up if needed)
-2. Create a **Web Unlocker zone** ("Add" → "Unlocker zone")
-3. Copy the API key from the dashboard
-4. Save it where the rest of the app reads secrets:
-
-```bash
-echo "BRIGHTDATA_API_KEY=..." >> .env
-echo "BRIGHTDATA_UNLOCKER_ZONE=<zone-name>" >> .env
-```
-
-### Verify
-
-```bash
-bdata budget    # any successful response means the key works
-```
-
-If verification fails, the key is wrong, the zone is wrong, or the
-account has no active subscription — surface the error to the human
-rather than guessing.
-
----
-
-## Path D — Use Bright Data without installing anything
-
-Use this when the environment can't run `npm` / `curl | bash`, or
-when you only need one or two requests and don't want the CLI / SDK.
-Works for both live agent work and app integration.
-
-You still need an API key and a zone. Two ways to get them:
-
-- **Human pastes it in** — if a key already exists, set
-  `BRIGHTDATA_API_KEY=...` and `BRIGHTDATA_UNLOCKER_ZONE=...` in the
-  environment
-- **Browser flow** — do Path C; the dashboard issues both
-
-**Base URL:** `https://api.brightdata.com`
-**Auth header:** `Authorization: Bearer $BRIGHTDATA_API_KEY`
-
-### Core endpoints
-
-```http
-# Web Unlocker — clean content from any URL
-POST /request
-{
-  "url": "https://target.com",
-  "zone": "<unlocker-zone>",
-  "format": "raw",
-  "data_format": "markdown"   // or "html", "screenshot", "parsed_light"
-}
-```
-
-```http
-# SERP API — structured search results
-# Use the same /request endpoint with a SERP zone and a search URL,
-# adding `brd_json=1` to receive parsed JSON instead of raw HTML.
-POST /request
-{
-  "url": "https://www.google.com/search?q=web+scraping&brd_json=1",
-  "zone": "<serp-zone>",
-  "format": "raw"
-}
-```
-
-```http
-# Web Scraper API — structured data for 40+ platforms (async)
-POST /datasets/v3/trigger?dataset_id=<id>
-[ { "url": "https://amazon.com/dp/B09V3KXJPB" } ]
-
-# then poll
-GET  /datasets/v3/snapshot/<snapshot_id>?format=json
-```
-
-For the full parameter surface (special headers like
-`x-unblock-expect`, async response IDs, dataset progress states,
-Browser API CDP commands), read the `bright-data-best-practices`
-skill — its references are the source of truth for REST-level work.
-
-### Documentation
-
-- Product docs: https://docs.brightdata.com
-- LLM-friendly docs index: https://docs.brightdata.com/llms.txt
-- Dashboard (zones, keys, billing): https://brightdata.com/cp
-
----
-
-## After onboarding — where to go next
-
-Once the agent is set up, route the work to the narrowest skill that
-fits. Quick map:
-
-| User says… | Skill |
-|---|---|
-| "scrape this URL" / "get this page" | `scrape` |
-| "search Google for…" / "find URLs about…" | `search` |
-| "find pages about <topic> matching <goal>" / "semantic / intent search" | `discover-api` |
-| "get Amazon / LinkedIn / Instagram / TikTok / YouTube / Reddit data" | `data-feeds` |
-| "build a scraper for <site>" (I want runnable code I own) | `scraper-builder` |
-| "generate a scraper from a description" / "bdata scraper run" (AI-built, no code) | `scraper-studio` |
-| "analyze my competitor" / "competitor's pricing *strategy*" / "market landscape" | `competitive-intel` |
-| "compare prices" / "cheapest place to buy X" / "price check" (shopping) | `price-comparison` |
-| "what are people saying about us" / "monitor mentions" / "brand sentiment" | `brand-listening` |
-| "research <topic> deeply" / "write a cited brief" | `live-research` |
-| "build a RAG pipeline" / "add web search to my LLM" / "ground my model" | `rag-pipeline` |
-| "audit SEO" / "rank check" / "schema check" | `seo-audit` |
-| "make my app look like <site>" / "mirror this design" | `design-mirror` |
-| "write Bright Data code in Python" | `python-sdk-best-practices` |
-| "write Bright Data code in JS / TypeScript" | `js-sdk-best-practices` |
-| "route requests through a Bright Data proxy" / "brd-customer- username" | `proxy` |
-| "plug Bright Data into my LLM agent" | `bright-data-mcp` |
-| "use the CLI" / "run from terminal" | `brightdata-cli` |
-| "debug a Browser API / Scraping Browser session" | `brd-browser-debug` |
-
-When in doubt, prefer the more specific skill: `data-feeds` over
-`scrape` for supported platforms, `scraper-builder` over `scrape` for
-multi-page extraction, `bright-data-mcp` over `brightdata-cli` when
-the consumer is an LLM agent rather than a human at a terminal.
-
-Two pairs are easy to confuse:
-
-- **`scraper-builder` vs `scraper-studio`** — `scraper-builder` writes a
-  scraper you own and run yourself (real code + selectors + pagination).
-  `scraper-studio` turns a URL + plain-English description into an
-  AI-generated Bright Data collector you run via `bdata scraper
-  create` / `bdata scraper run` — no code to maintain.
-- **`competitive-intel` vs `price-comparison`** — `competitive-intel` is
-  business analysis of a *competitor's* pricing strategy and positioning;
-  `price-comparison` is consumer purchase research ("where is this
-  product cheapest and in stock").
+Read [references/auth.md](references/auth.md) before handling any refused call - it has the full error table and the narrow Web Unlocker exceptions.
