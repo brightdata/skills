@@ -19,11 +19,11 @@ brightdata scraper heal <collector_id> <prompt>        Fix an existing scraper i
 brightdata scraper approve <collector_id>              Approve (or --reject) a heal that is awaiting approval
 ```
 
-The description is capped at 500 characters. A heal prompt is capped at 1000.
+The description is capped at 500 characters by the API - the CLI does not check it before sending. A heal prompt is capped at 1000 and the CLI rejects an over-long one locally.
 
 ## Create then run
 
-Creating and running are two separate steps. Create once with the CLI, then run it from the CLI, the SDK (`client.scraperStudio.run(collectorId, {input})`, which also has `trigger`, `status` and `fetch`), or the REST endpoint. The SDK has no create method, so creation stays CLI only.
+Creating and running are two separate steps. Create once, then run it from the CLI, the SDK (`client.scraperStudio.run(collectorId, {input})`, which also has `trigger`, `status` and `fetch`), or the REST endpoints below. The SDK has no create method, so an agent creates with the CLI. Creation also exists in the control panel.
 
 ```
 bdata scraper create https://news.ycombinator.com "Extract the top 30 stories: title, url, points, author, comment count." --name hn-top --pretty
@@ -32,7 +32,7 @@ bdata scraper run <collector_id> https://news.ycombinator.com --pretty
 
 ## The scraper is now an API
 
-The end product of a Studio build is a private API endpoint for that site. The `collector_id` is the address, so the user's own backend can call it with no CLI installed. All calls below were verified live. Every one needs `Authorization: Bearer $BRIGHTDATA_API_KEY`, base `https://api.brightdata.com`, and a JSON body.
+The end product of a Studio build is a private API endpoint for that site. The `collector_id` is the address, so the user's own backend can call it with no CLI installed. All calls below were verified live. Every one needs `Authorization: Bearer $BRIGHTDATA_API_KEY` and base `https://api.brightdata.com`. The POSTs take a JSON body, the two GETs take none.
 
 | Call | What comes back |
 |---|---|
@@ -40,9 +40,9 @@ The end product of a Studio build is a private API endpoint for that site. The `
 | `POST /dca/trigger_immediate?collector=<collector_id>` body `{"url":"..."}` | 202 with a `response_id`. One URL, async. |
 | `GET /dca/get_result?response_id=<response_id>` | 202 `{"pending":true}` while running, then 200 with the records. |
 | `POST /dca/trigger?collector=<collector_id>` body `[{"url":"..."}, ...]` | `{"collection_id":"j_...","start_eta":...}`. The batch door, one object per input. |
-| `GET /dca/dataset?id=<collection_id>&format=json` | 202 `{"status":"collecting"}` while running, then 200 with the records. |
+| `GET /dca/dataset?id=<collection_id>&format=json` | 202 with a status object while running (the status word varies: `collecting`, `building`), then 200 with the records. Branch on the 202, not on the word. |
 
-A deleted or unknown collector answers 404 "Collector not found" on every one of these. Do not retry or guess an id - the account's scrapers are listed at brightdata.com/cp/scrapers.
+A deleted or unknown collector answers 404 "Collector not found" on the three collector-addressed POSTs. The two GETs are addressed by job id, so a bad collector never reaches them. Do not retry or guess an id - the account's scrapers are listed at brightdata.com/cp/scrapers.
 
 For code the user keeps, prefer the SDK over raw REST: `client.scraperStudio.run(collectorId, {input})` is one line where the REST loop above is a dozen.
 
@@ -72,7 +72,7 @@ When a site changes, the scraper does not get rewritten by hand. It gets a promp
 bdata scraper heal <collector_id> "The comment_count field returns null. The selector moved into a span with a new class. Capture it again."
 ```
 
-The heal stops at `awaiting_approval` by default. Nothing changes until someone approves it.
+The heal stops at `awaiting_approval` by default. Nothing changes until someone approves it, and approval sends the fix to a draft - it reaches production only when the template is saved, which is what `--auto-save` does.
 
 | Situation | Command |
 |---|---|
@@ -82,21 +82,23 @@ The heal stops at `awaiting_approval` by default. Nothing changes until someone 
 
 ## The scheduler
 
-Studio has a built-in scheduler: hourly, daily, weekly, or custom. This is the only Bright Data scraping path with one.
+Studio has a built-in scheduler: hourly, daily, weekly, or custom. Of the scraping paths in this skill, it is the only one with one.
 
 The CLI has no schedule subcommand - the schedule is set on the scraper in the control panel, so say that rather than inventing a flag.
 
 ## Scraper patterns
 
-The docs describe scrapers by pattern, not by a type picker:
+The docs name five scraper types:
 
-| Pattern | Use it for |
-|---|---|
-| Single-page scraper | All the fields live on one page |
-| Search or discovery scraper | Starting from a keyword, a category, or a listing page |
-| Multi-page detail scraper | Discover the URLs, then visit each one for its fields |
+| Scraper type | You provide | You get |
+|---|---|---|
+| PDP | A list of product URLs | Full per-product detail |
+| Discovery | A category or listing URL | Listing-level rows (title, price, rank) |
+| Discovery + PDP | A category or listing URL | Full detail for every item on it |
+| Search | A keyword, optionally a country | Discovery or Discovery + PDP shape |
+| Sitemap | A domain or a `sitemap.xml` URL | Full detail for every URL in the sitemap |
 
-A crawl ask (walk a site, collect every matching page) is the multi-page pattern. `load_sitemap()` reads a site's sitemap to feed it.
+A crawl ask (walk a site, collect every matching page) is the Sitemap type. `load_sitemap()` is the function that reads the sitemap.
 
 ## The browser work Studio does for you
 
@@ -116,4 +118,4 @@ Open term: the exact wording of "Scraper Studio browser worker" is still being s
 
 ## After a run
 
-`scraper run` returns a job, not data. See [snapshots-and-jobs.md](snapshots-and-jobs.md) for reading a Studio job with `GET /dca/log/{job_id}` and for where the results can be delivered.
+`scraper run` polls to completion and prints the records itself. It is the raw REST `POST /dca/trigger` that hands back a job id instead. See [snapshots-and-jobs.md](snapshots-and-jobs.md) for reading that job with `GET /dca/log/{job_id}` and for where results can be delivered.

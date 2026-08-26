@@ -9,8 +9,9 @@ Both scraping paths are asynchronous. Neither returns records from the trigger. 
 | Id looks like | Came from | Read it with |
 |---|---|---|
 | `sd_abc123...` or `s_abc123...` | Web Scraper API trigger, or any `bdata pipelines` run | `datasets/v3` progress and snapshot |
-| `c_abc123...` | `bdata scraper create` | Nothing. This is a scraper template (`collector_id`), not a job. Run it with `bdata scraper run` first, then poll the id that run returns. |
-| Anything else | Scraper Studio `scraper run`, or `POST /dca/trigger` | `GET /dca/log/{job_id}` for status, `GET /dca/dataset?id=` for records |
+| `c_abc123...` | `bdata scraper create` | Nothing. This is a scraper template (`collector_id`), not a job. `bdata scraper run` polls and prints the records itself. Only a raw REST trigger hands back a job id to read. |
+| `j_abc123...` | `POST /dca/trigger`, or a `--urls` / `--input-file` batch | `GET /dca/log/{job_id}` for status, `GET /dca/dataset?id=` for records |
+| Anything else | `POST /dca/trigger_immediate` (one URL) returns a `response_id` | `GET /dca/get_result?response_id=` |
 
 Live triggers hand back the `sd_` form (`sd_mt9xuudv23gyk8mxyr` is a real one). Older ids and older docs show `s_`. Both are Web Scraper API snapshots and both read through the same two endpoints, so never treat an `sd_` id as a Studio job.
 
@@ -50,7 +51,7 @@ Batch collection ids start with `j_` and read through `/dca/dataset`. A single-U
 
 `/dca/log` is status only. Every record comes from `/dca/dataset`, so a job that reports done still needs the second call.
 
-These are the fields in the job-log response of `GET /dca/log/{job_id}`. The API returns them lowercase.
+These are the fields worth reading in the job-log response of `GET /dca/log/{job_id}`. The API returns them lowercase, alongside about a dozen more. One of those, `trigger`, holds the account's login email - never paste a raw job log into shared output.
 
 | Field | Meaning |
 |---|---|
