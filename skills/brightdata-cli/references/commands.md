@@ -126,7 +126,7 @@ For a site no pipeline covers. Studio writes the scraper, runs it, and repairs i
 `--legacy-output` on `create`, `heal` and `approve` emits the pre-v0.3 payload shape. Leave it alone unless migrating.
 
 ```
-bdata scraper run c_mta2a26z2nimsfu3ie https://news.ycombinator.com --sync --pretty
+bdata scraper run <collector_id> https://news.ycombinator.com --sync --pretty
 ```
 
 ## Drive a browser

@@ -27,7 +27,7 @@ Creating and running are two separate steps. Create once with the CLI, then run 
 
 ```
 bdata scraper create https://news.ycombinator.com "Extract the top 30 stories: title, url, points, author, comment count." --name hn-top --pretty
-bdata scraper run c_mta2a26z2nimsfu3ie https://news.ycombinator.com --pretty
+bdata scraper run <collector_id> https://news.ycombinator.com --pretty
 ```
 
 ## The scraper is now an API
@@ -69,7 +69,7 @@ Only flags the CLI actually prints are listed here. Run any subcommand with `--h
 When a site changes, the scraper does not get rewritten by hand. It gets a prompt.
 
 ```
-bdata scraper heal c_mta2a26z2nimsfu3ie "The comment_count field returns null. The selector moved into a span with a new class. Capture it again."
+bdata scraper heal <collector_id> "The comment_count field returns null. The selector moved into a span with a new class. Capture it again."
 ```
 
 The heal stops at `awaiting_approval` by default. Nothing changes until someone approves it.
