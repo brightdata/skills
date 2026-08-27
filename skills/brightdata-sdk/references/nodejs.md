@@ -129,6 +129,5 @@ fetch(responseId: string): Promise<unknown[]>
 
 ## Gotchas
 
-- `discover()` is an AI web search. It is not the discovery input mode of a ready scraper. Different thing, same word.
 - Zones default to `sdk_unlocker` and `sdk_serp`, and `autoCreateZones` defaults to true, so the SDK creates them on first use.
 - A batch call resolves rather than rejects on partial failure. Entries can be `BRDError`.

@@ -33,7 +33,3 @@ The one fact this skill needs: both SDKs read `BRIGHTDATA_API_TOKEN` first, acce
 ## What both packages cover
 
 Page fetch, SERP search, per-platform scrapers, a crawler, dataset access, Browser API connect strings, and a Scraper Studio namespace. The shape differs by language: Python is async first and uses snake_case, Node.js uses camelCase and has to be closed, either with `close()` by hand or with `await using` on modern runtimes. Read the reference file rather than translating method names by hand.
-
-## Scraper Studio is not verified live
-
-Both packages ship a Scraper Studio namespace and both READMEs claim it runs custom collectors. No live run was made against a real collector, so this stays unconfirmed. Treat it as "per README, not verified live" and say so to the user before building on it. Each reference file carries the exact quote and the exact method signature.

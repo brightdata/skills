@@ -113,7 +113,6 @@ await client.scraper_studio.run(collector, input, timeout=..., poll_interval=...
 
 ## Gotchas
 
-- `client.discover()` is an AI web search. It is not the discovery input mode of a ready scraper. Different thing, same word.
 - `mode="sync"` on `scrape_url` inherits the client default request timeout of 30 seconds (`DEFAULT_TIMEOUT = 30` in `client.py`). A slow page needs an explicit `timeout=`, not a mode change.
 - `mode="async"` is scoped, not faster. The README lists batches of many URLs first under "when to use async mode", then background processing while the caller gets on with other work. What it recommends sync for is the single URL case, where the default sync mode returns faster. The about 145 seconds in `web_unlocker/service.py` is one async round trip, not a per URL cost, which is exactly why the figure argues against async for one URL and not against async for a batch.
 - The `poll_timeout` trap follows straight from that number. `scrape_url` carries its own default of `poll_timeout=30` and forwards it down to the Web Unlocker service, whose own default is 180. Thirty seconds cannot outlast a roughly 145 second completion, so an async call left on the default times out before the result ever lands. Pass `poll_timeout=180` or more, matching the service level default, whenever you use `mode="async"`.
