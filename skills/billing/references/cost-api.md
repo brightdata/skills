@@ -145,3 +145,30 @@ Docs only, not verified live: the export is rate limited to 1,000 requests a min
 
 Treat `can_make_requests` as a hint and never as proof. Live, it came back `false` with an `auth_fail_reason` of `zone_not_found` on an account that was successfully billing traffic in the same minute. A `false` here means one lookup behind the endpoint failed, not that the account is unable to work, so never report it to a user as a blocked or broken account and never stop work on the strength of it alone. Only a `true` is worth much, and even then the real answer comes from the cost reads above.
 
+## The docs pages behind these endpoints
+
+All under `docs.brightdata.com/api-reference/account-management-api/` unless noted.
+
+| Topic | Page |
+|---|---|
+| Balance | `Get_total_balance_through_API` |
+| Cost export | `Export_cost_breakdown` |
+| Zone cost and bandwidth | `Get_the_total_cost_and_bandwidth_stats_for_a_Zone` |
+| Per-domain consumption | `domain-consumption` |
+| Zone list and zone info | `get-all-zones`, `Get_Zone_info` |
+| Account status | `Get_account_status` |
+| Snapshots | `docs.brightdata.com/api-reference/scrapers/management-apis/get-snapshots` |
+| Studio job log | `docs.brightdata.com/api-reference/scraper-studio-api/job-data` |
+
+Billing concepts, under `docs.brightdata.com/general/account/`:
+
+| Topic | Page |
+|---|---|
+| Free tier | `billing-and-pricing/free-tier` |
+| Costs Explorer | `billing-and-pricing/costs-explorer` |
+| Billing FAQs | `billing-and-pricing/faqs` |
+| Trial restrictions | `limited-trial-restrictions` |
+| Users and key permissions | `users-management` |
+
+Outside the docs: public pricing at `brightdata.com/pricing`, and Billing Overview in the control panel at `brightdata.com/cp/billing/overview`.
+
