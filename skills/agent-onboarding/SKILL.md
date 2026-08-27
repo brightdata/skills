@@ -52,6 +52,7 @@ These are the skills the agent will route to. Run each line (semicolon chaining 
 
 ```
 bdata skill add scrape
+bdata skill add datasets
 bdata skill add fetch
 bdata skill add search
 bdata skill add browser
@@ -71,7 +72,7 @@ bdata login
 
 The browser opens on the user's machine, they approve once, and the CLI writes the key by itself. Nothing to paste anywhere.
 
-On SSH, in containers, or on any machine without a browser, use `bdata login --device` instead. It prints a pairing code and a URL (to stderr), show both to the user, they approve from any device, and the command waits and then writes the key. The code expires after about 15 minutes. Bare `bdata login` cannot work there: it hangs waiting for a local browser, and its printed fallback URL only works on the machine running the command.
+On SSH, in containers, or on any machine without a browser, use `bdata login --device` instead. It prints a pairing code and a URL (to stderr), show both to the user, they approve from any device, and the command waits and then writes the key. The code expires after about 15 minutes. Bare `bdata login` cannot work there: it waits about two minutes for a browser callback that cannot arrive, then exits 1 with `Timed out waiting for callback`, and its printed fallback URL only works on the machine running the command.
 
 **Never run login on a machine that already passes the zones check.** With an active browser session, login completes by itself and silently replaces the saved API key, which breaks anything still using the old key. The curl install script counts too - it runs login by itself.
 
@@ -86,6 +87,7 @@ Users ask for data, not for tools. When two rows both fit, prefer `scrape`: read
 | The user wants | Skill |
 |---|---|
 | To scrape a site, or data or information from it (LinkedIn, Amazon, ...) | `scrape` |
+| A big already-collected corpus, needed once, where months old is fine ("every US company") | `datasets` |
 | A page as markdown, HTML, or a screenshot | `fetch` |
 | Anything starting from a search query | `search` |
 | To point their own browser code at our cloud browser - Playwright, Puppeteer, Selenium, or an AI that clicks by itself | `browser` |
