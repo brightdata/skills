@@ -14,7 +14,7 @@ Answers the question "how do I call Bright Data from Python code the user keeps?
 
 ## The package
 
-`brightdata-sdk` on PyPI. Verified version 2.5.2, released 2026-08-12. Source at github.com/brightdata/sdk-python. Docs at https://docs.brightdata.com/api-reference/SDK. The distribution name is `brightdata-sdk` but the import name is `brightdata`, and installing `brightdata` instead gets an unofficial third party wrapper around Bright Data, which is a worse trap than an unrelated package because the wrong install still looks plausible.
+`brightdata-sdk` on PyPI. Source at github.com/brightdata/sdk-python. Docs at https://docs.brightdata.com/api-reference/SDK. The distribution name is `brightdata-sdk` but the import name is `brightdata`, and installing `brightdata` instead gets an unofficial third party wrapper around Bright Data, which is a worse trap than an unrelated package because the wrong install still looks plausible.
 
 On the Python floor, the two sources disagree. The vendor's own `pyproject.toml` sets `requires-python = ">=3.10"`, while the published metadata that pip actually enforces (`Requires-Python`, fed by `setup.py`) says `>=3.9`.
 
