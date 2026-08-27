@@ -32,7 +32,7 @@ Base host is `https://api.brightdata.com` and auth is the header `Authorization:
 
 ## Which key can read this
 
-API keys carry one of five permission levels: Admin, Finance, Ops, User and Limit. Billing and cost data needs Finance or Admin, and Finance is the least-privileged one that works, so prefer it. Only account admins create or change keys, at brightdata.com/cp/setting/users. A 401 means the key is missing, revoked or wrong. A 403 means the key is real but under-privileged for billing, so name the missing access instead of retrying. A Finance key may not read product data such as snapshots or Studio jobs, and that split is fine: report the half you can read and say which access the other half needs.
+API keys carry one of five permission levels: Admin, Finance, Ops, User and Limit. Billing and cost data needs Finance or Admin, and Finance is the least-privileged one that works, so prefer it. Only account admins create or change keys, at brightdata.com/cp/setting/users. A 401 means the key is missing, revoked or wrong. A 403 means the key is real but under-privileged for billing, so name the missing access instead of retrying. A Finance key may not read product data such as snapshots or Studio jobs, and that split is fine: report the half you can read and say which access the other half needs. A 404 means a wrong or expired snapshot, job or dataset id, while a wrong zone name answers 422.
 
 ## Using the budget commands well
 
@@ -56,10 +56,13 @@ The proxy networks are not covered. New accounts instead get a one-time $2 trial
 
 **Free credits are not in any API.** No balance field counts them, and the `credit` field on `/customer/balance` is dollars, not a credit count. Free-tier and trial state live in the control panel at brightdata.com/cp/billing/overview under Free Tier Credits, which also shows the renewal date. Send the user there rather than guessing, and never read a money balance of zero as proof that the free credits are gone. They are separate pools.
 
+## What an MCP tool call bills as
+
+For "what did my agent's tool call cost". Pro mode changes which tools are exposed, never what anything costs. `search_engine` and its batch variant bill as one request per query, `scrape_as_markdown`, `scrape_as_html` and `scrape_batch` as one Web Unlocker request per URL, `web_data_*` as Web Scraper API records delivered, and `scraping_browser_*` as Browser API bandwidth.
+
 ## Read next
 
 - **Before calling any of these endpoints:** [references/cost-api.md](references/cost-api.md) - exact paths, parameters, real response shapes, the eleven cost dimensions, and which facts are verified live against an account rather than only read in the docs.
-- **For a charge investigation or a cost estimate, step by step:** [references/investigations.md](references/investigations.md) - the workflows per product, the estimate formulas per billing unit, which questions to ask the user and which never to ask, and what each MCP tool bills as.
 - **When a read is refused:** the `agent-onboarding` skill. A missing or invalid key gives 401 with a short plain-text body on these endpoints, and `No API key found` from the CLI. Both mean log in.
 
 ## Red flags
