@@ -88,13 +88,14 @@ Bright Data products and also sits in Remote's free tier, and
 `web_data_facebook_profiles`, a ready scraper with no Local counterpart. Neither
 name appears in the Local source.
 
-The four names the Remote tools page omits all exist in the Local source, and
+The five names the Remote tools page omits all exist in the Local source, and
 they do not share one status. `search_dataset` and `list_dataset_fields` are on
 Remote regardless, confirmed through `tools/list` with `pro=1` and a live call,
 so the page is stale rather than the server being short.
 `web_data_reddit_comments` is Local only, confirmed absent from Remote's Pro
-`tools/list`. `web_data_reuter_news` stays unverified, so call `tools/list`
-against your own endpoint before relying on that one.
+`tools/list`. `web_data_reuter_news` and `scraping_browser_fill_form` stay
+unverified on Remote, so call `tools/list` against your own endpoint before
+relying on either.
 
 ## Tools with a prerequisite
 

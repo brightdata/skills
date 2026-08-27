@@ -38,10 +38,10 @@ A missing or invalid key returns **401 with a short plain-text body** (live), su
 | `from` | no | Inclusive start, `YYYY-MM-DD`. |
 | `to` | no | **Exclusive** end, `YYYY-MM-DD`. |
 
-Called with only a zone, the response is one object keyed by an internal zone id, holding six relative buckets:
+Called with only a zone, the response is one object keyed by the account's customer id, holding six relative buckets:
 
 ```json
-{"<zone_id>": {
+{"<customer_id>": {
   "back_m0": {"cost": 0, "range": {"from": "Aug-2026", "to": "Sep-2026"}},
   "back_m1": {"cost": 0, "range": {"from": "Jul-2026", "to": "Aug-2026"}},
   "back_m2": {"cost": 0, "bw": 0, "range": {"from": "Jun-2026", "to": "Jul-2026"},
@@ -88,7 +88,7 @@ curl -s -X POST https://api.brightdata.com/costs/export/json \
   -d '{"from":"2026-08-01","to":"2026-09-01","dimension":"products"}'
 ```
 
-PowerShell 5.1, where the TLS line is not optional and the variable needs the `$env:` prefix:
+PowerShell 5.1, where the variable needs the `$env:` prefix. The TLS line is harmless insurance, needed only on hosts whose .NET defaults lack TLS 1.2, and current Windows 10 and 11 work without it:
 
 ```powershell
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -114,7 +114,7 @@ Keyed by day, each day mapping a resource key to billed dollars for that day. **
 
 Resource keys are internal names that depend on the dimension. Seen live: `unblocker`, `data_api` and `dataset_api` for `products`, and `reqs_serp`, `reqs_unblocker` and `records` for `types`. The docs also show opaque dataset ids sitting alongside them, docs only, not verified live. Days with no spend are simply absent, and a range with no spend returns `{}`.
 
-**The `zones` dimension does not return plain zone names (live).** Most keys on a live account are synthetic per-dataset keys carrying a prefix, such as `v__ds_api_`, `v__cli_ds_api_` and `v__dca_ds_api_`, followed by a dataset identifier. The prefix is the meaningful part, because it decides the product line: `v__dca_ds_api_*` bills as `dataset_api`, while `v__ds_api_*` and `v__cli_ds_api_*` bill as `data_api`. Match on the prefix when you group these, do not try to read the suffix as a zone, and do not assume a key from this dimension can be passed to `/zone/cost`, which wants a real zone name.
+**The `zones` dimension mixes plain zone names with synthetic keys (live).** Zone-backed spend appears under the real zone name (`cli_unlocker`), and those names CAN be passed to `/zone/cost`. Most other keys are synthetic per-dataset keys carrying a prefix, such as `v__ds_api_`, `v__cli_ds_api_` and `v__dca_ds_api_`, followed by a dataset identifier, plus `v__dca_<collector>` keys that carry a Scraper Studio collector name. The prefix is the meaningful part, because it decides the product line: `v__dca_*` bills as `dataset_api`, while `v__ds_api_*` and `v__cli_ds_api_*` bill as `data_api`. Match on the prefix when you group these, and never pass a synthetic key to `/zone/cost`, which wants a real zone name.
 
 Exclusivity confirmed live. Asking `from=2026-06-11&to=2026-06-12` returns that day, and asking `from=2026-06-11&to=2026-06-11` returns nothing.
 
@@ -134,7 +134,7 @@ Docs only, not verified live: the export is rate limited to 1,000 requests a min
 
 **GET /zone?zone=<name>** returns `created`, `password`, `ips`, `plan` and `perm` (live). The `plan` object carries `start`, `type`, `vips_type`, `ub_premium`, `product`, `cost_override` and `trial_id`, where `product` is a short code such as `dc`. Useful for naming the product behind a zone and for spotting a negotiated rate through `cost_override`.
 
-**GET /customer/bw** and **GET /zone/bw** return bandwidth and request counts rather than money. The response is keyed by customer id, then by zone, then by metric, with names such as `bw_sum`, `bw_dn`, `bw_up`, `reqs_unblocker_billable` and `reqs_serp_billable` (live). They answer how much traffic moved, never how much it cost. They accept both `YYYY-MM-DD` and full ISO timestamps (live), and the docs do not say whether their `to` is exclusive.
+**GET /customer/bw** and **GET /zone/bw** return bandwidth and request counts rather than money. The response is keyed by customer id, then a wrapper object whose `data` key holds the per-zone objects (aggregates sit under `sums`), then by zone, then by metric, with names such as `bw_sum`, `bw_dn`, `bw_up`, `reqs_unblocker_billable` and `reqs_serp_billable` (live). They answer how much traffic moved, never how much it cost. They accept both `YYYY-MM-DD` and full ISO timestamps (live), and the docs do not say whether their `to` is exclusive.
 
 **GET /status** returns **200** with `status`, `customer`, `can_make_requests`, `auth_fail_reason` and `ip` (live). It is a free way to ask whether the account can work, which beats firing a billable request to find out.
 

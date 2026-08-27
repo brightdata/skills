@@ -152,7 +152,7 @@ for bespoke picks.
 | `BROWSER_ZONE` | `mcp_browser` | Scraping Browser zone. |
 | `RATE_LIMIT` | unlimited | Format `100/1h` or `50/30m`. Bad format throws at startup. Unset means no limit in the code, though the local advanced configuration page claims a `100/1h` default. |
 | `POLLING_TIMEOUT` | `600` | Seconds a `web_data_*` tool waits. One attempt per second. |
-| `BASE_TIMEOUT` | no limit | Seconds, search and scrape only. |
+| `BASE_TIMEOUT` | no limit | Seconds. Covers search_engine, search_engine_batch, scrape_as_markdown, scrape_batch, list_dataset_fields and search_dataset. Not scrape_as_html, extract, discover or web_data_*. |
 | `BASE_MAX_RETRIES` | `0` | Capped at 3. Retries only non 4xx failures. |
 
 ## Remote equivalents
