@@ -23,16 +23,6 @@ If the `scrape` skill is installed, its `scripts/find-scraper.mjs` wraps all thr
 
 A catalogue hit is proof the marketplace covers the ask. A miss proves nothing, because the marketplace's own inventory is browsed at the control panel link, and the list call does not carry all of it.
 
-## What the agent must not do
-
-- Do not buy, and do not ask for payment details. Purchase happens in the control panel, by a person, after the sample preview.
-- Do not promise a price or a record count. Catalogue rows carry neither. The sample preview in the control panel is where the total becomes visible.
-- Do not trigger a marketplace row. It cannot run. See the premise correction in `../SKILL.md`.
-
-## Not verified
-
-The public docs do not say whether a purchase can be completed through an API. There is a marketplace dataset API for listing datasets and dataset views, and a filter-by-API endpoint, but nothing in the pages read here states that checkout itself is automatable. Treat purchase as manual until someone with account access confirms otherwise.
-
 ## Related skills
 
 - A ready scraper instead of a purchase, or building one when no scraper fits: the `scrape` skill.
