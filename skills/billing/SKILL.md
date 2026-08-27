@@ -38,14 +38,7 @@ API keys carry one of five permission levels: Admin, Finance, Ops, User and Limi
 
 Three habits make the `bdata budget` output reliable. Always pass `--from` and `--to` to `budget zone` and `budget zones`, so the figure covers exactly the window you asked about. For the pending charge, read `pending_costs` from `GET /customer/balance` directly. And when you need machine-readable output, call the endpoint rather than the balance command.
 
-## The traps
-
-Four things will silently give a wrong answer if read the obvious way. The field lists and the live response samples are in `references/cost-api.md`, which is the place to look before writing any parsing code.
-
-- **Read `pending_costs` for money owed, never `pending_balance`.** The documented field is not on a live balance response at all, and a missing field means absent rather than zero.
-- **Skip the `total` key in a cost export.** It sits alongside the day keys, so looping over every key as if it were a date counts the whole range twice.
-- **Never add a `back_m` bucket to a `back_d` bucket on `/zone/cost`.** The day buckets sit inside this month, and not every bucket carries every field. Supplying `from` and `to` collapses all six into one bucket named `custom`, which is the safe way to ask for a period.
-- **`to` is exclusive on `/zone/cost` and on the cost export.** For all of April ask `from=2026-04-01` and `to=2026-05-01`. Using `to=2026-04-30` quietly drops the last day. On the cost export the same date in both returns nothing at all, while `/zone/cost` instead expands equal dates to that whole day.
+Before writing any parsing code, read `references/cost-api.md` for the field lists and the live response samples, including how the date parameters behave (`to` is exclusive on these endpoints).
 
 ## What a job will cost before it runs
 
