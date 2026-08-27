@@ -11,7 +11,7 @@ Run the gates below to pick the product yourself - never ask the user which. Sta
 
 | Check | If yes |
 |---|---|
-| **The marketplace check - already collected.** All three at once: a huge generic corpus, needed once, and a few months old is fine. Anything less falls through to gate 1. | Dataset Marketplace. Buy the download instead of scraping. |
+| **The marketplace check - already collected.** All three at once: a huge generic corpus, needed once, and a few months old is fine. Anything less falls through to gate 1. | The `datasets` skill. Buying the download is not scraping, so it has its own skill. |
 | **Gate 1 - library.** A ready scraper already returns these fields. Scrapers come first. Popular platforms resolve from the bundled top-25 table with zero API calls, and only an unlisted site goes to the live catalogue. The input is not always a URL - variants take usernames, hashtags, keywords, locations and more. | **Web Scraper API.** |
 | **Gate 2 - build it.** No ready scraper covers these fields, and any one of these: many pages share one layout, the job will run again, or the data only appears after browser actions (typing, scrolling, waiting, CAPTCHA) and the user has no Playwright, Puppeteer or Selenium setup. | **Scraper Studio.** |
 | **Fall-through.** One-time job, no ready scraper, and the pages share no layout. | Back to `fetch` (Web Unlocker), and the user owns the parser. |
@@ -60,7 +60,7 @@ When the records come back, check they describe the entity the user meant before
 ## Read next
 
 - **Before the first Web Scraper API call:** [references/web-scraper-api.md](references/web-scraper-api.md) - the top-25 table, the name trap, and the free discovery moves.
-- **Before scraping anything that sounds like a huge generic corpus:** [references/dataset-marketplace.md](references/dataset-marketplace.md) - the three-part gate, and why the agent checks and routes but never buys.
+- **Before scraping anything that sounds like a huge generic corpus:** the `datasets` skill - the three-part gate, the free coverage checks, and why the agent checks and routes but never buys.
 - **When gate 2 fires and you are about to build a scraper:** [references/scraper-studio.md](references/scraper-studio.md) - the four CLI commands that exist, the create-then-run split, the approval gate on a heal, and the browser work you no longer have to write.
 - **When every gate has said no and the data job has to fetch raw pages itself:** [references/web-unlocker.md](references/web-unlocker.md) - the one-POST request shape, the four KYC error codes, and the signal that means go back to gate 2.
 - **The moment a trigger hands back an id instead of data:** [references/snapshots-and-jobs.md](references/snapshots-and-jobs.md) - which endpoints match which id, and the delivery settings the agent never configures.
