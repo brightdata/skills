@@ -8,7 +8,7 @@ Bright Data maintains these scrapers. Each call runs live against the site, so n
 
 - The table is a cache, not the catalogue
 - The input is not always a URL
-- Top 25 scrapers, grouped by platform (the Facebook name trap lives there)
+- 25 ready scrapers, grouped by platform (the Facebook name trap lives there)
 - How to call a scraper
 - Learning inputs and outputs without spending credits
 
@@ -43,83 +43,83 @@ Variants keyed by username, hashtag, keyword or category are separate catalogue 
 
 Two catalogue cautions, both hit live: some rows are purchasable datasets, not scrapers, and a trigger answers "This dataset does not support collection" (route those to the marketplace reference). And the list carries rows whose names mark them as internal or test entries - never pick one of those.
 
-## Top 25 scrapers, grouped by platform
+## 25 ready scrapers, grouped by platform
 
-The 25 most-used scrapers, grouped by platform so one look answers "what can I get from this site". `#` is the usage rank, so lower numbers are the safer default when several fit. Input types are in brackets.
+Twenty-five ready scrapers, grouped by platform so one look answers "what can I get from this site". Input types are in brackets.
 
 ### YouTube
 
-| # | Scraper | CLI pipeline | dataset_id | Required | Optional |
-|---|---|---|---|---|---|
-| 1 | Videos | `youtube_videos` | `gd_lk56epmy2i5g7lzu0k` | `url` (url) | `country` (text), `transcription_language` (text) |
-| 22 | Comments | `youtube_comments` | `gd_lk9q0ew71spt1mxywf` | `url` (url) | `sort_by` (text) |
-| 25 | Channels | `youtube_profiles` | `gd_lk538t2k2p1k3oos71` | `url` (url) | none |
+| Scraper | CLI pipeline | dataset_id | Required | Optional |
+|---|---|---|---|---|
+| Videos | `youtube_videos` | `gd_lk56epmy2i5g7lzu0k` | `url` (url) | `country` (text), `transcription_language` (text) |
+| Comments | `youtube_comments` | `gd_lk9q0ew71spt1mxywf` | `url` (url) | `sort_by` (text) |
+| Channels | `youtube_profiles` | `gd_lk538t2k2p1k3oos71` | `url` (url) | none |
 
 ### Facebook
 
-| # | Scraper | CLI pipeline | dataset_id | Required | Optional |
-|---|---|---|---|---|---|
-| 2 | Pages posts by profile URL | none | `gd_lkaxegm826bjpoo9m5` | `url` (url) | `start_date` (text), `end_date` (text) |
-| 8 | Posts by group URL | none | `gd_lz11l67o2cb3r0lkj3` | `url` (url) | `start_date` (text), `end_date` (text) |
-| 11 | Comments | none | `gd_lkay758p1eanlolqw8` | `url` (url) | `comments_sort` (text) |
+| Scraper | CLI pipeline | dataset_id | Required | Optional |
+|---|---|---|---|---|
+| Pages posts by profile URL | none | `gd_lkaxegm826bjpoo9m5` | `url` (url) | `start_date` (text), `end_date` (text) |
+| Posts by group URL | none | `gd_lz11l67o2cb3r0lkj3` | `url` (url) | `start_date` (text), `end_date` (text) |
+| Comments | none | `gd_lkay758p1eanlolqw8` | `url` (url) | `comments_sort` (text) |
 
 **The name trap lives here.** The CLI's `facebook_posts` pipeline is a FOURTH scraper, "Posts by post URL" (`gd_lyclm1571iy3mv57zw`) - one post's data from its direct link. It is NOT row 2's "Pages Posts by Profile URL". Similar names, different scrapers. Use the ids above, never guess from names.
 
 ### TikTok
 
-| # | Scraper | CLI pipeline | dataset_id | Required | Optional |
-|---|---|---|---|---|---|
-| 3 | Posts | `tiktok_posts` | `gd_lu702nij2f790tmv9h` | `url` (url) | `country` (text) |
-| 15 | Posts by profile | none | `gd_lj71gn6l68bz7y9hc` | `url` | `start_date`, `end_date` |
-| 23 | Profiles | `tiktok_profiles` | `gd_l1villgoiiidt09ci` | `url` (url) | `country` (text) |
+| Scraper | CLI pipeline | dataset_id | Required | Optional |
+|---|---|---|---|---|
+| Posts | `tiktok_posts` | `gd_lu702nij2f790tmv9h` | `url` (url) | `country` (text) |
+| Posts by profile | none | `gd_lj71gn6l68bz7y9hc` | `url` | `start_date`, `end_date` |
+| Profiles | `tiktok_profiles` | `gd_l1villgoiiidt09ci` | `url` (url) | `country` (text) |
 
 A newer "Fast API" variant of row 15 exists (`gd_m7n5v2gq296pex2f5m`), but it is not enabled on every account and its metadata endpoint returns 404. Prefer the id in the table. Row 15 shows field names without types because the trigger probe returns names only and this scraper has no metadata endpoint.
 
 ### Instagram
 
-| # | Scraper | CLI pipeline | dataset_id | Required | Optional |
-|---|---|---|---|---|---|
-| 4 | Posts | `instagram_posts` | `gd_lk5ns7kz21pck8jpis` | `url` (url) | none |
-| 5 | Profiles | `instagram_profiles` | `gd_l1vikfch901nx3by4` | `url` (url) | none |
-| 10 | Reels | `instagram_reels` | `gd_lyclm20il4r5helnj` | `url` (url) | none |
+| Scraper | CLI pipeline | dataset_id | Required | Optional |
+|---|---|---|---|---|
+| Posts | `instagram_posts` | `gd_lk5ns7kz21pck8jpis` | `url` (url) | none |
+| Profiles | `instagram_profiles` | `gd_l1vikfch901nx3by4` | `url` (url) | none |
+| Reels | `instagram_reels` | `gd_lyclm20il4r5helnj` | `url` (url) | none |
 
 ### LinkedIn
 
-| # | Scraper | CLI pipeline | dataset_id | Required | Optional |
-|---|---|---|---|---|---|
-| 6 | Person profile | `linkedin_person_profile` | `gd_l1viktl72bvl7bjuj0` | `url` (url) | none |
-| 9 | Posts | `linkedin_posts` | `gd_lyy3tktm25m4avu764` | `url` (url) | none |
-| 13 | Job listings | `linkedin_job_listings` | `gd_lpfll7v5hcqtkxl6l` | `url` (url) | none |
-| 19 | Company info | `linkedin_company_profile` | `gd_l1vikfnt1wgvvqz95w` | `url` (url) | none |
+| Scraper | CLI pipeline | dataset_id | Required | Optional |
+|---|---|---|---|---|
+| Person profile | `linkedin_person_profile` | `gd_l1viktl72bvl7bjuj0` | `url` (url) | none |
+| Posts | `linkedin_posts` | `gd_lyy3tktm25m4avu764` | `url` (url) | none |
+| Job listings | `linkedin_job_listings` | `gd_lpfll7v5hcqtkxl6l` | `url` (url) | none |
+| Company info | `linkedin_company_profile` | `gd_l1vikfnt1wgvvqz95w` | `url` (url) | none |
 
 ### Amazon
 
-| # | Scraper | CLI pipeline | dataset_id | Required | Optional |
-|---|---|---|---|---|---|
-| 7 | Products | `amazon_product` | `gd_l7q7dkf244hwjntr0` | `url` (url) | `asin` (text), `zipcode` (text), `language` (text) |
-| 20 | Reviews | `amazon_product_reviews` | `gd_le8e811kzy4ggddlq` | `url` (url) | none |
+| Scraper | CLI pipeline | dataset_id | Required | Optional |
+|---|---|---|---|---|
+| Products | `amazon_product` | `gd_l7q7dkf244hwjntr0` | `url` (url) | `asin` (text), `zipcode` (text), `language` (text) |
+| Reviews | `amazon_product_reviews` | `gd_le8e811kzy4ggddlq` | `url` (url) | none |
 
 ### Reddit
 
-| # | Scraper | CLI pipeline | dataset_id | Required | Optional |
-|---|---|---|---|---|---|
-| 16 | Posts | `reddit_posts` | `gd_lvz8ah06191smkebj4` | `url` (url) | none |
-| 18 | Comments | none | `gd_lvzdpsdlw09j6t702` | `url` (url) | `sort_by` (text) |
+| Scraper | CLI pipeline | dataset_id | Required | Optional |
+|---|---|---|---|---|
+| Posts | `reddit_posts` | `gd_lvz8ah06191smkebj4` | `url` (url) | none |
+| Comments | none | `gd_lvzdpsdlw09j6t702` | `url` (url) | `sort_by` (text) |
 
 Reddit is a robots.txt-disallowed target, so calls can be refused until the account has KYC. Read the error, and see [web-unlocker.md](web-unlocker.md) for the KYC error codes.
 
 ### Other retail and listings
 
-| # | Scraper | CLI pipeline | dataset_id | Required | Optional |
-|---|---|---|---|---|---|
-| 12 | Walmart - products | `walmart_product` | `gd_l95fol7l1ru6rlo116` | `url` (url) | `zipcode` (text) |
-| 14 | Free People - products | none | `gd_mm1zqyo61zzvsb9ux` | `url` (url) | none |
-| 17 | Zillow - property listings | `zillow_properties_listing` | `gd_lfqkr8wm13ixtbd8f5` | `url` (url) | none |
-| 21 | Google Maps - reviews | `google_maps_reviews` | `gd_luzfs1dn2oa0teb81` | `url` (url) | `sort_by` (text) |
-| 24 | X - posts | `x_posts` | `gd_lwxkxvnf1cynvib9co` | `url` (url) | none |
+| Scraper | CLI pipeline | dataset_id | Required | Optional |
+|---|---|---|---|---|
+| Walmart - products | `walmart_product` | `gd_l95fol7l1ru6rlo116` | `url` (url) | `zipcode` (text) |
+| Free People - products | none | `gd_mm1zqyo61zzvsb9ux` | `url` (url) | none |
+| Zillow - property listings | `zillow_properties_listing` | `gd_lfqkr8wm13ixtbd8f5` | `url` (url) | none |
+| Google Maps - reviews | `google_maps_reviews` | `gd_luzfs1dn2oa0teb81` | `url` (url) | `sort_by` (text) |
+| X - posts | `x_posts` | `gd_lwxkxvnf1cynvib9co` | `url` (url) | none |
 | - | X - profiles | none | `gd_lwxmeb2u1cniijd7t4` | `url` (url) | none |
 
-X - profiles carries no usage rank because it is not one of the 25. It is bundled because a platform's presence in this table does not mean all its scrapers are listed, so when the row's object (posts, profiles, comments) does not match the ask, search the live catalogue instead of forcing the listed row.
+X - profiles is bundled even though it is not one of the 25, because a platform's presence in this table does not mean all its scrapers are listed, so when the row's object (posts, profiles, comments) does not match the ask, search the live catalogue instead of forcing the listed row.
 
 Three pipelines take a second positional argument on the CLI that is not in the REST input list:
 

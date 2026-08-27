@@ -109,11 +109,8 @@ never consulted.
 says `groups` or `tools` overrides `pro=1`, tool selection takes priority over
 Pro mode.
 
-**Unresolved drift.** The vendor's local advanced configuration page states the
-Remote rule for Local too, that `GROUPS` or `TOOLS` take priority and override
-Pro mode. The Local code and the package README both say the reverse, and
-nothing reconciles the page with the code. On either variant, set one mechanism
-and leave the other unset.
+**One mechanism at a time.** Precedence differs by variant, so the safe pattern
+on either one is to set a single mechanism and leave the other unset.
 
 The three modes themselves:
 
@@ -130,8 +127,7 @@ The allowlist gotcha, verified in `server.js`: once `GROUPS` or `TOOLS` is set,
 the rapid defaults stop applying. Every group carries `search_engine`,
 `scrape_as_markdown`, and `discover` with it, so a `GROUPS` value keeps those
 three. A `TOOLS` value with no `GROUPS` does not, so `TOOLS="extract"` alone
-gives the model exactly one tool. The README's claim that five base tools are
-always enabled does not match the code.
+gives the model exactly one tool.
 
 Group ids: `ecommerce`, `social`, `browser`, `finance`, `business`, `research`,
 `app_stores`, `travel`, `advanced_scraping`, `geo`, `code`. A twelfth id,
