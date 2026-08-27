@@ -14,7 +14,7 @@ Answers the question "how do I call Bright Data from Node.js code the user keeps
 
 ## The package
 
-`@brightdata/sdk` on npm. Verified version 1.2.0, published 2026-08-02. MIT licensed. Requires Node 20 or newer. Source at github.com/brightdata/sdk-js. Docs at https://docs.brightdata.com/api-reference/SDK-JS.
+`@brightdata/sdk` on npm. MIT licensed. Requires Node 20 or newer. Source at github.com/brightdata/sdk-js. Docs at https://docs.brightdata.com/api-reference/SDK-JS.
 
 ```bash
 npm install @brightdata/sdk
