@@ -19,7 +19,7 @@ bdata scrape https://example.com/article
 
 Markdown is the default. A first `bdata login` creates `cli_unlocker` and stores it as the zone default, so a fresh login needs no `--zone`. It never overwrites a default you already set. Override with `--zone <name>`, or `BRIGHTDATA_UNLOCKER_ZONE`, or `bdata config set default_zone_unlocker <name>`.
 
-If `bdata` is not recognized, npm's global directory is not on PATH, and the fix lives in the `agent-onboarding` skill's Install section. On Windows type `bdata.cmd`.
+If `bdata` is not recognized, npm's global directory is not on PATH, and the fix lives in the `agent-onboarding` skill's Install section.
 
 **REST.** The same request, for any machine with no CLI.
 

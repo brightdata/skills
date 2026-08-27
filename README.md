@@ -29,7 +29,7 @@ npm install -g @brightdata/cli
 bdata skill add scrape
 ```
 
-On Windows type `npm.cmd` and `bdata.cmd`. Add each skill you want by name. A name the CLI does not know yet fails with "Unknown skill" and the rest still install - the CLI's list catches up to this repo one release behind.
+Add each skill you want by name. A name the CLI does not know yet fails with "Unknown skill" and the rest still install - the CLI's list catches up to this repo one release behind.
 
 **By hand**: clone this repo and copy the folders you want from `skills/` into your agent's skills directory.
 

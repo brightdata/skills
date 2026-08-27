@@ -9,7 +9,7 @@ Install the CLI and the skills, log in once, then route to the task skill.
 
 **Never ask the user to paste an API key into chat.** Login is one browser approval. The key never touches the conversation.
 
-**Windows note:** type every command with `.cmd` - `bdata.cmd`, `npm.cmd`, `npx.cmd`. Two different errors, two different fixes. "running scripts is disabled" means a command was typed without `.cmd` - retype it, PATH is fine. "bdata is not recognized" means npm's global directory is off PATH - the one-line fix is in Install below. Reading files is the other Windows trap: PowerShell 5.1 misreads UTF-8 JSON written by the CLI or by these skills' scripts and hands back mojibake, so read those files with `[System.IO.File]::ReadAllText($path,[Text.Encoding]::UTF8)` instead of `Get-Content`.
+**Windows note:** two errors, two different fixes. "running scripts is disabled" means PowerShell blocks npm's script shims - ask the user to run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once; it changes a machine setting, so do not run it for them. "bdata is not recognized" means npm's global directory is off PATH - the one-line fix is in Install below. Reading files is the other Windows trap: PowerShell 5.1 misreads UTF-8 JSON written by the CLI or by these skills' scripts and hands back mojibake, so read those files with `[System.IO.File]::ReadAllText($path,[Text.Encoding]::UTF8)` instead of `Get-Content`.
 
 ## Already set up?
 
@@ -25,7 +25,7 @@ Only the first check passes: go to Log in. On Windows, "bdata is not recognized"
 
 | OS | Command |
 |---|---|
-| Windows | `npm.cmd install -g @brightdata/cli`, then run the CLI as `bdata.cmd` |
+| Windows | `npm install -g @brightdata/cli` |
 | macOS and Linux | `npm install -g @brightdata/cli`, or `curl -fsSL https://cli.brightdata.com/install.sh \| bash` |
 
 The curl script is for interactive machines only: it runs `bdata login` by itself at the end, so on a headless machine it exits 1 after installing, and on a logged-in machine it replaces the saved key. In CI and containers use npm or npx.
@@ -33,18 +33,18 @@ The curl script is for interactive machines only: it runs `bdata login` by itsel
 The npm command needs Node.js. Windows notes: if `npm` is missing, install Node.js LTS first (nodejs.org or `winget install OpenJS.NodeJS.LTS`), then retry. If `bdata` is still not recognized after install, npm's global directory is not on PATH. Fix it for this session and tell the user to add it permanently. In PowerShell:
 
 ```
-$env:PATH += ";$(npm.cmd config get prefix)"
+$env:PATH += ";$(npm config get prefix)"
 ```
 
 cmd rejects that line. The cmd version:
 
 ```
-for /f "delims=" %p in ('npm.cmd config get prefix') do set PATH=%PATH%;%p
+for /f "delims=" %p in ('npm config get prefix') do set PATH=%PATH%;%p
 ```
 
-Both lines die with the session. To make it permanent, the user adds npm's prefix directory, the path `npm.cmd config get prefix` prints, to their user PATH through the Windows environment variable settings (Start, "Edit the system environment variables", then Environment Variables). Do not reach for `setx` here. It truncates PATH at 1024 characters, so on a machine with a long PATH it destroys the value it was meant to extend.
+Both lines die with the session. To make it permanent, the user adds npm's prefix directory, the path `npm config get prefix` prints, to their user PATH through the Windows environment variable settings (Start, "Edit the system environment variables", then Environment Variables). Do not reach for `setx` here. It truncates PATH at 1024 characters, so on a machine with a long PATH it destroys the value it was meant to extend.
 
-If `npm install -g` is blocked on the machine, skip installing: `npx -y @brightdata/cli <command>` (`npx.cmd` on Windows) runs the same CLI on demand, use it wherever a command says `bdata`.
+If `npm install -g` is blocked on the machine, skip installing: `npx -y @brightdata/cli <command>` runs the same CLI on demand, use it wherever a command says `bdata`.
 
 ## Add the skills
 
