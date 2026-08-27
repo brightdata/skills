@@ -61,7 +61,7 @@ No endpoint returns a quote, so never present one as if it came from the API. Bu
 
 ## Free credits
 
-Every eligible account gets 5,000 free credits a month from one shared pool. They reset on the first of the month and unused credits are forfeited rather than carried over. Web Unlocker, SERP and Web Scraper API spend one credit per request or record, and Scraper Studio spends one per page load. From 2026-09-01 the Browser API draws on the same pool at 5 credits per MB of traffic. Accounts on custom pay-as-you-go plans and on pre-commit plans get no monthly free credits.
+Every eligible account gets 5,000 free credits a month from one shared pool. They reset on the first of the month and unused credits are forfeited rather than carried over. Web Unlocker, SERP and Web Scraper API spend one credit per request or record, and Scraper Studio spends one per page load. The Browser API draws on the same pool at 5 credits per MB of traffic (in effect from 2026-09-01), so the full monthly allowance covers close to 1 GB of browser traffic. Accounts on custom pay-as-you-go plans and on pre-commit plans get no monthly free credits.
 
 The proxy networks are not covered. New accounts instead get a one-time $2 trial credit for the proxy products, valid 7 days, and a further $5 for adding a payment method. All of these figures are from the docs and cannot be checked against any API.
 
