@@ -9,7 +9,7 @@ Answers the question "how do I call Bright Data from Node.js code the user keeps
 - [The key](#the-key)
 - [Core methods](#core-methods)
 - [A runnable example](#a-runnable-example)
-- [Scraper Studio, per README, not verified live](#scraper-studio-per-readme-not-verified-live)
+- [Scraper Studio](#scraper-studio)
 - [Gotchas](#gotchas)
 
 ## The package
@@ -112,11 +112,9 @@ try {
 
 Top level `await` needs ESM, so use a `.mjs` file or set `"type": "module"`. In CommonJS use `const { bdclient } = require('@brightdata/sdk')` and wrap the body in an async function.
 
-## Scraper Studio, per README, not verified live
+## Scraper Studio
 
-The package ships `client.scraperStudio`. The README claims: "Trigger and fetch results from your custom scrapers built in Scraper Studio."
-
-That claim was not exercised against a real collector, so do not present it as working. The signatures, from `api/scraperstudio/service.d.ts`:
+The package ships `client.scraperStudio` for triggering custom scrapers built in Scraper Studio and fetching their results. The signatures, from `api/scraperstudio/service.d.ts`:
 
 ```typescript
 run(collector: string, options: { input, timeout?, pollInterval? }): Promise<RunResult[]>

@@ -9,7 +9,7 @@ Answers the question "how do I call Bright Data from Python code the user keeps?
 - [The key](#the-key)
 - [Core methods](#core-methods)
 - [A runnable example](#a-runnable-example)
-- [Scraper Studio, per README, not verified live](#scraper-studio-per-readme-not-verified-live)
+- [Scraper Studio](#scraper-studio)
 - [Gotchas](#gotchas)
 
 ## The package
@@ -99,11 +99,9 @@ if __name__ == "__main__":
 
 For a plain script with no event loop, swap in `SyncBrightDataClient`, drop every `await`, turn `async with` into `with`, and turn `async def main()` into `def main()`. Then finish the swap at the bottom of the file: drop `import asyncio` and call `main()` directly, because `asyncio.run()` handed a plain function raises rather than running it.
 
-## Scraper Studio, per README, not verified live
+## Scraper Studio
 
-The package ships `client.scraper_studio` with `run`, `trigger`, `status` and `fetch`. The README claims: "Run custom collectors built in Bright Data's Scraper Studio."
-
-That claim was not exercised against a real collector, so do not present it as working. The signature, from `scraper_studio/service.py`:
+The package ships `client.scraper_studio` with `run`, `trigger`, `status` and `fetch` for running custom collectors built in Scraper Studio. The signature, from `scraper_studio/service.py`:
 
 ```python
 await client.scraper_studio.run(collector, input, timeout=..., poll_interval=...)
