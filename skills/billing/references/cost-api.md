@@ -4,7 +4,7 @@ Answers the question "which endpoint holds this number, what does its response r
 
 Everything here is a free read. None of these calls starts a job or spends anything. Base host is `https://api.brightdata.com` and every call carries the header `Authorization: Bearer <key>`.
 
-Facts marked **live** were checked against a real account on 2026-08-26 by reading status codes and field names only. Facts marked **docs only, not verified live** come from docs.brightdata.com and were not exercised. Where the two disagree, both are written down, because the drift is the thing most likely to break code.
+Facts marked **live** were checked against a real account on 2026-08-26 by reading status codes and field names only. Facts marked **docs only, not verified live** come from docs.brightdata.com and were not exercised. Where the two differ, both are written down, so code can rely on the live shape.
 
 ## GET /customer/balance
 
@@ -74,7 +74,7 @@ Which dimension answers which question:
 | One Scraper Studio job | `dca_jobs` |
 | A target website across products | `domains` |
 
-Do not explain one specific job's charge with `collectors`: it is a per-collector rollup and can carry charges no single job accounts for. Dimension meanings beyond the whitelist are docs only, not verified live.
+Do not explain one specific job's charge with `collectors`: it is a per-collector rollup and can carry charges no single job accounts for. Of the narrow dimensions, `web_apis` was exercised live and its keys are dataset ids (`gd_...`). The other dimension meanings beyond the whitelist are docs only, not verified live.
 
 **How to tell an empty answer from a wrong question.** An invalid dimension name cannot fool you, it returns 400 with the whitelist. The trap is a valid dimension that is the wrong one for the question. When a dimension comes back `{}`, do not report zero yet. Ask again for the same window with `dimension` set to `products`, which is the broad one. If `products` shows spend and the narrow dimension is still empty, the spend is attributed under a different dimension, so change the question rather than reporting no charges. Seen live: a window with Scraper Studio spend under `products` (`ide`) returned `{}` under `dca_jobs`. If both come back empty for that window, there was genuinely no spend in it, and you can say so plainly.
 
@@ -133,7 +133,7 @@ Docs only, not verified live: the export is rate limited to 1,000 requests a min
 
 **GET /zone/get_active_zones** takes no parameters and returns an array of `{name, type}` (live). Types seen include `unblocker` and `browser_api`, and the docs also list `serp`, `isp` and `mobile`. This is how you get the zone names that `/zone/cost` needs. **GET /zone/get_all_zones** returns an array of `{name, type, status}` (live), where `status` distinguishes active from deleted zones.
 
-**GET /zone?zone=<name>** returns `created`, `password`, `ips`, `plan` and `perm` (live). The `plan` object carries `start`, `type`, `vips_type`, `ub_premium`, `product`, `cost_override` and `trial_id`, where `product` is a short code such as `dc`. Useful for naming the product behind a zone and for spotting a negotiated rate through `cost_override`. **The `password` field holds the zone's real credentials in plain text (live), so never echo this response raw into a chat, a log, or a report.** Pull the one field you need and drop the rest.
+**GET /zone?zone=<name>** returns `created`, `password`, `ips`, `plan` and `perm` (live). The `plan` object carries `start`, `type`, `vips_type`, `product` and `trial_id` (live), and on some zones also `ub_premium` and `cost_override`, so treat those two as present-when-set. `product` names the product behind the zone (`unblocker` live, and the docs also show short codes such as `dc` for proxy zones). When `cost_override` is present it points at a negotiated rate. **The `password` field holds the zone's real credentials in plain text (live), so never echo this response raw into a chat, a log, or a report.** Pull the one field you need and drop the rest.
 
 **GET /domains/req** and **GET /domains/bw** break usage down per target website. `from` and `to` are required, and omitting them returns **400** (live). The response nests zone, then day as an ISO timestamp, then domain, mapping to a request count or bytes (live). Synthetic `v__` keys from the zones dimension appear here too as pseudo-zones. This is the read for "which site ate the budget", and it reports usage, never dollars.
 
@@ -157,7 +157,6 @@ Treat `can_make_requests` as a hint and never as proof. Live, it came back `fals
 | Zone info | [Get zone info](https://docs.brightdata.com/api-reference/account-management-api/Get_Zone_info) |
 | Account status | [Get account status](https://docs.brightdata.com/api-reference/account-management-api/Get_account_status) |
 | Snapshots | [Get snapshots](https://docs.brightdata.com/api-reference/scrapers/management-apis/get-snapshots) |
-| Studio job log | [Job data](https://docs.brightdata.com/api-reference/scraper-studio-api/job-data) |
 
 Billing concepts:
 
