@@ -9,8 +9,6 @@ Install the CLI and the skills, log in once, then route to the task skill.
 
 **Never ask the user to paste an API key into chat.** Login is one browser approval. The key never touches the conversation.
 
-**Windows note:** two errors, two different fixes. "running scripts is disabled" means PowerShell blocks npm's script shims - ask the user to run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once; it changes a machine setting, so do not run it for them. "bdata is not recognized" means npm's global directory is off PATH - the one-line fix is in Install below. Reading files is the other Windows trap: PowerShell 5.1 misreads UTF-8 JSON written by the CLI or by these skills' scripts and hands back mojibake, so read those files with `[System.IO.File]::ReadAllText($path,[Text.Encoding]::UTF8)` instead of `Get-Content`.
-
 ## Already set up?
 
 Three free checks before doing any work:
