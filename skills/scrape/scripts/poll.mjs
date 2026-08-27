@@ -350,8 +350,8 @@ const WRONG_KIND = [
 
 /**
  * Snapshot ids carry an "s_" or an "sd_" prefix, and both forms are real: the
- * live Web Scraper API hands back "sd_" ids today (sd_mt9xuudv23gyk8mxyr and
- * others), while "s_" is an earlier form still in circulation and still
+ * live Web Scraper API hands back "sd_"-prefixed ids today (observed live),
+ * while "s_" is an earlier form still in circulation and still
  * documented. Matching only "s_" would send every real trigger id down the /dca
  * branch, where it 404s. Anything else is read through /dca.
  * The full id routing story lives in references/snapshots-and-jobs.md.

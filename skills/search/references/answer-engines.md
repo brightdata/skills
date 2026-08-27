@@ -18,11 +18,11 @@ Six engines are listed in the official library at docs.brightdata.com/datasets/s
 
 None of the five ids appears in `GET /datasets/list`, and metadata returns 404 for all of them. All five still answered the free empty-body trigger probe by naming their required inputs, so they are real and triggerable - the signature means "invisible to the discovery endpoints", not "wrong". These bundled rows are the only machine-reachable source for those ids, so when one is rejected, refresh it from the control panel page below rather than searching the catalogue. Never guess an id from a name.
 
-Google AI Mode is also a Google surface, so `google-scrapers.md` points here for it. This row is the one place its id is written down.
+Google AI Mode is also a Google surface, so `google-scrapers.md` points here for it. This row is the one place in these skills its id is written down.
 
 ## Refreshing an id
 
-The ids above came from each scraper's control panel page (the API Request Builder tab), because the docs print none of them. When a bundled id is rejected, a person refreshes it from the same page:
+The docs print two of the five ids: ChatGPT's, in its introduction page example, and Google AI Mode's, in the Google scrapers introduction table. The other three came from each scraper's control panel page (the API Request Builder tab). When a bundled id is rejected, a person refreshes it from the same page:
 
 | Engine | Page |
 |---|---|

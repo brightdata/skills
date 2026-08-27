@@ -13,7 +13,7 @@ Both scraping paths are asynchronous. Neither returns records from the trigger. 
 | `j_abc123...` | `POST /dca/trigger`, or a `--urls` / `--input-file` batch | `GET /dca/log/{job_id}` for status, `GET /dca/dataset?id=` for records |
 | Anything else | `POST /dca/trigger_immediate` (one URL) returns a `response_id` | `GET /dca/get_result?response_id=` |
 
-Live triggers hand back the `sd_` form (`sd_mt9xuudv23gyk8mxyr` is a real one). Older ids and older docs show `s_`. Both are Web Scraper API snapshots and both read through the same two endpoints, so never treat an `sd_` id as a Studio job.
+Live triggers hand back the `sd_` form (for example `sd_abc123xyz456`). Older ids and older docs show `s_`. Both are Web Scraper API snapshots and both read through the same two endpoints, so never treat an `sd_` id as a Studio job.
 
 ## Web Scraper API snapshots
 

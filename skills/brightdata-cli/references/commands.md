@@ -71,7 +71,7 @@ The full flow, the zones it creates, and the `--github` warning live in the agen
 | `pipelines list` | Every pipeline type the CLI knows | same output flags |
 | `status <job-id>` | Poll an async snapshot job | `--wait`, `--timeout <s>` |
 
-`--async` on `scrape` returns a job id that `status` polls. `pipelines` ships 43 built-in types covering Amazon, Walmart, eBay, LinkedIn, Instagram, Facebook, TikTok, X, YouTube, Reddit, Google Maps, Zillow, Booking and more. Read the live list rather than guessing a name.
+`status` polls the async snapshot jobs that `pipelines` triggers (`/datasets/v3/progress`). `--async` on `scrape` returns a Web Unlocker response id from a different job system: fetch its result with `GET /unblocker/get_result?response_id=...`, not with `bdata status`. `pipelines` ships 43 built-in types covering Amazon, Walmart, eBay, LinkedIn, Instagram, Facebook, TikTok, X, YouTube, Reddit, Google Maps, Zillow, Booking and more. Read the live list rather than guessing a name.
 
 `discover` is an AI web search. It is not the discovery-input mode of the record scrapers, which is a different thing with the same word attached.
 
@@ -89,7 +89,7 @@ bdata pipelines linkedin_person_profile https://www.linkedin.com/in/satyanadella
 
 `search` resolves in five steps: `--zone`, then `BRIGHTDATA_SERP_ZONE`, then `default_zone_serp`, then `BRIGHTDATA_UNLOCKER_ZONE`, then `default_zone_unlocker`.
 
-Nothing in v0.3.5 sets `default_zone_serp`. The DEFAULTS object in `dist/utils/config.js` holds `default_format` and `api_url` and nothing else, no `config.json` ships inside the package, `login` writes only `default_zone_unlocker`, and `init` offers the zones the account really has. On a fresh machine step three is empty, `search` falls through to the unlocker zone, and it works.
+No automatic path in v0.3.5 sets `default_zone_serp`: only the interactive `init` wizard and an explicit `config set` write it. The DEFAULTS object in `dist/utils/config.js` holds `default_format` and `api_url` and nothing else, no `config.json` ships inside the package, and `login` writes only `default_zone_unlocker`. On a fresh machine step three is empty, `search` falls through to the unlocker zone, and it works.
 
 What breaks it is a `default_zone_serp` that is already set and names a zone the account does not have, a leftover from an earlier experiment or a hand-written value, `cli_serp` being the usual example. The CLI never validates a configured zone against the account, so that one truthy value both goes out on the wire and blocks the fall-through at step four. Every `search` then returns 422 with no hint about the cause and no self-heal.
 
@@ -156,7 +156,7 @@ bdata browser snapshot --session shop --interactive
 | `skill add <name>` | Install one skill into this repo's agent folders | none |
 | `add mcp` | Register the Bright Data MCP server | `--agent <claude-code,cursor,codex>`, `--global`, `--project` |
 
-`skill add` is non-interactive only when a name is given. A bare `bdata skill add` opens a picker that needs a TTY, so it hangs in scripts and CI. It installs into the current working directory, so run it from the project root.
+`skill add` is non-interactive only when a name is given. A bare `bdata skill add` opens a picker in an interactive terminal; without a TTY it exits 1 immediately with `Interactive skill selection requires a TTY`, so always pass the name in scripts and CI. It installs into the current working directory, so run it from the project root.
 
 `brightdata-cli` is itself a name in the registry. `bdata skill add brightdata-cli` installs that published skill, a separate artifact, not a reinstall of this file.
 
