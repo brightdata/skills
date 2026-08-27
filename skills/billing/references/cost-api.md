@@ -26,7 +26,7 @@ Live shape:
 {"balance": 0, "credit": 0, "prepayment": 0, "pending_costs": 0}
 ```
 
-Read `pending_costs` for money owed. Code written against the documented `pending_balance` reads undefined, which is exactly the bug in the CLI's own `budget balance` command. Treat any missing field as absent, not as zero.
+Read `pending_costs` for money owed. Code written against the documented `pending_balance` reads undefined. Treat any missing field as absent, not as zero.
 
 A missing or invalid key returns **401 with a short plain-text body** (live), such as `Invalid credentials` for a bad key or `User authentication is required` when the header is missing. The body is `text/html`, not JSON, so parsing it as JSON will fail. Branch on the status code.
 

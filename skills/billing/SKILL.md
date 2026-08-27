@@ -34,13 +34,9 @@ Base host is `https://api.brightdata.com` and auth is the header `Authorization:
 
 API keys carry one of five permission levels: Admin, Finance, Ops, User and Limit. Billing and cost data needs Finance or Admin, and Finance is the least-privileged one that works, so prefer it. Only account admins create or change keys, at brightdata.com/cp/setting/users. A 401 means the key is missing, revoked or wrong. A 403 means the key is real but under-privileged for billing, so name the missing access instead of retrying. A Finance key may not read product data such as snapshots or Studio jobs, and that split is fine: report the half you can read and say which access the other half needs.
 
-## What the CLI gets wrong in v0.3.5
+## Using the budget commands well
 
-The `bdata budget` commands are convenient. Two of the numbers they print are wrong and one flag does nothing, so check before repeating any of it to a user.
-
-- **`bdata budget balance` always prints `Pending charge $0.00`.** The CLI reads a field named `pending_balance`, the live API sends the same number as `pending_costs`, so the lookup misses and falls back to zero. Call `GET /customer/balance` yourself for the real figure.
-- **`bdata budget zone` labels its number `Cost (this month)` and that is not what it is.** The CLI adds up every bucket the API returns, so the figure is this month, plus the two months before it, plus the last three days counted a second time. The same bug inflates the `TOTAL` row of `bdata budget zones`. Passing `--from` and `--to` fixes it, because the API then returns a single bucket and there is nothing to double count.
-- **`--json` and `--pretty` produce no JSON on `budget balance`.** The flags appear in `--help` and do nothing. Call the endpoint directly when you need machine-readable output.
+Three habits make the `bdata budget` output reliable. Always pass `--from` and `--to` to `budget zone` and `budget zones`, so the figure covers exactly the window you asked about. For the pending charge, read `pending_costs` from `GET /customer/balance` directly. And when you need machine-readable output, call the endpoint rather than the balance command.
 
 ## The traps
 
@@ -77,9 +73,9 @@ The proxy networks are not covered. New accounts instead get a one-time $2 trial
 
 - Adding a payment method, topping up, or changing a plan on the user's behalf
 - Running a real job, or a single test request, to find out what something costs
-- Reading `pending_balance` from a live balance response, or repeating the CLI's `Pending charge` of zero
+- Reading `pending_balance` from a live balance response instead of `pending_costs`
 - Treating every key of a cost export as a date, so `total` gets added to the days
-- Repeating `Cost (this month)` from `bdata budget zone` without `--from` and `--to`
+- Reporting a zone cost without `--from` and `--to`
 - Adding `back_m0` to `back_d0`, or assuming `bw` is present in every bucket
 - Reporting an empty cost export as proof of no spend, without the `products` cross-check described in `references/cost-api.md`
 - Quoting public list prices as though they were this account's rate
