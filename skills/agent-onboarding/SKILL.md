@@ -85,10 +85,10 @@ Users ask for data, not for tools. When two rows both fit, prefer `scrape`: read
 | The user wants | Skill |
 |---|---|
 | To scrape a site, or data or information from it (LinkedIn, Amazon, ...) | `scrape` |
-| A big already-collected corpus, needed once, where months old is fine ("every US company") | `datasets` |
 | A page as markdown, HTML, or a screenshot | `fetch` |
 | Anything starting from a search query | `search` |
 | To point their own browser code at our cloud browser - Playwright, Puppeteer, Selenium, or an AI that clicks by itself | `browser` |
+| A big already-collected corpus, needed once, where months old is fine ("every US company") | `datasets` |
 | Setup, building or testing scrapers, quick one-off checks | `brightdata-cli` |
 | Their AI app to decide at run time | `brightdata-mcp` |
 | Code that repeats the same job on a schedule | `brightdata-sdk` |
