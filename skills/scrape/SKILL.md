@@ -1,91 +1,76 @@
 ---
 name: scrape
-description: Scrape web content as clean markdown/HTML/JSON via the Bright Data CLI (`bdata scrape`). Use when the user wants to fetch a page, extract content from a list of URLs, or crawl paginated listings. Hands off to `data-feeds` for supported platforms (Amazon, LinkedIn, TikTok, Instagram, YouTube, Reddit, etc.) and to `search` when URLs must be discovered first. Requires the Bright Data CLI; proactively guides install + login if missing.
+description: 'Use when the user wants to scrape or extract structured data from any site: profiles, posts, products, reviews, prices, followers, job or property listings. Also for building a scraper, crawling a site for data, discovery by keyword or category, asks that say "data fields" or "recurring", or that name a dataset_id, snapshot_id, Web Scraper API, or Scraper Studio. Not the page itself (use fetch), not a search query (use search), not cost or credits (use billing).'
 ---
 
-# Bright Data — Scrape
+# Bright Data - Scrape
 
-Get clean content (markdown, HTML, JSON, screenshot) from one or more URLs via the Bright Data CLI. This skill owns the "fetch raw or lightly-structured content" job. For platform-specific structured data (Amazon, LinkedIn, TikTok, etc.), **stop and use `data-feeds` instead** — you'll get clean JSON without selector logic.
+Run the gates below to pick the product yourself - never ask the user which. State the pick in one line, and one word from the user overrides it.
 
-## Setup gate (run first)
+## The gates - run in order, first yes wins
 
-Before any scrape, verify the CLI is installed and authenticated:
-
-```bash
-if ! command -v bdata >/dev/null 2>&1; then
-    echo "bdata CLI not installed — see bright-data-best-practices/references/cli-setup.md"
-elif ! bdata zones >/dev/null 2>&1; then
-    echo "bdata not authenticated — run: bdata login  (or: bdata login --device for SSH)"
-fi
-```
-
-If either check fails, halt and route the user to `skills/bright-data-best-practices/references/cli-setup.md`. Do not attempt the legacy `curl` fallback silently — ask the user first.
-
-## Pick your path
-
-| Situation | Action |
+| Check | If yes |
 |---|---|
-| Single URL | `bdata scrape <url> -f markdown` |
-| Small list (≤ ~20 URLs) | shell loop, 1 at a time (see `references/patterns.md`) |
-| Larger list (dozens+) | `xargs -P 4` with parallelism cap (see `references/patterns.md`) |
-| Paginated listing | scrape page 1 → extract next-page URL → append → repeat (see `references/examples.md`) |
-| JS-heavy / login-gated / interaction-required | escalate to `bdata browser` (see `brightdata-cli` skill) |
-| Amazon, LinkedIn, TikTok, Instagram, YouTube, Reddit, … | **stop — hand off to `data-feeds`** |
-| No URL yet, just a topic | **hand off to `search`** |
+| **The marketplace check - already collected.** All three at once: a huge generic corpus, needed once, and a few months old is fine. Anything less falls through to gate 1. | Dataset Marketplace. Buy the download instead of scraping. |
+| **Gate 1 - library.** A ready scraper already returns these fields. Scrapers come first. Popular platforms resolve from the bundled top-25 table with zero API calls, and only an unlisted site goes to the live catalogue. The input is not always a URL - variants take usernames, hashtags, keywords, locations and more. | **Web Scraper API.** |
+| **Gate 2 - build it.** No ready scraper covers these fields, and any one of these: many pages share one layout, the job will run again, or the data only appears after browser actions (typing, scrolling, waiting, CAPTCHA) and the user has no Playwright, Puppeteer or Selenium setup. | **Scraper Studio.** |
+| **Fall-through.** One-time job, no ready scraper, and the pages share no layout. | Back to `fetch` (Web Unlocker), and the user owns the parser. |
 
-## Action
+Many pages means many URLs. One page holding many items is still one page, and with no ready scraper and no recurrence it falls through to fetch, which is a normal outcome, not a failure.
 
-Core commands:
+**Gate 1 in practice.** Open [references/web-scraper-api.md](references/web-scraper-api.md) and check its bundled top-25 table first, which costs zero API calls. When nothing matches, run `node scripts/find-scraper.mjs <name or gd_ id>` - one free call searches the live catalogue, skips junk rows, and `--schema` adds required inputs and typed outputs. Manual fallbacks for the same lookup: `bdata pipelines list` for the pipelines the CLI ships, or `curl -H "Authorization: Bearer $BRIGHTDATA_API_KEY" https://api.brightdata.com/datasets/list`. All are free reads that trigger no job. An id the user or a colleague handed over gets the same treatment - resolve it with the script before triggering, because a handed id can be a marketplace row, stale, or the wrong variant. When the scraper you picked has no CLI pipeline, `node scripts/trigger.mjs <dataset_id> <url>` starts the job and `node scripts/poll.mjs <snapshot_id>` brings back the records. Run the check and pick the scraper yourself, rather than asking the user which one to use. A single URL is not a reason to skip it. Web Scraper API has no built-in scheduler, so "daily" means the agent writes a cron job or a GitHub Actions workflow in the user's project.
 
-```bash
-# Clean markdown (default)
-bdata scrape "https://example.com/article" -f markdown -o article.md
+**When the user has no URLs.** Many ready scrapers take a discovery input instead: a keyword, a category URL, a best-sellers URL, a location. Check the scraper's metadata before assuming it needs a URL. Sites with no ready scraper go to Scraper Studio, which covers single-page, search-discovery and multi-page patterns.
 
-# Raw HTML (when you need the DOM)
-bdata scrape "https://example.com" -f html -o page.html
+**Gate 2 in practice.** Scraper Studio has a built-in scheduler (hourly, daily, weekly, or custom). It heals itself when the site changes, and a heal can wait for the user's approval (`scraper heal` and `scraper approve` in the CLI). It also handles multi-page crawl jobs, and it does the browser work for you. For an urgent ask on a collector that already exists, `bdata scraper run <collector_id> <url> --sync` returns data in one call, single URL only, server-side cap of 25 to 50 seconds. For many URLs at once drop `--sync`: `--urls a,b,c` or `--input-file urls.txt` sends one batch through `/dca/trigger` and polls until the records land.
 
-# Structured JSON (when the Unlocker returns parsed fields)
-bdata scrape "https://example.com" -f json --pretty -o page.json
+## The boundaries
 
-# Visual snapshot (saves PNG)
-bdata scrape "https://example.com" -f screenshot -o page.png
+Pages themselves belong to `fetch`: markdown, HTML, a screenshot, "for my RAG", or an explicit hurry word ("now", "quick", "ASAP") on a one-off pull. A single URL is not a hurry word, and a live chat is not a hurry word. Anything starting from a search query belongs to `search`. A user who already drives a browser with Playwright, Puppeteer, Selenium or a computer-use model belongs to the `browser` skill. A user with no such setup stays here, and Studio does the browser work.
 
-# Geo-targeted (override the exit country)
-bdata scrape "https://example.com" --country de -f markdown
+## The two override words
+
+- **fields** (or "records") - forces structured data fields. Run gate 1, then gate 2.
+- **recurring** - puts the job on a schedule. It does not skip the gates. With a ready scraper the product stays Web Scraper API and the agent writes the cron. With no ready scraper, "runs again" is what sends the job to Studio.
+
+Two separate words, because output and schedule are two separate choices.
+
+## Web Scraper API is asynchronous
+
+Trigger, poll, download. Never promise an instant answer. CLI pipelines do the polling, so the command looks synchronous, but the job underneath still takes its time.
+
+## Example - one Instagram profile
+
+The ask: *"get me the follower count and bio for instagram.com/nasa"*
+
+1. Fields, not the page. Stay in this skill.
+2. One specific input, not a generic corpus. No Marketplace.
+3. The top-25 table has `instagram_profiles`. Gate 1 wins. One URL still gets the library check.
 
 ```
+bdata pipelines instagram_profiles https://www.instagram.com/nasa/
+```
 
-Full flag reference: [`references/flags.md`](references/flags.md).
+Then state the choice in one line while the job runs:
 
-## Verification gate (run before claiming success)
+> Using the maintained Instagram profiles scraper. It runs as a job, so this is not instant. Say `recurring` to put it on a schedule.
 
-1. **Non-empty output:** `test -s "$out_path"` — or, for stdout, at least 200 bytes of content.
-2. **Not a block page** — grep the output for any of these signatures (case-insensitive):
-   - `Access Denied`
-   - `Just a moment`
-   - `Attention Required`
-   - `Checking your browser`
-   - `captcha`
-   - `cf-browser-verification`
-   - `cloudflare` *(with < 2KB total body)*
-3. **Expected markers present** for the task: e.g., a product page should contain a price pattern (`\$\d`); an article should contain at least one `<h1>` or `# ` heading.
-4. **On failure, escalation ladder:**
-   - Retry with a different `--country` (e.g., `--country de` if the origin site is US)
-   - Escalate to `bdata browser` for full JS rendering (hand off to `brightdata-cli` skill)
+When the records come back, check they describe the entity the user meant before reporting them. Vanity URLs collide, and `linkedin.com/company/anthropic` returns a venture fund rather than the AI lab.
 
-Do not report success until all checks above pass.
+## Read next
 
-## Red flags
+- **Before the first Web Scraper API call:** [references/web-scraper-api.md](references/web-scraper-api.md) - the top-25 table, the name trap, and the free discovery moves.
+- **Before scraping anything that sounds like a huge generic corpus:** [references/dataset-marketplace.md](references/dataset-marketplace.md) - the three-part gate, and why the agent checks and routes but never buys.
+- **When gate 2 fires and you are about to build a scraper:** [references/scraper-studio.md](references/scraper-studio.md) - the four CLI commands that exist, the create-then-run split, the approval gate on a heal, and the browser work you no longer have to write.
+- **When every gate has said no and the data job has to fetch raw pages itself:** [references/web-unlocker.md](references/web-unlocker.md) - the one-POST request shape, the four KYC error codes, and the signal that means go back to gate 2.
+- **The moment a trigger hands back an id instead of data:** [references/snapshots-and-jobs.md](references/snapshots-and-jobs.md) - which endpoints match which id, and the delivery settings the agent never configures.
+- **When a bundled id is rejected or the site is not in the table:** [scripts/find-scraper.mjs](scripts/find-scraper.mjs) - live search by name or id, `--schema` for inputs and outputs, junk rows filtered, key never printed.
+- **When the scraper you picked has no CLI pipeline:** [scripts/trigger.mjs](scripts/trigger.mjs) - `node trigger.mjs <dataset_id> <url>` starts the job and prints the snapshot id, key never printed.
+- **When a job is running and you need the data without hand-writing a poll loop:** [scripts/poll.mjs](scripts/poll.mjs) - either id in, data out, key never printed.
+- **When a call is refused for auth:** the `agent-onboarding` skill. The REST 401 wording varies ("Credentials are invalid", "Invalid credentials") while the CLI prints "No API key found". All mean log in. Send 407 and `kyc_required` there too, along with missing zones.
 
-- Claiming success without inspecting the output.
-- Silencing errors with `2>/dev/null` — you'll miss auth failures and rate-limit errors.
-- Running `bdata scrape` on Amazon/LinkedIn/TikTok/Instagram/YouTube/Reddit URLs — these are supported by `data-feeds` and return structured data directly. Scraping loses the structure.
-- Scraping the same URL repeatedly in the same task — cache the first result.
-- Looping `bdata scrape` sequentially for large lists instead of using `xargs -P 4` (or similar) with a parallelism cap.
-- Using `curl` against `api.brightdata.com` directly — legacy path; only when the CLI isn't available.
+## Red flags - stop if you catch yourself doing one of these
 
-## References
-
-- [`references/flags.md`](references/flags.md) — every flag with when-to-use notes.
-- [`references/patterns.md`](references/patterns.md) — shell-loop batching, `xargs` parallelism, pagination recipe, retry/backoff, block-page recovery chain, legacy `curl` fallback.
-- [`references/examples.md`](references/examples.md) — (1) single page → markdown, (2) batch a list of URLs with parallelism cap, (3) paginated listing, (4) block-page recovery.
+- Skipping the library check because there is only one URL
+- Hardcoding a guessed dataset_id instead of using the table or a live search
+- Reaching for Web Unlocker while a ready scraper covers the fields
