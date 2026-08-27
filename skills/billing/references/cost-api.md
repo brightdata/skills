@@ -40,11 +40,10 @@ Called with only a zone, the response is one object keyed by the account's custo
 }}
 ```
 
-Three things to know, all live.
+How to read the buckets (live):
 
-- There are two sets of keys. `back_m0`, `back_m1` and `back_m2` are this month and the two months before it. `back_d0`, `back_d1` and `back_d2` are today and the two days before it. **The day buckets sit inside `back_m0`, so never add the two sets together.** Adding all six double counts recent days and mixes three months into one figure.
-- Only `cost` and `range` are always there. `bw`, `reqs_serp` and `reqs_unblocker` appear only on buckets that saw traffic (live).
-- Supplying `from` and `to` **replaces all six buckets with a single bucket named `custom`**. This is the reliable way to ask for a period. A date the API cannot read returns **500**, not 400, and the message is misleading: it says `You must provide period with both to and from` even when both were sent. Read a 500 here as a bad date format, not as an outage (live).
+- `back_m0`, `back_m1` and `back_m2` are this month and the two before it. `back_d0`, `back_d1` and `back_d2` are today and the two days before, and they sit inside `back_m0`, so never add the two sets together. Only `cost` and `range` are on every bucket, and the traffic fields appear only on buckets that saw traffic.
+- Supplying `from` and `to` **replaces all six buckets with a single bucket named `custom`**, which is the reliable way to ask for a period. A **500** here usually means a date format the API could not read, not an outage.
 
 Scope limit, docs only, not verified live: this endpoint cannot return Web Scraper API or Scraper Studio cost, because that spend is keyed by dataset id and collector rather than by zone. Use the cost export for those.
 
