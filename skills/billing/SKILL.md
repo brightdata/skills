@@ -22,10 +22,17 @@ Never run a real job to find out what the account can do or what something costs
 | What all active zones cost | `bdata budget zones --from <date> --to <date>` | `GET /zone/get_active_zones`, then one `/zone/cost` per zone |
 | What each product, zone, dataset or domain cost | no CLI command, call it directly | `POST /costs/export/json` |
 | What scraping cost | no CLI command, call it directly | `POST /costs/export/json` with `dimension` `web_apis` for Web Scraper API, `collectors` for Scraper Studio |
+| Which zones exist, including deleted ones | no CLI command, call it directly | `GET /zone/get_all_zones` |
+| Which website ate the budget | no CLI command, call it directly | `GET /domains/req` and `GET /domains/bw`, dates required |
+| How many records a snapshot delivered | no CLI command, call it directly | `GET /datasets/v3/snapshots`, read `dataset_size` |
 
 Base host is `https://api.brightdata.com` and auth is the header `Authorization: Bearer <key>`. Read the key from the environment or the CLI's own store. The exact file path for each OS, and the safe way to read it without printing it, live in the `agent-onboarding` skill's auth reference. That reference also has the thing that trips agents here: after a CLI login, `BRIGHTDATA_API_KEY` is unset, and that is normal rather than a sign the machine is logged out, because login writes the key to the CLI's store and never to the environment. Never ask the user to paste a key into the conversation, and never print one.
 
 `/zone/cost` only sees zone-backed products such as Web Unlocker, SERP, Browser API and the proxy networks. Web Scraper API and Scraper Studio spend is keyed by dataset id and collector rather than by zone name, so it never appears there. Those go to the cost export.
+
+## Which key can read this
+
+API keys carry one of five permission levels: Admin, Finance, Ops, User and Limit. Billing and cost data needs Finance or Admin, and Finance is the least-privileged one that works, so prefer it. Only account admins create or change keys, at brightdata.com/cp/setting/users. A 401 means the key is missing, revoked or wrong. A 403 means the key is real but under-privileged for billing, so name the missing access instead of retrying. A Finance key may not read product data such as snapshots or Studio jobs, and that split is fine: report the half you can read and say which access the other half needs.
 
 ## What the CLI gets wrong in v0.3.5
 
@@ -50,7 +57,7 @@ No endpoint returns a quote, so never present one as if it came from the API. Bu
 
 1. **Find the billing unit for the product.** Web Unlocker and SERP bill per successful request, and failed requests are not charged. Web Scraper API bills per delivered record. Scraper Studio bills per page load, with file downloads charged separately per GB. Browser API and the proxy networks bill per GB of traffic, and some proxy plans are a fixed charge per IP instead.
 2. **Count the units, not the inputs.** One input is not one record. Five listing URLs that each hold twenty products produce a hundred records. A batch of ten URLs is ten separate billable requests. Pagination pages, detail pages and extra navigations each count as page loads in Scraper Studio.
-3. **Use the account's own rate, not the public price list.** Accounts on custom or pre-commit pricing pay negotiated rates. For Web Unlocker and SERP you can compute the real rate: ask `/zone/cost` for a period with `from` and `to`, then divide the `custom` bucket's `cost` by its `reqs_unblocker` or `reqs_serp`. Web Scraper API has no record count in any read, so for per-record products use the published price and say plainly that it is the list price, not this account's rate.
+3. **Use the account's own rate, not the public price list.** Accounts on custom or pre-commit pricing pay negotiated rates. For Web Unlocker and SERP you can compute the real rate: ask `/zone/cost` for a period with `from` and `to`, then divide the `custom` bucket's `cost` by its `reqs_unblocker` or `reqs_serp`. For Web Scraper API the record count is a read (`/datasets/v3/snapshots`, `dataset_size`) and the snapshot's dollars are the export's `ws_api_snaps` dimension, so compute the real per-record rate when both return data. When they do not, use the published price and say plainly that it is the list price, not this account's rate.
 
 ## Free credits
 
@@ -58,11 +65,12 @@ Every eligible account gets 5,000 free credits a month from one shared pool. The
 
 The proxy networks are not covered. New accounts instead get a one-time $2 trial credit for the proxy products, valid 7 days, and a further $5 for adding a payment method. All of these figures are from the docs and cannot be checked against any API.
 
-**Free credits are not in any API.** No balance field counts them. They live in the control panel at brightdata.com/cp/billing/overview under Free Tier Credits, which also shows the renewal date. Send the user there rather than guessing, and never read a money balance of zero as proof that the free credits are gone. They are separate pools.
+**Free credits are not in any API, and that absence is proven, not assumed.** No balance field counts them, the docs describe no endpoint for them, and the plausible paths return 404. The `credit` field on `/customer/balance` is dollars, not a credit count. Free-tier and trial state live in the control panel at brightdata.com/cp/billing/overview under Free Tier Credits, which also shows the renewal date. Send the user there rather than guessing, and never read a money balance of zero as proof that the free credits are gone. They are separate pools.
 
 ## Read next
 
-- **Before calling any of these endpoints:** [references/cost-api.md](references/cost-api.md) - exact paths, parameters, real response shapes, the nine cost dimensions, and which facts are verified live against an account rather than only read in the docs.
+- **Before calling any of these endpoints:** [references/cost-api.md](references/cost-api.md) - exact paths, parameters, real response shapes, the eleven cost dimensions, and which facts are verified live against an account rather than only read in the docs.
+- **For a charge investigation or a cost estimate, step by step:** [references/investigations.md](references/investigations.md) - the workflows per product, the estimate formulas per billing unit, which questions to ask the user and which never to ask, and what each MCP tool bills as.
 - **When a read is refused:** the `agent-onboarding` skill. A missing or invalid key gives 401 with a short plain-text body on these endpoints, and `No API key found` from the CLI. Both mean log in.
 
 ## Red flags
@@ -73,6 +81,9 @@ The proxy networks are not covered. New accounts instead get a one-time $2 trial
 - Treating every key of a cost export as a date, so `total` gets added to the days
 - Repeating `Cost (this month)` from `bdata budget zone` without `--from` and `--to`
 - Adding `back_m0` to `back_d0`, or assuming `bw` is present in every bucket
-- Reporting an empty cost export as proof of no spend, without first checking that the dimension name is one of the nine valid ones listed in `references/cost-api.md`
+- Reporting an empty cost export as proof of no spend, without the `products` cross-check described in `references/cost-api.md`
 - Quoting public list prices as though they were this account's rate
+- Asking the user which plan or zone they use when `/zone/get_all_zones` and `/zone?zone=` answer it
+- Presenting an estimate as if it were a quote from the API, which has no estimate endpoint
+- Echoing a raw `/zone?zone=` response, which contains the zone password
 - Printing an API key, or asking the user to paste one into the chat

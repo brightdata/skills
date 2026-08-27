@@ -66,16 +66,30 @@ Both take the same JSON body. `dimension`, `from` and `to` are all required, and
 
 | Field | Required | Notes |
 |---|---|---|
-| `dimension` | yes | One of the nine below. |
+| `dimension` | yes | One of the eleven the server accepts, listed below. |
 | `from` | yes | Inclusive start, `YYYY-MM-DD`, UTC. |
 | `to` | yes | **Exclusive** end, `YYYY-MM-DD`, UTC. |
 | `filters` | no | Optional object in Bright Data's internal charges notation. Most callers send `{}` and scope with `dimension` instead. Documented example is `{"props": {"product": {"whitelist": ["dc", "unblocker"]}}}`. Docs only, not verified live. |
 
-The nine documented dimensions are `products`, `types`, `zones`, `datasets`, `web_apis`, `collectors`, `domains`, `ws_api_snaps` and `snapshots`. They group cost by product family, by network or charge type, by zone, by marketplace dataset purchase, by Web Scraper API `dataset_id`, by Scraper Studio collector, by target domain, by Web Scraper API snapshot and by dataset snapshot. Dimension meanings are docs only, not verified live.
+The server accepts exactly eleven dimensions, and it names them itself: send an invalid value and the 400 error prints the whitelist verbatim (live): `types, products, zones, datasets, web_apis, collectors, dca_jobs, snapshots, ws_api_snaps, domains, dca_jobs_dynamic`. Nine of those are documented. `dca_jobs` and `dca_jobs_dynamic` appear in no docs page, only in the server's own whitelist, so treat them as real but undocumented: regular Scraper Studio jobs under `dca_jobs`, virtual jobs under `dca_jobs_dynamic`, and confirm with a live export before building on either.
 
-**A wrong dimension can look like a zero bill.** An unrecognized value such as `totally_bogus` returns 400, but `dca_jobs` and `dca_jobs_dynamic` are accepted and return 200 with an empty object every time (live). An agent that passes one of those and reports "no charges" is reporting the absence of a valid query, not the absence of spend. Stick to the nine.
+Which dimension answers which question:
 
-**How to tell an empty answer from a wrong question.** When a dimension comes back `{}`, do not report zero yet. Ask again for the same window with `dimension` set to `products`, which is the broad one. If `products` shows spend and the narrow dimension is still empty, the dimension name is wrong or unsupported on this account, so fix the name instead of reporting no charges. If both come back empty for that window, there was genuinely no spend in it, and you can say so plainly.
+| Billing question | Dimension |
+|---|---|
+| Product comparison, or the broad cross-check | `products` |
+| Charge type (requests vs records vs bandwidth) | `types` |
+| One zone, or zone-backed products side by side | `zones` |
+| A marketplace dataset purchase | `datasets` or `snapshots` |
+| Web Scraper API by `dataset_id` | `web_apis` |
+| One Web Scraper API snapshot | `ws_api_snaps` |
+| A Scraper Studio collector rollup | `collectors` |
+| One Scraper Studio job | `dca_jobs` (undocumented, above) |
+| A target website across products | `domains` |
+
+Do not explain one specific job's charge with `collectors`: it is a per-collector rollup and can carry charges no single job accounts for. Dimension meanings beyond the whitelist are docs only, not verified live.
+
+**How to tell an empty answer from a wrong question.** An invalid dimension name cannot fool you, it returns 400 with the whitelist. The trap is a valid dimension that is the wrong one for the question. When a dimension comes back `{}`, do not report zero yet. Ask again for the same window with `dimension` set to `products`, which is the broad one. If `products` shows spend and the narrow dimension is still empty, the spend is attributed under a different dimension, so change the question rather than reporting no charges. Seen live: a window with Scraper Studio spend under `products` (`ide`) returned `{}` under `dca_jobs`. If both come back empty for that window, there was genuinely no spend in it, and you can say so plainly.
 
 ### Calling it
 
@@ -114,7 +128,7 @@ Keyed by day, each day mapping a resource key to billed dollars for that day. **
 
 Resource keys are internal names that depend on the dimension. Seen live: `unblocker`, `data_api` and `dataset_api` for `products`, and `reqs_serp`, `reqs_unblocker` and `records` for `types`. The docs also show opaque dataset ids sitting alongside them, docs only, not verified live. Days with no spend are simply absent, and a range with no spend returns `{}`.
 
-**The `zones` dimension mixes plain zone names with synthetic keys (live).** Zone-backed spend appears under the real zone name (`cli_unlocker`), and those names CAN be passed to `/zone/cost`. Most other keys are synthetic per-dataset keys carrying a prefix, such as `v__ds_api_`, `v__cli_ds_api_` and `v__dca_ds_api_`, followed by a dataset identifier, plus `v__dca_<collector>` keys that carry a Scraper Studio collector name. The prefix is the meaningful part, because it decides the product line: `v__dca_*` bills as `dataset_api`, while `v__ds_api_*` and `v__cli_ds_api_*` bill as `data_api`. Match on the prefix when you group these, and never pass a synthetic key to `/zone/cost`, which wants a real zone name.
+**The `zones` dimension mixes plain zone names with synthetic keys (live).** Zone-backed spend appears under the real zone name (`cli_unlocker`), and those names CAN be passed to `/zone/cost`. Most other keys are synthetic per-dataset keys carrying a prefix, such as `v__ds_api_`, `v__cli_ds_api_` and `v__dca_ds_api_`, followed by a dataset identifier, plus `v__dca_<collector>` keys that carry a Scraper Studio collector name. The prefix is the meaningful part, because it decides the product line: `v__dca_ds_api_*` bills as `dataset_api`, plain `v__dca_<collector>` keys bill as `ide`, which is Scraper Studio (live), and `v__ds_api_*` and `v__cli_ds_api_*` bill as `data_api`. Match on the prefix when you group these, and never pass a synthetic key to `/zone/cost`, which wants a real zone name.
 
 Exclusivity confirmed live. Asking `from=2026-06-11&to=2026-06-12` returns that day, and asking `from=2026-06-11&to=2026-06-11` returns nothing.
 
@@ -130,9 +144,13 @@ Docs only, not verified live: the export is rate limited to 1,000 requests a min
 
 ## Supporting reads
 
-**GET /zone/get_active_zones** takes no parameters and returns an array of `{name, type}` (live). Types seen include `unblocker` and `browser_api`, and the docs also list `serp`, `res_rotating`, `isp` and `mobile`. This is how you get the zone names that `/zone/cost` needs. **GET /zone/get_all_zones** additionally returns deleted zones and a `status` of `active` or `deleted`, docs only, not verified live.
+**GET /zone/get_active_zones** takes no parameters and returns an array of `{name, type}` (live). Types seen include `unblocker` and `browser_api`, and the docs also list `serp`, `isp` and `mobile`. This is how you get the zone names that `/zone/cost` needs. **GET /zone/get_all_zones** returns an array of `{name, type, status}` (live), where `status` distinguishes active from deleted zones.
 
-**GET /zone?zone=<name>** returns `created`, `password`, `ips`, `plan` and `perm` (live). The `plan` object carries `start`, `type`, `vips_type`, `ub_premium`, `product`, `cost_override` and `trial_id`, where `product` is a short code such as `dc`. Useful for naming the product behind a zone and for spotting a negotiated rate through `cost_override`.
+**GET /zone?zone=<name>** returns `created`, `password`, `ips`, `plan` and `perm` (live). The `plan` object carries `start`, `type`, `vips_type`, `ub_premium`, `product`, `cost_override` and `trial_id`, where `product` is a short code such as `dc`. Useful for naming the product behind a zone and for spotting a negotiated rate through `cost_override`. **The `password` field holds the zone's real credentials in plain text (live), so never echo this response raw into a chat, a log, or a report.** Pull the one field you need and drop the rest.
+
+**GET /domains/req** and **GET /domains/bw** break usage down per target website. `from` and `to` are required, and omitting them returns **400** (live). The response nests zone, then day as an ISO timestamp, then domain, mapping to a request count or bytes (live). Synthetic `v__` keys from the zones dimension appear here too as pseudo-zones. This is the read for "which site ate the budget", and it reports usage, never dollars.
+
+**GET /datasets/v3/snapshots** lists Web Scraper API snapshots, each carrying `dataset_size`, the number of records delivered (live). One input URL can produce many records, so this is the count that explains a per-record charge. Pair it with the cost export's `ws_api_snaps` dimension for the dollars.
 
 **GET /customer/bw** and **GET /zone/bw** return bandwidth and request counts rather than money. The response is keyed by customer id, then a wrapper object whose `data` key holds the per-zone objects (aggregates sit under `sums`), then by zone, then by metric, with names such as `bw_sum`, `bw_dn`, `bw_up`, `reqs_unblocker_billable` and `reqs_serp_billable` (live). They answer how much traffic moved, never how much it cost. They accept both `YYYY-MM-DD` and full ISO timestamps (live), and the docs do not say whether their `to` is exclusive.
 
