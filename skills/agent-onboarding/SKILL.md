@@ -9,8 +9,6 @@ Install the CLI and the skills, log in once, then route to the task skill.
 
 **Never ask the user to paste an API key into chat.** Login is one browser approval. The key never touches the conversation.
 
-**Windows note:** two errors, two different fixes. "running scripts is disabled" means PowerShell blocks npm's script shims - ask the user to run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once; it changes a machine setting, so do not run it for them. "bdata is not recognized" means npm's global directory is off PATH - the one-line fix is in Install below. Reading files is the other Windows trap: PowerShell 5.1 misreads UTF-8 JSON written by the CLI or by these skills' scripts and hands back mojibake, so read those files with `[System.IO.File]::ReadAllText($path,[Text.Encoding]::UTF8)` instead of `Get-Content`.
-
 ## Already set up?
 
 Three free checks before doing any work:
@@ -87,10 +85,10 @@ Users ask for data, not for tools. When two rows both fit, prefer `scrape`: read
 | The user wants | Skill |
 |---|---|
 | To scrape a site, or data or information from it (LinkedIn, Amazon, ...) | `scrape` |
-| A big already-collected corpus, needed once, where months old is fine ("every US company") | `datasets` |
 | A page as markdown, HTML, or a screenshot | `fetch` |
 | Anything starting from a search query | `search` |
 | To point their own browser code at our cloud browser - Playwright, Puppeteer, Selenium, or an AI that clicks by itself | `browser` |
+| A big already-collected corpus, needed once, where months old is fine ("every US company") | `datasets` |
 | Setup, building or testing scrapers, quick one-off checks | `brightdata-cli` |
 | Their AI app to decide at run time | `brightdata-mcp` |
 | Code that repeats the same job on a schedule | `brightdata-sdk` |
