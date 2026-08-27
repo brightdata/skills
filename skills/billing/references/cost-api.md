@@ -147,28 +147,27 @@ Treat `can_make_requests` as a hint and never as proof. Live, it came back `fals
 
 ## The docs pages behind these endpoints
 
-All under `docs.brightdata.com/api-reference/account-management-api/` unless noted.
+| Topic | Page |
+|---|---|
+| Balance | [Get total balance](https://docs.brightdata.com/api-reference/account-management-api/Get_total_balance_through_API) |
+| Cost export | [Export cost breakdown](https://docs.brightdata.com/api-reference/account-management-api/Export_cost_breakdown) |
+| Zone cost and bandwidth | [Zone cost and bandwidth stats](https://docs.brightdata.com/api-reference/account-management-api/Get_the_total_cost_and_bandwidth_stats_for_a_Zone) |
+| Per-domain consumption | [Domain consumption](https://docs.brightdata.com/api-reference/account-management-api/domain-consumption) |
+| Zone list | [Get all zones](https://docs.brightdata.com/api-reference/account-management-api/get-all-zones) |
+| Zone info | [Get zone info](https://docs.brightdata.com/api-reference/account-management-api/Get_Zone_info) |
+| Account status | [Get account status](https://docs.brightdata.com/api-reference/account-management-api/Get_account_status) |
+| Snapshots | [Get snapshots](https://docs.brightdata.com/api-reference/scrapers/management-apis/get-snapshots) |
+| Studio job log | [Job data](https://docs.brightdata.com/api-reference/scraper-studio-api/job-data) |
+
+Billing concepts:
 
 | Topic | Page |
 |---|---|
-| Balance | `Get_total_balance_through_API` |
-| Cost export | `Export_cost_breakdown` |
-| Zone cost and bandwidth | `Get_the_total_cost_and_bandwidth_stats_for_a_Zone` |
-| Per-domain consumption | `domain-consumption` |
-| Zone list and zone info | `get-all-zones`, `Get_Zone_info` |
-| Account status | `Get_account_status` |
-| Snapshots | `docs.brightdata.com/api-reference/scrapers/management-apis/get-snapshots` |
-| Studio job log | `docs.brightdata.com/api-reference/scraper-studio-api/job-data` |
+| Free tier | [Free tier](https://docs.brightdata.com/general/account/billing-and-pricing/free-tier) |
+| Costs Explorer | [Costs Explorer](https://docs.brightdata.com/general/account/billing-and-pricing/costs-explorer) |
+| Billing FAQs | [Billing and pricing FAQs](https://docs.brightdata.com/general/account/billing-and-pricing/faqs) |
+| Trial restrictions | [Limited trial restrictions](https://docs.brightdata.com/general/account/limited-trial-restrictions) |
+| Users and key permissions | [Users management](https://docs.brightdata.com/general/account/users-management) |
 
-Billing concepts, under `docs.brightdata.com/general/account/`:
-
-| Topic | Page |
-|---|---|
-| Free tier | `billing-and-pricing/free-tier` |
-| Costs Explorer | `billing-and-pricing/costs-explorer` |
-| Billing FAQs | `billing-and-pricing/faqs` |
-| Trial restrictions | `limited-trial-restrictions` |
-| Users and key permissions | `users-management` |
-
-Outside the docs: public pricing at `brightdata.com/pricing`, and Billing Overview in the control panel at `brightdata.com/cp/billing/overview`.
+Outside the docs: [public pricing](https://brightdata.com/pricing), and Billing Overview in the control panel at [brightdata.com/cp/billing/overview](https://brightdata.com/cp/billing/overview).
 
