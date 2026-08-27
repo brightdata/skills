@@ -1,6 +1,6 @@
 # Billing investigations and estimates, step by step
 
-Answers "why did this cost that", "what is going on right now", and "what will it cost", with the exact reads for each. Endpoint shapes and their verification status live in [cost-api.md](cost-api.md). Adapted from a community contribution (brightdata/skills#30), with every kept claim re-verified.
+Answers "why did this cost that", "what is going on right now", and "what will it cost", with the exact reads for each. Endpoint shapes and their verification status live in [cost-api.md](cost-api.md).
 
 ## Classify the question first
 
