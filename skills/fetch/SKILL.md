@@ -11,10 +11,10 @@ Every request is unblocked: IP rotation, browser fingerprints, cookies, CAPTCHA 
 
 ## The call
 
-**CLI.** The command is `bdata scrape`, not `bdata fetch`. The verb collides with the `scrape` skill, so trust this line and not the name.
+**CLI.** The command is `bdata fetch`. On CLI 0.3.5 and older the same command is spelled `bdata scrape` - fetch is its alias from the next release, and both run Web Unlocker.
 
 ```
-bdata scrape https://example.com/article
+bdata fetch https://example.com/article
 ```
 
 Markdown is the default. A first `bdata login` creates `cli_unlocker` and stores it as the zone default, so a fresh login needs no `--zone`. It never overwrites a default you already set. Override with `--zone <name>`, or `BRIGHTDATA_UNLOCKER_ZONE`, or `bdata config set default_zone_unlocker <name>`.
@@ -58,7 +58,7 @@ The ask: *"my script gets a 403 on this URL, I just need the article text"*
 3. Text for a human or a model, so markdown, which is already the default.
 
 ```
-bdata scrape https://www.example-news.com/2026/08/some-article
+bdata fetch https://www.example-news.com/2026/08/some-article
 ```
 
 Then state the choice in one line the user can override with one word:
