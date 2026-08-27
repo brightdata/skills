@@ -145,9 +145,3 @@ Docs only, not verified live: the export is rate limited to 1,000 requests a min
 
 Treat `can_make_requests` as a hint and never as proof. Live, it came back `false` with an `auth_fail_reason` of `zone_not_found` on an account that was successfully billing traffic in the same minute. A `false` here means one lookup behind the endpoint failed, not that the account is unable to work, so never report it to a user as a blocked or broken account and never stop work on the strength of it alone. Only a `true` is worth much, and even then the real answer comes from the cost reads above.
 
-## What no API will tell you
-
-- **Remaining free tier credits.** No field anywhere counts them. They are at brightdata.com/cp/billing/overview under Free Tier Credits, with the renewal date. A money balance of zero says nothing about credits left, because they are separate pools.
-- **A price quote for a job that has not run.** There is no estimate endpoint. Work the estimate out from the billing unit and the account's recent rate for the same zone or dataset.
-- **The account's negotiated rate as a number.** Custom pay-as-you-go and pre-commit accounts pay rates the public price list does not show. For Web Unlocker and SERP you can derive it by asking `/zone/cost` for a period and dividing the `custom` bucket's `cost` by its `reqs_unblocker` or `reqs_serp`. The cost export reports dollars only and carries no unit counts, so for per-record products there is no rate to derive and the published price is all you have.
-- **Invoices.** They arrive by email, by the third Israeli business day. Docs only, not verified live.
