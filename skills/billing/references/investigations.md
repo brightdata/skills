@@ -74,4 +74,27 @@ For "what did my agent's tool call cost". Pro mode changes which tools are expos
 
 ## The docs pages worth citing
 
-Balance: docs.brightdata.com/api-reference/account-management-api/Get_total_balance_through_API. Cost export: .../Export_cost_breakdown. Zone cost: .../Get_the_total_cost_and_bandwidth_stats_for_a_Zone. Domain consumption: .../domain-consumption. Zones: .../get-all-zones and .../Get_Zone_info. Account status: .../Get_account_status. Snapshots: docs.brightdata.com/api-reference/scrapers/management-apis/get-snapshots. Studio job log: docs.brightdata.com/api-reference/scraper-studio-api/job-data. Free tier: docs.brightdata.com/general/account/billing-and-pricing/free-tier. Costs Explorer: .../billing-and-pricing/costs-explorer. Billing FAQs: .../billing-and-pricing/faqs. Trial restrictions: docs.brightdata.com/general/account/limited-trial-restrictions. Users and permissions: docs.brightdata.com/general/account/users-management. Public pricing: brightdata.com/pricing. Billing Overview in the control panel: brightdata.com/cp/billing/overview.
+All under `docs.brightdata.com/api-reference/account-management-api/` unless noted.
+
+| Topic | Page |
+|---|---|
+| Balance | `Get_total_balance_through_API` |
+| Cost export | `Export_cost_breakdown` |
+| Zone cost and bandwidth | `Get_the_total_cost_and_bandwidth_stats_for_a_Zone` |
+| Per-domain consumption | `domain-consumption` |
+| Zone list and zone info | `get-all-zones`, `Get_Zone_info` |
+| Account status | `Get_account_status` |
+| Snapshots | `docs.brightdata.com/api-reference/scrapers/management-apis/get-snapshots` |
+| Studio job log | `docs.brightdata.com/api-reference/scraper-studio-api/job-data` |
+
+Billing concepts, under `docs.brightdata.com/general/account/`:
+
+| Topic | Page |
+|---|---|
+| Free tier | `billing-and-pricing/free-tier` |
+| Costs Explorer | `billing-and-pricing/costs-explorer` |
+| Billing FAQs | `billing-and-pricing/faqs` |
+| Trial restrictions | `limited-trial-restrictions` |
+| Users and key permissions | `users-management` |
+
+Outside the docs: public pricing at `brightdata.com/pricing`, and Billing Overview in the control panel at `brightdata.com/cp/billing/overview`.
