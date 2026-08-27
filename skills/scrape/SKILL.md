@@ -22,7 +22,7 @@ Many pages means many URLs. One page holding many items is still one page, and w
 
 **When the user has no URLs.** Many ready scrapers take a discovery input instead: a keyword, a category URL, a best-sellers URL, a location. Check the scraper's metadata before assuming it needs a URL. Sites with no ready scraper go to Scraper Studio, which covers single-page, search-discovery and multi-page patterns.
 
-**Gate 2 in practice.** Scraper Studio has a built-in scheduler (hourly, daily, weekly, or custom). It heals itself when the site changes, and a heal can wait for the user's approval (`scraper heal` and `scraper approve` in the CLI). It also handles multi-page crawl jobs, and it does the browser work for you. For an urgent ask on a collector that already exists, `bdata scraper run <collector_id> <url> --sync` returns data in one call - single URL, server-side cap of 25 to 50 seconds.
+**Gate 2 in practice.** Scraper Studio has a built-in scheduler (hourly, daily, weekly, or custom). It heals itself when the site changes, and a heal can wait for the user's approval (`scraper heal` and `scraper approve` in the CLI). It also handles multi-page crawl jobs, and it does the browser work for you. For an urgent ask on a collector that already exists, `bdata scraper run <collector_id> <url> --sync` returns data in one call, single URL only, server-side cap of 25 to 50 seconds. For many URLs at once drop `--sync`: `--urls a,b,c` or `--input-file urls.txt` sends one batch through `/dca/trigger` and polls until the records land.
 
 ## The boundaries
 
