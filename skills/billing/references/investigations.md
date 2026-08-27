@@ -28,7 +28,7 @@ Explain a SERP or Unlocker charge as successful requests times the account's rat
 ## Workflow: Scraper Studio
 
 1. `GET /dca/log/{job_id}` for the job's status, inputs, lines, failures, pages and navigations. The scrape skill's snapshots-and-jobs reference covers this read, including the privacy note on its `trigger` field.
-2. The cost export with `dca_jobs` for the job's dollars. It is real but undocumented, so cross-check an empty answer against `products` per cost-api.md. A collector-wide rollup is `collectors`, and it can carry charges no single job accounts for, so never explain one job's charge with it.
+2. The cost export with `dca_jobs` for the job's dollars, cross-checking an empty answer against `products` per cost-api.md. A collector-wide rollup is `collectors`, and it can carry charges no single job accounts for, so never explain one job's charge with it.
 3. Explain which behavior drove the count: pagination, detail pages, retries and extra navigations each count as page loads.
 
 ## A job still running

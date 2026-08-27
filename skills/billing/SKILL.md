@@ -61,7 +61,7 @@ Every eligible account gets 5,000 free credits a month from one shared pool. The
 
 The proxy networks are not covered. New accounts instead get a one-time $2 trial credit for the proxy products, valid 7 days, and a further $5 for adding a payment method. All of these figures are from the docs and cannot be checked against any API.
 
-**Free credits are not in any API, and that absence is proven, not assumed.** No balance field counts them, the docs describe no endpoint for them, and the plausible paths return 404. The `credit` field on `/customer/balance` is dollars, not a credit count. Free-tier and trial state live in the control panel at brightdata.com/cp/billing/overview under Free Tier Credits, which also shows the renewal date. Send the user there rather than guessing, and never read a money balance of zero as proof that the free credits are gone. They are separate pools.
+**Free credits are not in any API.** No balance field counts them, and the `credit` field on `/customer/balance` is dollars, not a credit count. Free-tier and trial state live in the control panel at brightdata.com/cp/billing/overview under Free Tier Credits, which also shows the renewal date. Send the user there rather than guessing, and never read a money balance of zero as proof that the free credits are gone. They are separate pools.
 
 ## Read next
 

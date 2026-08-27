@@ -8,19 +8,7 @@ Facts marked **live** were checked against a real account on 2026-08-26 by readi
 
 ## GET /customer/balance
 
-No parameters. Returns 200 with a flat object of dollar amounts.
-
-The published schema and the live response do not match, and this matters.
-
-| Field | In the docs | On a live account |
-|---|---|---|
-| `balance` | yes, "the amount of money in your account" | yes |
-| `pending_balance` | yes, "the amount you will be billed for in the next billing cycle" | **absent** |
-| `pending_costs` | not documented | **present**, and it is the pending figure |
-| `credit` | not documented | present |
-| `prepayment` | not documented | present |
-
-Live shape:
+No parameters. Returns 200 with a flat object of dollar amounts. Live shape:
 
 ```json
 {"balance": 0, "credit": 0, "prepayment": 0, "pending_costs": 0}
@@ -55,7 +43,7 @@ Called with only a zone, the response is one object keyed by the account's custo
 Three things to know, all live.
 
 - There are two sets of keys. `back_m0`, `back_m1` and `back_m2` are this month and the two months before it. `back_d0`, `back_d1` and `back_d2` are today and the two days before it. **The day buckets sit inside `back_m0`, so never add the two sets together.** Adding all six double counts recent days and mixes three months into one figure.
-- Only `cost` and `range` are always there. `bw`, `reqs_serp` and `reqs_unblocker` appear only on buckets that saw traffic. The docs sample shows `bw` on every bucket and no `range` at all, which is the opposite of what a live account returns.
+- Only `cost` and `range` are always there. `bw`, `reqs_serp` and `reqs_unblocker` appear only on buckets that saw traffic (live).
 - Supplying `from` and `to` **replaces all six buckets with a single bucket named `custom`**. This is the reliable way to ask for a period. A date the API cannot read returns **500**, not 400, and the message is misleading: it says `You must provide period with both to and from` even when both were sent. Read a 500 here as a bad date format, not as an outage (live).
 
 Scope limit, docs only, not verified live: this endpoint cannot return Web Scraper API or Scraper Studio cost, because that spend is keyed by dataset id and collector rather than by zone. Use the cost export for those.
@@ -71,7 +59,7 @@ Both take the same JSON body. `dimension`, `from` and `to` are all required, and
 | `to` | yes | **Exclusive** end, `YYYY-MM-DD`, UTC. |
 | `filters` | no | Optional object in Bright Data's internal charges notation. Most callers send `{}` and scope with `dimension` instead. Documented example is `{"props": {"product": {"whitelist": ["dc", "unblocker"]}}}`. Docs only, not verified live. |
 
-The server accepts exactly eleven dimensions, and it names them itself: send an invalid value and the 400 error prints the whitelist verbatim (live): `types, products, zones, datasets, web_apis, collectors, dca_jobs, snapshots, ws_api_snaps, domains, dca_jobs_dynamic`. Nine of those are documented. `dca_jobs` and `dca_jobs_dynamic` appear in no docs page, only in the server's own whitelist, so treat them as real but undocumented: regular Scraper Studio jobs under `dca_jobs`, virtual jobs under `dca_jobs_dynamic`, and confirm with a live export before building on either.
+The server accepts exactly eleven dimensions, and it names them itself: send an invalid value and the 400 error prints the whitelist verbatim (live): `types, products, zones, datasets, web_apis, collectors, dca_jobs, snapshots, ws_api_snaps, domains, dca_jobs_dynamic`. The server's whitelist is the authoritative list. `dca_jobs` covers regular Scraper Studio jobs and `dca_jobs_dynamic` virtual ones, and it is worth confirming either with a live export before building on it.
 
 Which dimension answers which question:
 
@@ -84,7 +72,7 @@ Which dimension answers which question:
 | Web Scraper API by `dataset_id` | `web_apis` |
 | One Web Scraper API snapshot | `ws_api_snaps` |
 | A Scraper Studio collector rollup | `collectors` |
-| One Scraper Studio job | `dca_jobs` (undocumented, above) |
+| One Scraper Studio job | `dca_jobs` |
 | A target website across products | `domains` |
 
 Do not explain one specific job's charge with `collectors`: it is a per-collector rollup and can carry charges no single job accounts for. Dimension meanings beyond the whitelist are docs only, not verified live.
@@ -116,7 +104,7 @@ Change the two dates for the window you want, and remember `to` is exclusive. A 
 
 ### The JSON response
 
-Keyed by day, each day mapping a resource key to billed dollars for that day. **A `total` key sits alongside the dates** with the sum for the whole range, so iterating the keys as dates will count everything twice. The published schema and example show only date keys and no `total`, so this is live behavior the docs do not describe.
+Keyed by day, each day mapping a resource key to billed dollars for that day. **A `total` key sits alongside the dates** with the sum for the whole range (live), so iterating the keys as dates will count everything twice.
 
 ```json
 {
@@ -138,7 +126,7 @@ Exclusivity confirmed live. Asking `from=2026-06-11&to=2026-06-12` returns that 
 
 `Content-Type: text/csv`. Live, the header row is `Day,Id,Value` and each row is one day, one resource, one amount, with `Id` carrying a display name such as `Web Unlocker API` rather than the internal key the JSON uses.
 
-The docs describe a different, pivoted layout, one row per day and one column per resource id. That is not what came back. Prefer the JSON variant, and if you must parse the CSV, read the header row rather than assuming a shape.
+Prefer the JSON variant, and if you must parse the CSV, read the header row rather than assuming a shape.
 
 Docs only, not verified live: the export is rate limited to 1,000 requests a minute and 5,000 an hour, and it "accepts any API key with cost-data access", with no separate billing admin scope. The docs also call these values the source of truth for billing, matching the control panel Cost Explorer and rolling up into the invoice.
 
