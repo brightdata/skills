@@ -72,7 +72,7 @@ The CLI resolves the zone in this order:
 4. The `BRIGHTDATA_UNLOCKER_ZONE` environment variable
 5. The config key `default_zone_unlocker`
 
-With none of the five it stops with `No zone specified.` It never auto-discovers a zone and it never creates one. Note: none of these environment variables appear in `bdata search --help` - the runtime error message is the only place the CLI names them.
+With none of the five it stops with a failure line containing `No zone specified.` It never auto-discovers a zone and it never creates one. Note: none of these environment variables appear in `bdata search --help` - the runtime error message is the only place the CLI names them.
 
 A fresh install is not the problem. Source-verified in v0.3.5: the shipped `DEFAULTS` carry only `default_format` and `api_url`, so there is no `default_zone_serp` out of the box, and `login` writes only `default_zone_unlocker` next to the `cli_unlocker` and `cli_browser` zones it creates. On a truly fresh machine step 3 finds nothing, the order falls through to the unlocker zone, and `bdata search` works.
 
@@ -81,7 +81,7 @@ The break is a stale config value. The CLI never validates the zone it reads: it
 Detect it with `bdata config get default_zone_serp`, then check whatever name it returns against `bdata zones --json`. Two healthy answers and one broken one:
 
 - **The name is in the zone list.** The config is fine. Change nothing and make the call.
-- **The key is unset.** Also fine. The order falls through to the unlocker zone, which serves SERP.
+- **The key is unset.** Also fine. The order falls through to the unlocker zone, which serves SERP. Judge this by the printed text, not the exit code: `config get` prints `is not set` and exits 1 for this healthy case.
 - **The name is not in the zone list.** This is the stale value described above, and the remedy table below fixes it.
 
 An `unblocker`-type zone does serve SERP requests. Verified live: `bdata search --zone cli_unlocker --json "test"` returned full parsed SERP JSON. The fallback is legitimate, so the usual repair is one config line and no new zone.

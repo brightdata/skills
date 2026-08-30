@@ -32,7 +32,7 @@ Base host is `https://api.brightdata.com` and auth is the header `Authorization:
 
 ## Which key can read this
 
-API keys carry one of five permission levels: Admin, Finance, Ops, User and Limit. Billing and cost data needs Finance or Admin, and Finance is the least-privileged one that works, so prefer it. Only account admins create or change keys, at brightdata.com/cp/setting/users. A 401 means the key is missing, revoked or wrong. A 403 means the key is real but under-privileged for billing, so name the missing access instead of retrying. A Finance key may not read product data such as snapshots or Studio jobs, and that split is fine: report the half you can read and say which access the other half needs. A 404 means a wrong or expired snapshot, job or dataset id, while a wrong zone name answers 422.
+API keys carry one of five permission levels: Admin, Finance, Ops, User and Limit. Billing and cost data needs Finance or Admin, and Finance is the least-privileged one that works, so prefer it. Use a Finance key directly in the `Authorization` header for these reads: `bdata login --api-key` expects a full-access key, so keep the CLI logged in with an Admin key and the Finance key for the API. Only account admins create or change keys, at brightdata.com/cp/setting/users. A 401 means the key is missing, revoked or wrong. A 403 means the key is real but under-privileged for billing, so name the missing access instead of retrying. A Finance key may not read product data such as snapshots or Studio jobs, and that split is fine: report the half you can read and say which access the other half needs. A 404 means a wrong or expired snapshot, job or dataset id, while a wrong zone name answers 422.
 
 ## Using the budget commands well
 
