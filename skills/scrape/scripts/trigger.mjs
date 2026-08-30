@@ -32,7 +32,16 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
-const API = process.env.BRIGHTDATA_API_BASE || 'https://api.brightdata.com';
+// The API key may only ever be sent to a Bright Data host.
+const API = (() => {
+    const base = process.env.BRIGHTDATA_API_BASE || 'https://api.brightdata.com';
+    let host = ''; try { host = new URL(base).hostname; } catch {}
+    if (!base.startsWith('https://') || !(host === 'brightdata.com' || host.endsWith('.brightdata.com'))) {
+        console.error('Refusing BRIGHTDATA_API_BASE: only https brightdata.com hosts may receive the API key.');
+        process.exit(1);
+    }
+    return base;
+})();
 
 /**
  * Per-request ceiling. A server that accepts the socket and then says nothing

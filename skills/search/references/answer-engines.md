@@ -71,7 +71,7 @@ Useful ChatGPT output fields, docs only: `answer_text`, `model`, `web_search_tri
 
 ## No CLI pipeline, two SDK methods
 
-The CLI ships no pipeline for any answer engine, verified with `bdata pipelines list`. The dataset id is the only way to call them from the CLI.
+The CLI ships no pipeline for any answer engine, verified with `bdata pipelines list`, and `pipelines` accepts no arbitrary dataset id. Calling an answer engine means REST with the dataset id, or the scrape skill's `scripts/trigger.mjs`.
 
 The `@brightdata/sdk` JavaScript client has `client.scrape.chatGPT.search()` and `client.scrape.perplexity.search()`. No SDK method is published for Gemini, Copilot or Google AI Mode, so those are REST for now.
 

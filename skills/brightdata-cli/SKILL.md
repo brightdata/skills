@@ -30,7 +30,7 @@ bdata zones --json
 
 ## Check the config before the first search
 
-A fresh v0.3.5 install carries no `default_zone_serp`, so `bdata search` falls through to the unlocker zone and works. A `default_zone_serp` already set to a zone the account does not have blocks that fall-through, and every search then returns 422 with no hint and no self-heal.
+A fresh v0.3.5 install carries no `default_zone_serp`, so `bdata search` falls through to the unlocker zone and works. A `default_zone_serp` already set to a zone the account does not have blocks that fall-through, and every search then returns `zone "<name>" not found` with `Status: 400`, no hint and no self-heal. Recover by picking a real zone from `bdata zones` and passing `--zone <name>`, or by `bdata config set default_zone_serp <name>`.
 
 Detection and the repair are in [references/commands.md](references/commands.md#zone-resolution-and-the-stale-serp-zone).
 

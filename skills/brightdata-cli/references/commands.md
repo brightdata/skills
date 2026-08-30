@@ -16,7 +16,7 @@ Answers the question "which command and which flag does this job, and where does
 
 ## The shape of every command
 
-Two binaries, one tool: `bdata` and `brightdata`. The CLI's own messages and examples say `brightdata`.
+Two binaries, one tool: `bdata` and `brightdata`. The CLI's own messages and examples say `brightdata`, with one exception: the next-step lines that `scraper create` and `scraper heal` print are spelled `bdata`.
 
 Global options, valid before any subcommand:
 
@@ -64,11 +64,11 @@ The full flow, the zones it creates, and the `--github` warning live in the agen
 
 | Command | Purpose | Key flags |
 |---|---|---|
-| `scrape <url>` | One page through Web Unlocker | `-f, --format <markdown\|html\|screenshot\|json>`, `--country <code>`, `--zone <name>`, `--mobile`, `--async` |
+| `scrape <url>` | One page through Web Unlocker | `-f, --format <markdown\|html\|screenshot\|json>`, `--country <code>`, `--zone <name>`, `--async` (`--mobile` is accepted on v0.3.5 but not yet sent with the request) |
 | `search <query>` | SERP results | `--engine <google\|bing\|yandex>`, `--type <web\|news\|images\|shopping>`, `--country`, `--language`, `--page <n>`, `--device <desktop\|mobile>`, `--zone <name>` |
 | `discover <query>` | Web results ranked by a stated intent | `--intent <text>`, `--num-results <n>`, `--filter-keywords <words>`, `--include-content`, `--country` (default `US`), `--city`, `--language` (default `en`), `--start-date`, `--end-date`, `--no-remove-duplicates`, `--timeout <s>` |
 | `pipelines <type> [params...]` | Structured records from a supported site | `--format <json\|csv\|ndjson\|jsonl>`, `--timeout <s>` |
-| `pipelines list` | Every pipeline type the CLI knows | same output flags |
+| `pipelines list` | Every pipeline type the CLI knows | prints a plain name list; the output flags apply to data runs, not to `list` |
 | `status <job-id>` | Poll an async snapshot job | `--wait`, `--timeout <s>` |
 
 `status` polls the async snapshot jobs that `pipelines` triggers (`/datasets/v3/progress`). `--async` on `scrape` returns a Web Unlocker response id from a different job system: fetch its result with `GET /unblocker/get_result?response_id=...`, not with `bdata status`. `pipelines` ships 43 built-in types covering Amazon, Walmart, eBay, LinkedIn, Instagram, Facebook, TikTok, X, YouTube, Reddit, Google Maps, Zillow, Booking and more. Read the live list rather than guessing a name.
@@ -89,11 +89,11 @@ bdata pipelines linkedin_person_profile https://www.linkedin.com/in/satyanadella
 
 `search` resolves in five steps: `--zone`, then `BRIGHTDATA_SERP_ZONE`, then `default_zone_serp`, then `BRIGHTDATA_UNLOCKER_ZONE`, then `default_zone_unlocker`.
 
-No automatic path in v0.3.5 sets `default_zone_serp`: only the interactive `init` wizard and an explicit `config set` write it. The DEFAULTS object in `dist/utils/config.js` holds `default_format` and `api_url` and nothing else, no `config.json` ships inside the package, and `login` writes only `default_zone_unlocker`. On a fresh machine step three is empty, `search` falls through to the unlocker zone, and it works.
+`login` never sets `default_zone_serp`: only `bdata init` (interactive or not, it writes zone defaults either way) and an explicit `config set` write it. The DEFAULTS object in `dist/utils/config.js` holds `default_format` and `api_url` and nothing else, no `config.json` ships inside the package, and `login` writes only `default_zone_unlocker`. On a fresh machine step three is empty, `search` falls through to the unlocker zone, and it works.
 
-What breaks it is a `default_zone_serp` that is already set and names a zone the account does not have, a leftover from an earlier experiment or a hand-written value, `cli_serp` being the usual example. The CLI never validates a configured zone against the account, so that one truthy value both goes out on the wire and blocks the fall-through at step four. Every `search` then returns 422 with no hint about the cause and no self-heal.
+What breaks it is a `default_zone_serp` that is already set and names a zone the account does not have, a leftover from an earlier experiment or a hand-written value, `cli_serp` being the usual example. The CLI never validates a configured zone against the account, so that one truthy value both goes out on the wire and blocks the fall-through at step four. Every `search` then returns `zone "<name>" not found` with `Status: 400` (verified live), with no hint about the cause and no self-heal.
 
-Detect it by reading the configured name and checking it against the account's own zone list:
+Detect it by reading the configured name and checking it against the account's own zone list. Read the printed text, not the exit code: `config get` on an unset key prints `is not set` and exits 1, and unset is the healthy state here.
 
 ```
 bdata config get default_zone_serp
@@ -139,7 +139,7 @@ Act: `click <ref>`, `type <ref> <text>` (`--append`, `--submit`), `fill <ref> <v
 
 Inspect and clean up: `status`, `network`, `cookies`, `sessions`, `close` (`--all`).
 
-Session-level options go on the `browser` command itself: `--session <name>` (default `default`), `--zone <name>` (default `cli_browser`), `--country <code>`, `--timeout <ms>` (default 30000), `--idle-timeout <ms>` (default 600000), `--headed`.
+Session-level options go on the `browser` command itself and are accepted before or after the subcommand: `--session <name>` (default `default`), `--zone <name>` (default `cli_browser`), `--country <code>`, `--timeout <ms>` (default 30000), `--idle-timeout <ms>` (default 600000). `--headed` is accepted on v0.3.5 but answers that headed mode is not implemented yet.
 
 Snapshot shaping, worth using because a full snapshot is large: `--compact` keeps interactive elements and their ancestors, `--interactive` returns a flat list of interactive elements only, `--depth <n>` caps depth, `--selector <sel>` scopes to a subtree, `--wrap` adds AI-safe content boundaries. Screenshots take `--full-page` and `--base64`.
 

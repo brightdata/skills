@@ -67,7 +67,7 @@ When the records come back, check they describe the entity the user meant before
 - **When a bundled id is rejected or the site is not in the table:** [scripts/find-scraper.mjs](scripts/find-scraper.mjs) - live search by name or id, `--schema` for inputs and outputs, junk rows filtered, key never printed.
 - **When the scraper you picked has no CLI pipeline:** [scripts/trigger.mjs](scripts/trigger.mjs) - `node trigger.mjs <dataset_id> <url>` starts the job and prints the snapshot id, key never printed.
 - **When a job is running and you need the data without hand-writing a poll loop:** [scripts/poll.mjs](scripts/poll.mjs) - either id in, data out, key never printed.
-- **When a call is refused for auth:** the `agent-onboarding` skill. The REST 401 wording varies ("Credentials are invalid", "Invalid credentials") while the CLI prints "No API key found". All mean log in. Send 407 and `kyc_required` there too, along with missing zones.
+- **When a call is refused for auth:** the `agent-onboarding` skill. The REST 401 wording varies ("Credentials are invalid", "Invalid credentials") while the CLI prints a line starting "Error: No API key found." All mean log in. Send 407 and `kyc_required` there too, along with missing zones.
 
 ## Red flags - stop if you catch yourself doing one of these
 
