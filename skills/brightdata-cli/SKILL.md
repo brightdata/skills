@@ -18,7 +18,7 @@ description: Runs Bright Data jobs from a terminal with the bdata CLI, the publi
 
 Project setup the agent does for itself stays here. Only the first-time install and a login that will not go through bounce to `agent-onboarding`.
 
-Package `@brightdata/cli`, verified at v0.3.5.
+Package `@brightdata/cli`.
 
 ## Before the first command
 
@@ -30,7 +30,7 @@ bdata zones --json
 
 ## Check the config before the first search
 
-A fresh v0.3.5 install carries no `default_zone_serp`, so `bdata search` falls through to the unlocker zone and works. A `default_zone_serp` already set to a zone the account does not have blocks that fall-through, and every search then returns `zone "<name>" not found` with `Status: 400`, no hint and no self-heal. Recover by picking a real zone from `bdata zones` and passing `--zone <name>`, or by `bdata config set default_zone_serp <name>`.
+A fresh install carries no `default_zone_serp`, so `bdata search` falls through to the unlocker zone and works. A `default_zone_serp` already set to a zone the account does not have blocks that fall-through, and every search then returns `zone "<name>" not found` with `Status: 400`, no hint and no self-heal. Recover by picking a real zone from `bdata zones` and passing `--zone <name>`, or by `bdata config set default_zone_serp <name>`.
 
 Detection and the repair are in [references/commands.md](references/commands.md#zone-resolution-and-the-stale-serp-zone).
 

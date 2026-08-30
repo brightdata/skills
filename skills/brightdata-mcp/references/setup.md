@@ -79,8 +79,8 @@ SSE at `https://mcp.brightdata.com/sse?token=<YOUR_API_KEY>` for clients that
 need it.
 
 For Claude Code at project scope, put the block in the repo's `.mcp.json`
-yourself: that is the file Claude Code reads for project-level servers, and on
-CLI 0.3.5 `bdata add mcp --agent claude-code --project` targets a different
+yourself: that is the file Claude Code reads for project-level servers, and
+`bdata add mcp --agent claude-code --project` targets a different
 settings file.
 
 ## Auth
@@ -119,7 +119,7 @@ on either one is to set a single mechanism and leave the other unset.
 
 The three modes themselves:
 
-1. Pro mode exposes everything, 74 tools in v2.11.1. Billed, and not covered by
+1. Pro mode exposes everything, 74 tools. Billed, and not covered by
    the free tier.
 2. `GROUPS` or `TOOLS` set builds an allowlist. Only those names register.
 3. Neither set is rapid mode, the free default. Local's five, read off

@@ -7,11 +7,11 @@ description: 'Use when the user wants one known URL returned as content: "get me
 
 One URL in, one page out, as markdown, HTML, or a screenshot. Nothing is parsed for you.
 
-Every request is unblocked: IP rotation, browser fingerprints, cookies, CAPTCHA solving and automatic retries, from a country you choose. JavaScript rendering is the one capability that is off by default. The REST body can ask for it with the `render` parameter, and the CLI has no flag for it in v0.3.5, so a CLI fetch never renders.
+Every request is unblocked: IP rotation, browser fingerprints, cookies, CAPTCHA solving and automatic retries, from a country you choose. JavaScript rendering is the one capability that is off by default. The REST body can ask for it with the `render` parameter, and the CLI has no flag for it, so a CLI fetch never renders.
 
 ## The call
 
-**CLI.** The command is `bdata fetch`. On CLI 0.3.5 and older the same command is spelled `bdata scrape` - fetch is its alias from the next release, and both run Web Unlocker.
+**CLI.** The command is `bdata fetch`, an alias of `bdata scrape`. If an older install does not recognize `fetch`, the same command works spelled `bdata scrape`. Both run Web Unlocker.
 
 ```
 bdata fetch https://example.com/article
@@ -47,7 +47,7 @@ For code the user keeps, the SDK wraps this same call in one line: `const html =
 
 One honest note on the markdown: links come back exactly as the page wrote them, so a relative link like `/pricing` stays relative and points nowhere once the text leaves the site. That is fine when the output feeds a model, an index or a RAG store. For a standalone document a person will read and click, resolve the links against the page URL first, and say that you did.
 
-The other flags that exist: `--country <code>`, `--async`, `-o <path>`, `--json`, `--pretty`, `--timing`, and `--mobile`, which v0.3.5 advertises but parses and never sends, so it is a silent no-op.
+The other flags that exist: `--country <code>`, `--async`, `-o <path>`, `--json`, `--pretty`, `--timing`, and `--mobile`, which the CLI advertises but parses and never sends, so it is a silent no-op.
 
 ## Example - one blocked article
 

@@ -31,7 +31,7 @@ Most data commands also take `-o, --output <path>`, `--json`, and `--pretty`. `-
 
 Full command list: `login`, `logout`, `scrape`, `search`, `pipelines`, `status`, `zones`, `config`, `init`, `version`, `skill`, `budget`, `browser`, `discover`, `scraper`, `add`, `help`.
 
-Every table below is mapped from `--help` on the matching subcommand of `@brightdata/cli` v0.3.5.
+Every table below is mapped from `--help` on the matching subcommand of `@brightdata/cli`.
 
 ## Where the key comes from
 
@@ -64,7 +64,7 @@ The full flow, the zones it creates, and the `--github` warning live in the agen
 
 | Command | Purpose | Key flags |
 |---|---|---|
-| `scrape <url>` | One page through Web Unlocker | `-f, --format <markdown\|html\|screenshot\|json>`, `--country <code>`, `--zone <name>`, `--async` (`--mobile` is accepted on v0.3.5 but not yet sent with the request) |
+| `scrape <url>` | One page through Web Unlocker | `-f, --format <markdown\|html\|screenshot\|json>`, `--country <code>`, `--zone <name>`, `--async` (`--mobile` is accepted but not yet sent with the request) |
 | `search <query>` | SERP results | `--engine <google\|bing\|yandex>`, `--type <web\|news\|images\|shopping>`, `--country`, `--language`, `--page <n>`, `--device <desktop\|mobile>`, `--zone <name>` |
 | `discover <query>` | Web results ranked by a stated intent | `--intent <text>`, `--num-results <n>`, `--filter-keywords <words>`, `--include-content`, `--country` (default `US`), `--city`, `--language` (default `en`), `--start-date`, `--end-date`, `--no-remove-duplicates`, `--timeout <s>` |
 | `pipelines <type> [params...]` | Structured records from a supported site | `--format <json\|csv\|ndjson\|jsonl>`, `--timeout <s>` |
@@ -139,7 +139,7 @@ Act: `click <ref>`, `type <ref> <text>` (`--append`, `--submit`), `fill <ref> <v
 
 Inspect and clean up: `status`, `network`, `cookies`, `sessions`, `close` (`--all`).
 
-Session-level options go on the `browser` command itself and are accepted before or after the subcommand: `--session <name>` (default `default`), `--zone <name>` (default `cli_browser`), `--country <code>`, `--timeout <ms>` (default 30000), `--idle-timeout <ms>` (default 600000). `--headed` is accepted on v0.3.5 but answers that headed mode is not implemented yet.
+Session-level options go on the `browser` command itself and are accepted before or after the subcommand: `--session <name>` (default `default`), `--zone <name>` (default `cli_browser`), `--country <code>`, `--timeout <ms>` (default 30000), `--idle-timeout <ms>` (default 600000). `--headed` is accepted but answers that headed mode is not implemented yet.
 
 Snapshot shaping, worth using because a full snapshot is large: `--compact` keeps interactive elements and their ancestors, `--interactive` returns a flat list of interactive elements only, `--depth <n>` caps depth, `--selector <sel>` scopes to a subtree, `--wrap` adds AI-safe content boundaries. Screenshots take `--full-page` and `--base64`.
 
