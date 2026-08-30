@@ -48,7 +48,7 @@ A valid key returns the zone list. This is the same endpoint `bdata zones` calls
 
 | Response | Meaning | Action |
 |---|---|---|
-| `Error: No API key found` (local, before any request) | This machine is not logged in | `bdata login` (`--device` on headless), or set `BRIGHTDATA_API_KEY` |
+| `Error: No API key found.` (first printed line; local, before any request) | This machine is not logged in | `bdata login` (`--device` on headless), or set `BRIGHTDATA_API_KEY` |
 | 401 on api.brightdata.com | Key invalid, revoked, or missing | Log in again (`bdata login`, `--device` on headless), or re-set `BRIGHTDATA_API_KEY` |
 | 407 on a proxy-style request with `client_10040` | Account not KYC-approved for this proxy product (Residential and Mobile need it) | Send the user to brightdata.com/cp/kyc and do not retry until approved |
 | `kyc_required` on POST /zone | Creating this zone type needs KYC | Same KYC page |

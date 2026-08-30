@@ -62,6 +62,8 @@ bdata skill add billing
 
 Always pass the skill name - a bare `bdata skill add` needs a person. Run it from the project root, because it installs into the current directory's agent folders. A name the registry does not carry yet fails with "Unknown skill" and prints the list it does carry: skip that name and continue, the rest still install.
 
+Prefer `bdata login` over `bdata init` for agent setups: `init` is the interactive wizard for humans, and it also writes a `default_zone_serp` config value that login flows never need. If a machine has run `init` and `bdata search` later answers `zone "<name>" not found`, pick a real zone from `bdata zones` and pass `--zone`, or point the key at it with `bdata config set default_zone_serp <name>`.
+
 ## Log in
 
 ```
@@ -70,7 +72,7 @@ bdata login
 
 The browser opens on the user's machine, they approve once, and the CLI writes the key by itself. Nothing to paste anywhere.
 
-On SSH, in containers, or on any machine without a browser, use `bdata login --device` instead. It prints a pairing code and a URL (to stderr), show both to the user, they approve from any device, and the command waits and then writes the key. The code expires after about 15 minutes. Bare `bdata login` cannot work there: it waits about two minutes for a browser callback that cannot arrive, then exits 1 with `Timed out waiting for callback`, and its printed fallback URL only works on the machine running the command.
+On SSH, in containers, or on any machine without a browser, use `bdata login --device` instead. It prints a pairing code and a URL (to stderr), show both to the user, they approve from any device, and the command waits and then writes the key. The code expires after about 15 minutes. Bare `bdata login` cannot work there: it waits about two minutes for a browser callback that cannot arrive, then exits 1 with an error containing `Timed out waiting for callback` (printed as `Error: Authentication failed: Timed out waiting for callback`), and its printed fallback URL only works on the machine running the command.
 
 **Never run login on a machine that already passes the zones check.** With an active browser session, login completes by itself and silently replaces the saved API key, which breaks anything still using the old key. The curl install script counts too - it runs login by itself.
 
@@ -103,6 +105,6 @@ The npx fallback above gives the full CLI with nothing installed. Otherwise set 
 
 ## When a call is refused
 
-`Error: No API key found` means this machine is not logged in: log in (see Log in above), or set `BRIGHTDATA_API_KEY`. A 401 means the key is invalid or revoked: log in again. Nearly every use case (Scraper API, Scraper Studio, SERP, Unlocker, Browser API) needs no KYC. If a call ever comes back with a KYC error, [references/auth.md](references/auth.md) says what to do.
+An output starting `Error: No API key found.` means this machine is not logged in: log in (see Log in above), or set `BRIGHTDATA_API_KEY` (the CLI's own second line names both fixes). A 401 means the key is invalid or revoked: log in again. Nearly every use case (Scraper API, Scraper Studio, SERP, Unlocker, Browser API) needs no KYC. If a call ever comes back with a KYC error, [references/auth.md](references/auth.md) says what to do.
 
 Read [references/auth.md](references/auth.md) before handling any refused call - it has the full error table and the narrow Web Unlocker exceptions.
