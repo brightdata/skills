@@ -69,7 +69,7 @@ Then state the choice in one line the user can override with one word:
 
 Read the error first. A 403 from the target site is not on this list, because that is the ordinary case this skill exists to solve.
 
-| What comes back | What it means |
+| The message contains | What it means |
 |---|---|
 | `No Web Unlocker zone specified.` | No zone resolved. Pass `--zone`, or log in again to get `cli_unlocker`. |
 
