@@ -6,9 +6,9 @@ Login (`bdata login`, or `bdata login --device` on headless machines) writes `cr
 
 | OS | credentials.json |
 |---|---|
-| Windows | `%APPDATA%\brightdata-cli\credentials.json` (the CLI computes it from the user profile, `homedir\AppData\Roaming`, which equals `%APPDATA%` except under profile redirection) |
+| Windows | `%APPDATA%\brightdata-cli\credentials.json` |
 | macOS | `~/Library/Application Support/brightdata-cli/credentials.json` |
-| Linux | `~/.config/brightdata-cli/credentials.json` (hardcoded, and `XDG_CONFIG_HOME` is ignored) |
+| Linux | `~/.config/brightdata-cli/credentials.json` |
 
 The file holds `{"api_key": "..."}`. Read it in code, never print it.
 
