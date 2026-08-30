@@ -37,7 +37,7 @@ Every table below is mapped from `--help` on the matching subcommand of `@bright
 
 Resolution order, highest first: the `--api-key` flag, then the `BRIGHTDATA_API_KEY` environment variable, then `credentials.json` in the CLI's own config directory.
 
-That directory is hardcoded per platform and `XDG_CONFIG_HOME` is ignored. For the exact paths, the file shape, and what each refused call means, read the agent-onboarding skill's references/auth.md. Never print the key.
+For the exact paths, the file shape, and what each refused call means, read the agent-onboarding skill's references/auth.md. Never print the key.
 
 ## Sign in and check the account
 
