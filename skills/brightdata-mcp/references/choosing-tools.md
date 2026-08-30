@@ -48,7 +48,7 @@ answer: a meta tag, a JSON-LD block, an embedded script payload.
 
 ## The tool inventory
 
-Local (the self-hosted `@brightdata/mcp` package) v2.11.1, 74 tools. Remote
+Local (the self-hosted `@brightdata/mcp` package) has 74 tools. Remote
 (the hosted service at `mcp.brightdata.com`) tracks its own release line. In Pro
 mode both variants expose exactly 74 tools, but not the same 74, two names
 differ each way.
