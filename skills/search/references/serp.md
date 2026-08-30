@@ -74,7 +74,7 @@ The CLI resolves the zone in this order:
 
 With none of the five it stops with a failure line containing `No zone specified.` It never auto-discovers a zone and it never creates one. Note: none of these environment variables appear in `bdata search --help` - the runtime error message is the only place the CLI names them.
 
-A fresh install is not the problem. Source-verified in v0.3.5: the shipped `DEFAULTS` carry only `default_format` and `api_url`, so there is no `default_zone_serp` out of the box, and `login` writes only `default_zone_unlocker` next to the `cli_unlocker` and `cli_browser` zones it creates. On a truly fresh machine step 3 finds nothing, the order falls through to the unlocker zone, and `bdata search` works.
+A fresh install is not the problem. Source-verified: the shipped `DEFAULTS` carry only `default_format` and `api_url`, so there is no `default_zone_serp` out of the box, and `login` writes only `default_zone_unlocker` next to the `cli_unlocker` and `cli_browser` zones it creates. On a truly fresh machine step 3 finds nothing, the order falls through to the unlocker zone, and `bdata search` works.
 
 The break is a stale config value. The CLI never validates the zone it reads: it does not check that the name still exists before sending the request. So one leftover `default_zone_serp` naming a zone that was never created, or one that was deleted, ends the resolution order at step 3 because the value is truthy. The unlocker fallback in steps 4 and 5 never runs, and every `bdata search` comes back `Status: 400` with `zone "<name>" not found`. The usual leftover is `cli_serp` from an earlier experiment.
 
