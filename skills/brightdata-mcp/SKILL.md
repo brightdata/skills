@@ -26,7 +26,7 @@ Bright Data ships two, and the vendor calls them Remote (the hosted service at
 | Tool config | URL query params such as `pro=1` and `groups=` | env vars `PRO_MODE`, `GROUPS`, `TOOLS` |
 | Filter precedence | `groups=` or `tools=` overrides `pro=1` | `PRO_MODE` wins, the allowlist is skipped |
 
-The published package is `@brightdata/mcp`, version 2.11.1. Remote tracks its
+The published package is `@brightdata/mcp`. Remote tracks its
 own release line. Do not assume a tool name present in one is present in the
 other, and do not carry a working config across. Confirm against the variant
 actually in use.

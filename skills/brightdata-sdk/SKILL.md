@@ -7,10 +7,10 @@ description: Bright Data's Python and Node.js SDKs for calling Web Scraper API, 
 
 Two published packages, one skill. The request is the same in both languages, so follow the language the repo already uses.
 
-| Language | Package | Registry | Verified version | Install |
-|---|---|---|---|---|
-| Python | `brightdata-sdk` | PyPI | 2.5.2, released 2026-08-12 | `pip install brightdata-sdk` |
-| Node.js | `@brightdata/sdk` | npm | 1.2.0, published 2026-08-02 | `npm install @brightdata/sdk` |
+| Language | Package | Registry | Install |
+|---|---|---|---|
+| Python | `brightdata-sdk` | PyPI | `pip install brightdata-sdk` |
+| Node.js | `@brightdata/sdk` | npm | `npm install @brightdata/sdk` |
 
 ## Which reference to open
 
