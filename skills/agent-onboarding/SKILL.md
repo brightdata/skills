@@ -14,10 +14,10 @@ Install the CLI and the skills, log in once, then route to the task skill.
 Three free checks before doing any work:
 
 1. `bdata --version` works: skip to Add the skills.
-2. `bdata zones --json` shows `cli_unlocker` and `cli_browser`: logged in, skip straight to the route table.
+2. `bdata zones --json` prints a zone list: logged in, whatever the zone names are, skip straight to the route table. Judge this check by the printed text, never the exit code: `Error: No API key found.` or `Status: 401` means log in, and a network error means the key was never tested, so fix the connection instead of logging in. A list missing `cli_unlocker` or `cli_browser` is still logged in - create the missing zone (one free call, in Log in below) rather than logging in again.
 3. The skill folders already exist in the project: the skills are installed, so skip Add the skills entirely rather than running the installs again.
 
-Only the first check passes: go to Log in. On Windows, "bdata is not recognized" can also mean installed but not on PATH - apply the PATH fix in Install before reinstalling.
+Check 1 passes but check 2 answers logged out: go to Log in. On Windows, "bdata is not recognized" can also mean installed but not on PATH - apply the PATH fix in Install before reinstalling.
 
 ## Install
 
@@ -74,11 +74,13 @@ The browser opens on the user's machine, they approve once, and the CLI writes t
 
 On SSH, in containers, or on any machine without a browser, use `bdata login --device` instead. It prints a pairing code and a URL (to stderr), show both to the user, they approve from any device, and the command waits and then writes the key. The code expires after about 15 minutes. Bare `bdata login` cannot work there: it waits about two minutes for a browser callback that cannot arrive, then exits 1 with an error containing `Timed out waiting for callback` (printed as `Error: Authentication failed: Timed out waiting for callback`), and its printed fallback URL only works on the machine running the command.
 
-**Never run login on a machine that already passes the zones check.** With an active browser session, login completes by itself and silently replaces the saved API key, which breaks anything still using the old key. The curl install script counts too - it runs login by itself.
+**Never run login on a machine where `bdata zones --json` already prints a zone list.** With an active browser session, login completes by itself and silently replaces the saved API key, which breaks anything still using the old key. The curl install script counts too - it runs login by itself.
 
 Do not use `bdata login --github` in scripts or unattended runs. It shells out to `gh`, and on any failure it drops into an interactive prompt. With no terminal attached (CI, scripts), that prompt never returns.
 
 To confirm login actually worked, run `node scripts/check-auth.mjs --json` ([scripts/check-auth.mjs](scripts/check-auth.mjs) - the same zones check, packaged for scripts). One free call, and it exits nonzero on any failure.
+
+When it reports a missing `cli_unlocker` or `cli_browser` on a machine whose key works, the fix is one free call, not another login: `POST https://api.brightdata.com/zone` with Bearer auth and body `{"zone":{"name":"cli_unlocker","type":"unblocker"},"plan":{"type":"unblocker"}}`, or for the browser zone `{"zone":{"name":"cli_browser","type":"browser_api"},"plan":{"type":"browser_api"}}`. Zone creation costs nothing, and re-running login here would replace the stored key.
 
 ## Route to the task skill
 

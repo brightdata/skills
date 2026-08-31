@@ -136,9 +136,10 @@ async function check() {
     return { ok: false, zones: names.length, missing, error: 'missing_zones', lines: [
       `${names.length} active zone${names.length === 1 ? '' : 's'}`,
       `${C.bad}x missing zone: ${missing.join(', ')}${C.off}`,
-      '  login creates these, but a creation failure only warns and still exits 0,',
-      '  so a "successful" login with one missing is a known outcome, not a surprise',
-      '  run:  bdata login (on headless: bdata login --device)    then run this check again'] };
+      '  the key itself works - do NOT run bdata login again, it silently replaces the stored key',
+      '  create the missing zone with one free call instead:  POST https://api.brightdata.com/zone',
+      '  body: {"zone":{"name":"cli_unlocker","type":"unblocker"},"plan":{"type":"unblocker"}}',
+      '  (for cli_browser use "browser_api" as both type and plan)   then run this check again'] };
   }
 
   return { ok: true, zones: names.length, missing: [], error: null, lines: [
