@@ -22,7 +22,7 @@ Bright Data ships two, and the vendor calls them Remote (the hosted service at
 | | Remote | Local |
 |---|---|---|
 | Endpoint | `https://mcp.brightdata.com/mcp` (Streamable HTTP) or `/sse` | `npx @brightdata/mcp` over stdio |
-| Auth | `?token=` on the URL, or OAuth 2.1 | `API_TOKEN` env var |
+| Auth | `?token=` on the URL for a client you control, or OAuth 2.1 (Bearer header, browser sign-in) when someone else runs the client | `API_TOKEN` env var |
 | Tool config | URL query params such as `pro=1` and `groups=` | env vars `PRO_MODE`, `GROUPS`, `TOOLS` |
 | Filter precedence | `groups=` or `tools=` overrides `pro=1` | `PRO_MODE` wins, the allowlist is skipped |
 

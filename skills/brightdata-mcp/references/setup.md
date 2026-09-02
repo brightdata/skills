@@ -85,10 +85,63 @@ settings file.
 
 ## Auth
 
-Remote takes the API token as the `token` query parameter. No username is
-involved. Remote also supports OAuth 2.1 for clients that implement the MCP
-authorization spec, PKCE S256 required, endpoints under
-`https://brightdata.com/users/auth/mcp/`.
+Remote takes either of two credentials. Both reach the same tools and draw on
+the same account credits.
+
+- `?token=<YOUR_API_KEY>` on the `/mcp` or `/sse` URL. No username is involved.
+  For server-side agents, CI jobs and scripts you control end to end.
+- OAuth 2.1, an `Authorization: Bearer <access_token>` header. For desktop
+  assistants, distributed clients, and any app run by someone who is not the
+  account owner, or whenever a long-lived key must not sit in a config file.
+  The user signs in through a browser and no key is pasted anywhere. Any
+  client that implements the MCP authorization spec connects this way with no
+  hardcoded credentials.
+
+What a client written against Remote's OAuth has to get right:
+
+- Discovery starts with a `401`. A `POST /mcp` with no token answers `401` and
+  `WWW-Authenticate: Bearer resource_metadata="https://mcp.brightdata.com/.well-known/oauth-protected-resource", scope="mcp"`.
+  Parse that URL rather than hardcoding it. It names the authorization server,
+  `https://brightdata.com`, whose own metadata is at
+  `https://brightdata.com/.well-known/oauth-authorization-server`.
+- Clients are public. Register once with
+  `POST https://brightdata.com/users/auth/mcp/register` (RFC 7591, open, no
+  existing credential needed) to get a `client_id`; no `client_secret` comes
+  back. Every `redirect_uri` you will use must be listed at registration, and
+  loopback addresses such as `http://localhost:8765/callback` are accepted. An
+  unregistered redirect URI or an unknown `client_id` gets `400 Bad Request`
+  with no redirect.
+- PKCE with `S256` is mandatory; `plain` is rejected. The `resource` parameter,
+  `resource=https://mcp.brightdata.com`, is mandatory on both the authorization
+  request and the token request (RFC 8707), and it is the one most clients
+  forget. The only scope is `mcp`. The only grant types are
+  `authorization_code` and `refresh_token`, so client credentials do not work.
+- Endpoints: authorize `https://brightdata.com/users/auth/mcp/authorize`, token
+  `https://brightdata.com/users/auth/mcp/token`, keys
+  `https://brightdata.com/users/auth/mcp/jwks`. A user who is not signed in is
+  sent through the Bright Data sign-in page and returned to the flow.
+- Treat any `401` from `mcp.brightdata.com` as the signal to refresh with the
+  `refresh_token` grant (`resource` required there too), then retry the request
+  once. Do not schedule refreshes against a hardcoded lifetime. `invalid_grant`
+  with `Invalid, expired, or already used refresh token` means start the
+  authorization flow again.
+- Error strings are returned verbatim, so a test suite can assert on them:
+  `Missing required parameter: code_challenge`,
+  `Unsupported code_challenge_method; only S256 is supported`,
+  `resource parameter is required (RFC 8707)`,
+  `Missing or invalid required parameters: code, code_verifier, redirect_uri, client_id, resource`,
+  `Supported grant types: authorization_code, refresh_token`.
+- A `403 Forbidden` with an HTML body and no OAuth error from `brightdata.com`
+  means the client sent the Python standard library default User-Agent
+  (`Python-urllib/*`), which the host blocks. Set an explicit `User-Agent`.
+  `requests`, `httpx`, `aiohttp`, Node, Go and Java clients are unaffected.
+
+The access token is issued for the resource `https://mcp.brightdata.com` with
+the single scope `mcp`, and it is sent only as a bearer header on MCP
+requests. The CLI resolves an API key from `--api-key`, `BRIGHTDATA_API_KEY`
+or `credentials.json` and nothing else, so an OAuth session does not log the
+CLI in. Use an API key for `api.brightdata.com` and the SDKs; getting one is
+`agent-onboarding` territory.
 
 Local requires `API_TOKEN` in the environment. Without it the server throws
 `Cannot run MCP server without API_TOKEN env` and exits before opening any
