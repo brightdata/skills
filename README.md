@@ -88,7 +88,7 @@ bdata login
 
 ## Agent Onboarding
 
-The entry point. It installs everything, handles the one-time login without ever pasting a key into chat, fixes the common Windows and PATH problems, and routes the task to the right skill. The other nine assume it ran once.
+The entry point. It installs everything, handles the one-time login without ever pasting a key into chat, registers an account by email when the user has none, fixes the common Windows and PATH problems, and routes the task to the right skill. The other nine assume it ran once.
 
 ## Scrape
 
