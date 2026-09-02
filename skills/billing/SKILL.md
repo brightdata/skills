@@ -52,13 +52,13 @@ No endpoint returns a quote, so never present one as if it came from the API. Bu
 
 Every eligible account gets 5,000 free credits a month from one shared pool. They reset on the first of the month and unused credits are forfeited rather than carried over. Web Unlocker, SERP and Web Scraper API spend one credit per request or record, and Scraper Studio spends one per page load. The Browser API draws on the same pool at 5 credits per MB of traffic (in effect from 2026-09-01), so the full monthly allowance covers close to 1 GB of browser traffic. Accounts on custom pay-as-you-go plans and on pre-commit plans get no monthly free credits.
 
-The proxy networks are not covered. New accounts instead get a one-time $2 trial credit for the proxy products, valid 7 days, and a further $5 for adding a payment method, valid 30 days. All of these figures are from the docs and cannot be checked against any API.
+The proxy networks are not covered. New accounts instead get a one-time $2 trial credit for the proxy products, valid 7 days, and a further $5 for adding a payment method, valid 30 days. All of these figures are from the docs. The registration completion call returns a brand-new account's `entitlements` (`monthly_credits`, `trial_credit_usd`, `trial_days`) once, at signup (the `agent-onboarding` skill, No account yet). None of the billing reads above return them.
 
-**Free credits are not in any API.** No balance field counts them, and the `credit` field on `/customer/balance` is dollars, not a credit count. Free-tier and trial state live in the control panel at brightdata.com/cp/billing/overview under Free Tier Credits, which also shows the renewal date. Send the user there rather than guessing, and never read a money balance of zero as proof that the free credits are gone. They are separate pools.
+**Free credits are not in any billing API.** No balance field counts them, and the `credit` field on `/customer/balance` is dollars, not a credit count. Free-tier and trial state live in the control panel at brightdata.com/cp/billing/overview under Free Tier Credits, which also shows the renewal date. Send the user there rather than guessing, and never read a money balance of zero as proof that the free credits are gone. They are separate pools.
 
 ## What an MCP tool call bills as
 
-For "what did my agent's tool call cost". Pro mode changes which tools are exposed, never what anything costs. `search_engine` and its batch variant bill as one request per query, `scrape_as_markdown`, `scrape_as_html` and `scrape_batch` as one Web Unlocker request per URL, `web_data_*` as Web Scraper API records delivered, and `scraping_browser_*` as Browser API bandwidth.
+For "what did my agent's tool call cost". Pro mode changes which tools are exposed, never what anything costs. `search_engine` and its batch variant bill as one request per query, `scrape_as_markdown`, `scrape_as_html` and `scrape_batch` as one Web Unlocker request per URL, `web_data_*` as Web Scraper API records delivered, and `scraping_browser_*` as Browser API bandwidth. The credential makes no difference: a Remote client on `?token=` and one on OAuth 2.1 reach the same tools and draw on the same account credits, so an OAuth client spends the credits of whichever Bright Data account its user signed in to, which may not be this one.
 
 ## Read next
 

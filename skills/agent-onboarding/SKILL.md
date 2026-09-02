@@ -1,6 +1,6 @@
 ---
 name: agent-onboarding
-description: The entry point to all Bright Data skills - start here, and it guides the agent to the right skill for the task at hand - web data and scraping, fetching or unblocking a page, search, browser automation, and the CLI, SDK and MCP surfaces. Use when Bright Data is not set up or stops authenticating - the CLI is missing ("bdata is not recognized"), login is needed or fails ("No API key found"), a call is refused with 401, 407 or another auth error, an expected zone like cli_unlocker is missing, a key must be set in a project's .env, CI, or a container (BRIGHTDATA_API_KEY), or the user asks to install Bright Data, log in, get started, or which skill fits their task. Auth for every other Bright Data skill lives here.
+description: The entry point to all Bright Data skills - start here, and it guides the agent to the right skill for the task at hand - web data and scraping, fetching or unblocking a page, search, browser automation, and the CLI, SDK and MCP surfaces. Use when Bright Data is not set up or stops authenticating - the CLI is missing ("bdata is not recognized"), login is needed or fails ("No API key found"), there is no Bright Data account yet and one must be created without a browser, a call is refused with 401, 407 or another auth error, an expected zone like cli_unlocker is missing, a key must be set in a project's .env, CI, or a container (BRIGHTDATA_API_KEY), or the user asks to install Bright Data, log in, get started, or which skill fits their task. Auth for every other Bright Data skill lives here.
 ---
 
 # Bright Data - Start Here
@@ -82,6 +82,18 @@ To confirm login actually worked, run `node scripts/check-auth.mjs --json` ([scr
 
 When it reports a missing `cli_unlocker` or `cli_browser` on a machine whose key works, the fix is one free call, not another login: `POST https://api.brightdata.com/zone` with Bearer auth and body `{"zone":{"name":"cli_unlocker","type":"unblocker"},"plan":{"type":"unblocker"}}`, or for the browser zone `{"zone":{"name":"cli_browser","type":"browser_api"},"plan":{"type":"browser_api"}}`. Zone creation costs nothing, and re-running login here would replace the stored key.
 
+## No account yet
+
+`bdata login` needs an existing account. When the user has none, the agent can register one without a browser, from the user's email address and a one-time code that arrives in their mailbox. Ask first: calling these endpoints accepts the Bright Data Terms of Service and Acceptable Use Policy on behalf of the named user, so the user says yes before the first call, and the address must be their real mailbox, since disposable and aliased addresses are refused with `email_not_accepted`.
+
+Three calls, all `POST` with a JSON body, no key needed:
+
+1. `https://brightdata.com/users/auth/agent_registration/auth` with `{"type":"identity_assertion","assertion_type":"verified_email","assertion":"<email>","client":"<agent name>"}`. `client` is optional self-identification, for example `claude-code`. The response carries `claim_token`, `otp_expires_at` and `claim_token_expires_at`, and the code goes to the mailbox. A 200 here is not proof the email is new: several policy outcomes return the same shape on purpose.
+2. Ask the user for the 6-character code (letters and digits, case matters) and send `https://brightdata.com/users/auth/agent_registration/claim/complete` with `{"claim_token":"...","otp":"..."}`. The response holds `credential.token` (the docs call it only `credential`; it is what the account uses as its API key), plus `zones` (one per product, each `success` or `failed`) and `entitlements` (`monthly_credits`, `trial_credit_usd`, `trial_days`). Retrying after success returns the same result and issues nothing twice.
+3. Code expired or lost: `https://brightdata.com/users/auth/agent_registration/claim` with `{"claim_token":"..."}` sends a fresh code and invalidates the old one. Resends are rate limited, so wait between attempts.
+
+Hand the key to the CLI without showing it: read `credential.token` inside the program that made the call and run `bdata login --api-key <token>` from there, never by pasting it into chat. That command validates the key, writes `credentials.json`, and creates `cli_unlocker` and `cli_browser` when they are missing, so everything above applies unchanged. Then run `node scripts/check-auth.mjs --json` as after any login. If `bdata login --api-key` refuses the credential, stop rather than retrying registration: the person claims the account in the Control Panel with the same email (see [references/auth.md](references/auth.md)) and logs in the normal way. The error codes and the action for each are in [references/auth.md](references/auth.md).
+
 ## Route to the task skill
 
 Users ask for data, not for tools. When two rows both fit, prefer `scrape`: ready scrapers and Scraper Studio cover most real jobs end to end.
@@ -107,6 +119,6 @@ The npx fallback above gives the full CLI with nothing installed. Otherwise set 
 
 ## When a call is refused
 
-An output starting `Error: No API key found.` means this machine is not logged in: log in (see Log in above), or set `BRIGHTDATA_API_KEY` (the CLI's own second line names both fixes). A 401 means the key is invalid or revoked: log in again. Nearly every use case (Scraper API, Scraper Studio, SERP, Unlocker, Browser API) needs no KYC. If a call ever comes back with a KYC error, [references/auth.md](references/auth.md) says what to do.
+An output starting `Error: No API key found.` means this machine is not logged in: log in (see Log in above), or set `BRIGHTDATA_API_KEY` (the CLI's own second line names both fixes), or, when the user has no account at all, register one (No account yet above). A 401 means the key is invalid or revoked: log in again. Nearly every use case (Scraper API, Scraper Studio, SERP, Unlocker, Browser API) needs no KYC. If a call ever comes back with a KYC error, [references/auth.md](references/auth.md) says what to do.
 
 Read [references/auth.md](references/auth.md) before handling any refused call - it has the full error table and the narrow Web Unlocker exceptions.
