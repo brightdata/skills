@@ -38,6 +38,7 @@ const NEEDED = ['cli_unlocker', 'cli_browser'];
 const FIXES = [
   '  run:  bdata login               one browser approval (on headless: bdata login --device)',
   '  or:   set BRIGHTDATA_API_KEY    from the account settings page, for CI and containers',
+  '  or:   no account yet?           register one by email: SKILL.md, "No account yet"',
 ];
 
 /** Read JSON tolerating a UTF-8 BOM (Windows editors add one). */
