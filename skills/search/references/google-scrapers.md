@@ -12,7 +12,7 @@ Each entry below is a Web Scraper API dataset, not a SERP mode. SERP returns abo
 - Shopping - the only one with a CLI pipeline
 - Maps - find places here, records in the scrape skill
 - Flights and Hotels
-- Images has no scraper of its own
+- Images - a scraper exists, SERP stays the fast path
 - The same surfaces through SERP instead
 - Free moves, no credits
 
@@ -20,16 +20,17 @@ Each entry below is a Web Scraper API dataset, not a SERP mode. SERP returns abo
 
 | Scraper | dataset_id | CLI pipeline | Confirmed |
 |---|---|---|---|
-| Google SERP 100 results | `gd_mfz5x93lmsjjjylob` | none | live trigger, and docs |
-| Google Shopping | `gd_ltppk50q18kdw67omz` | `google_shopping` | live list, live metadata, CLI map |
-| Google Shopping products search US | `gd_m31f2k0d2m1bah4f3b` | none | live list, live metadata |
-| Google Local Finder - find places from a query | `gd_mhkrfnjw1a9qwkj64b` | none | probe verified 2026-08-26 |
+| Google SERP 100 results | `gd_mfz5x93lmsjjjylob` | none | catalogue 2026-09-06 with full schema, live trigger, and docs |
+| Google Shopping | `gd_ltppk50q18kdw67omz` | `google_shopping` | catalogue 2026-09-06, CLI map |
+| Google Shopping products search US | `gd_m31f2k0d2m1bah4f3b` | none | catalogue 2026-09-06 |
+| Google Local Finder - find places from a query | `gd_mhkrfnjw1a9qwkj64b` | none | probe verified 2026-08-26 and 2026-09-06, absent from the catalogue |
 | Google Maps reviews | see the `scrape` skill | `google_maps_reviews` | full row lives in that skill's `references/web-scraper-api.md` |
 | Google AI Mode search | see `answer-engines.md` | none | full row lives there |
-| Google Flights | `gd_mhng7wen1rw0a3gvpf` | none | probe verified 2026-08-26 |
-| Google Hotels | `gd_mg3gjfmg12tc2n5d4d` | none | probe verified 2026-08-26 |
+| Google Flights | `gd_mhng7wen1rw0a3gvpf` | none | catalogue 2026-09-06 with full schema, probes 2026-08-26 and 2026-09-06 |
+| Google Hotels | `gd_mg3gjfmg12tc2n5d4d` | none | catalogue 2026-09-06 with full schema, probes 2026-08-26 and 2026-09-06 |
+| Google Images | `gd_m0cda3zn1y9cr8l8yr` | none | catalogue 2026-09-06, probe verified 2026-09-06 |
 
-The live catalogue carries more of the Google SERP family than this table documents, among them Google SERP and Google News. They are out of scope here, so list the catalogue before telling a user that a Google surface has no dataset at all.
+`GET /datasets/v3/scrapers?domain=google.com` returns ten scrapers on 2026-09-06: the eight above plus Google Maps full information and Google Maps Images. Google News, `gd_lnsxoxzi1omrwnka5r`, is absent from the catalogue yet triggers, one of the 56 such scrapers the 2026-09-06 census of `GET /datasets/list` found, and it is out of scope here. Run the domain query before telling a user that a Google surface has no dataset at all.
 
 The whole family is documented at docs.brightdata.com/datasets/scrapers/google/introduction. That page gives two endpoints for all of them, and they cover the answer engines in `answer-engines.md` as well:
 
@@ -46,19 +47,19 @@ Three checks, all free and read-only:
 
 | Check | Call |
 |---|---|
-| The id is visible in the platform catalogue for this key | one call: `node ../../scrape/scripts/find-scraper.mjs <name or gd_ id> --schema` - it filters junk rows and returns the input contract. On a machine without node, fall back to `curl -H "Authorization: Bearer $BRIGHTDATA_API_KEY" https://api.brightdata.com/datasets/list` |
-| The id has an output schema | `GET https://api.brightdata.com/datasets/<dataset_id>/metadata` |
+| The id is a real scraper, with its input contract | one call: `node ../../scrape/scripts/find-scraper.mjs <gd_ id>` - one GET, `/datasets/v3/scrapers?dataset_id=<id>`, every variant's typed inputs, outputs, sample input and trigger line. On a machine without node, `curl -H "Authorization: Bearer $BRIGHTDATA_API_KEY" "https://api.brightdata.com/datasets/v3/scrapers?dataset_id=<id>"` |
+| The id has an output schema | the same answer's `output_fields`. `GET https://api.brightdata.com/datasets/<dataset_id>/metadata` answers, with the same active field set, for an id that is in both `/datasets/list` and the catalogue; it is 404 for every catalogue-only id; for a list-only row it is usually 404 (771 of 807 on 2026-09-06) |
 | The CLI binds a pipeline to it | the `DATASET_IDS` map inside `@brightdata/cli` |
 
-That list has no ownership marker and it includes marketplace datasets, so a hit means the id is visible in the platform catalogue for this key, not that the account owns or is subscribed to it.
+The catalogue lists only real scrapers, 1006 on 2026-09-06, so a hit means the id is a ready scraper with a published schema. It carries no ownership or subscription marker, and whether every account can run every one of them is not verified here.
 
-Absent from the catalogue plus a 404 from metadata is a signature, not a verdict. It means the id is published by Bright Data but is invisible to the discovery endpoints this key can see. That is the exact signature of `gd_mfz5x93lmsjjjylob`, which triggers fine anyway, and of the Flights and Hotels rows above, which answered the probe. So read it as "this id cannot be confirmed from the catalogue", never as "wrong". If one is rejected as unknown, do not retry it and do not guess a replacement. Look it up in the control panel scraper page instead.
+Absent from the catalogue is a signature, not a verdict. Fifty-six scrapers that trigger are absent from it, found by a census of every `GET /datasets/list` row on 2026-09-06, and Google Local Finder `gd_mhkrfnjw1a9qwkj64b` is one of them: `?dataset_id=` returns an empty array for it, and the one empty-body probe the script sends after that empty answer is what finds it, naming `url` and `search_keyword`, required fields certain, outputs unlisted. So read "not in the catalogue, probe names required fields" as a real scraper the catalogue omits, never as "wrong". If an id is rejected as unknown, do not retry it and do not guess a replacement. Look it up in the control panel scraper page instead.
 
 ## Top 100 Google results - the one to know
 
 Dataset id `gd_mfz5x93lmsjjjylob`. Google removed the `num=100` parameter, so no single request returns 100 rows any more - this job walks the pages instead and hands back one result set. About 10 results per page, so pages 1 to 10 is the top 100.
 
-This exact id does not appear in `GET /datasets/list`, verified, so that list cannot recover it, even though the same list does carry other Google SERP-family datasets. Its metadata endpoint returns 404 as well. It is verified live and documented at docs.brightdata.com/scraping-automation/serp-api/get-top-100-google-results, and it works on trigger even though the list omits it.
+This exact id does not appear in `GET /datasets/list` and its metadata endpoint returns 404, verified, yet the scrapers catalogue carries it with a full schema: `?dataset_id=gd_mfz5x93lmsjjjylob` returns the row, `url` the only required input and fourteen optional ones, 2026-09-06. That pairing is normal for a scraper the catalogue carries and the list does not, and it is not a retirement signal. The scraper is documented at docs.brightdata.com/scraping-automation/serp-api/get-top-100-google-results, and it works on trigger.
 
 This runs as a Web Scraper API job. Three REST calls: a trigger that returns a `snapshot_id`, a progress poll, then a snapshot download.
 
@@ -86,7 +87,7 @@ GET  https://api.brightdata.com/datasets/v3/snapshot/<snapshot_id>?format=json
 
 The schema also accepts `uule`, `tbs`, `tbm`, `nfpr` and `index`.
 
-The docs page marks nothing required and does not list `url`. The live probe names `url` as the only required field, so trust the probe. Send the others anyway, because a bare domain with no keyword is not a useful job.
+The docs page marks nothing required and does not list `url`. The live probe and the catalogue both name `url` as the only required field, so trust them. Send the others anyway, because a bare domain with no keyword is not a useful job.
 
 After a REST trigger, one CLI call polls to completion:
 
@@ -110,30 +111,32 @@ Google Shopping products search US (`gd_m31f2k0d2m1bah4f3b`) also takes `url` on
 
 ## Maps - find places here, records in the scrape skill
 
-Finding places from a query is **Google Local Finder**, `gd_mhkrfnjw1a9qwkj64b`. Probe verified 2026-08-26: it requires both `url` and `search_keyword`, and it also accepts `uule`, `gl` and `se`. It has no CLI pipeline, so trigger the dataset.
+Finding places from a query is **Google Local Finder**, `gd_mhkrfnjw1a9qwkj64b`. Probe verified 2026-08-26 and again 2026-09-06: it requires both `url` and `search_keyword`, and it also accepts `uule`, `gl` and `se`. It is absent from the scrapers catalogue, so the probe is its only free schema source, required fields certain, outputs unlisted. It has no CLI pipeline, so trigger the dataset.
 
-Google Maps reviews is row 21 of the top-25 table in the `scrape` skill's `references/web-scraper-api.md`, with its id, its pipeline and its optional `sort_by`. Its extra CLI argument `days_limit` sits in the block below that table. Use that row. It is not repeated here.
+Google Maps reviews is in the top-25 table in the `scrape` skill's `references/web-scraper-api.md`, with its id, its pipeline and its optional `days_limit` and `sort_by`. Its extra CLI argument `days_limit` sits in the block below that table. Use that row. It is not repeated here.
 
-"Google Maps full information", `gd_m8ebnr0q2qlklc02fz`, takes a known business URL, which is a records-from-a-known-place job - the `scrape` skill.
+"Google Maps full information", `gd_m8ebnr0q2qlklc02fz`, takes a known business URL, which is a records-from-a-known-place job - the `scrape` skill. The catalogue also gives it a `discover_by_location` door, `country` and `keyword` required, `lat`, `long` and `zoom_level` optional, so it can find places from a query as well and hand back the full-information schema.
 
 Pulling reviews from a place you already know is a records-from-a-known-place job, which is the `scrape` skill. Finding places from a query is this skill.
 
 ## Flights and Hotels
 
-Both are probe verified 2026-08-26. Neither appears in `GET /datasets/list` and metadata returns 404 for both, which means invisible to the discovery endpoints, not wrong.
+Both are in the scrapers catalogue with full schemas, 2026-09-06. Neither appears in `GET /datasets/list` and metadata returns 404 for both, the normal signature of a scraper the catalogue carries and the list does not.
 
-| Scraper | dataset_id | Note |
-|---|---|---|
-| Google Flights | `gd_mhng7wen1rw0a3gvpf` | routes, dates, prices. Its input URL carries a base64 `tfs` blob, so it cannot be built from a plain ask |
-| Google Hotels | `gd_mg3gjfmg12tc2n5d4d` | rates and availability. Its input URL carries an opaque entity id, so it cannot be built from a plain ask |
+Each has two kinds of door. `collect_by_url` takes a Google URL the user already holds, and that URL cannot be built from a plain ask. A discovery door takes plain inputs and runs the search itself, so a plain ask is possible after all.
 
-Neither URL is constructible, so either the user already holds one or you get there from a search result. Their exact input field lists are not published on the overview page. Learn them with the empty-body probe in the `scrape` skill's `references/web-scraper-api.md`, which costs nothing.
+| Scraper | dataset_id | `collect_by_url` | Discovery door |
+|---|---|---|---|
+| Google Flights | `gd_mhng7wen1rw0a3gvpf` | `url` (url), which carries a base64 `tfs` blob | `discover_by_input_filters`. Required: `origin` (text), `destination` (text), `trip_type` (text), `adults` (number). Optional: `departure` (date), `return` (date), `children` (number), `infants_in_seat` (number), `infants_on_lap` (number), `cabin` (text), `currency` (text), `language` (text), `country` (text) |
+| Google Hotels | `gd_mg3gjfmg12tc2n5d4d` | `url` (url), which carries an opaque entity id, plus optional `country` (text) | `discover_by_search`. Required: `search_term` (text), `check_in_date` (date), `check_out_date` (date), `guest_number` (number). Optional: `country` (text), `currency` (text), `sort_by` (text), `accommodation_type` (text), `property_type` (array). A second door, `discover_by_filter_url`, takes a `google.com/travel/search` URL with optional `country` and `currency` |
 
-## Images has no scraper of its own
+A discovery door triggers with `&type=discover_new&discover_by=input_filters` (Flights) or `&discover_by=search` (Hotels) appended to the trigger URL. `node ../../scrape/scripts/find-scraper.mjs <gd_ id> --variant input_filters` prints the exact line, and `--sample` the catalogue's sample body.
 
-Checked in the official Google Scraper API page and in the live dataset list. There is no Google Images scraper. The list does carry "Google Maps Images", which is place photos and not image search.
+## Images - a scraper exists, SERP stays the fast path
 
-So Google Images is a SERP job, not a dataset job. Use `udm=2` in the search URL, as `serp.md` describes.
+Google Images has a scraper of its own, `gd_m0cda3zn1y9cr8l8yr`, in the scrapers catalogue on 2026-09-06 with `collect_by_url` as its only door and `url` as its only input, and it answered the empty-body probe the same day by naming `url`. Its `url` is a Google image search URL with `udm=2`, the same URL the SERP path takes.
+
+So Google Images is a SERP job when one synchronous page of results is enough, with `udm=2` in the search URL as `serp.md` describes, and a dataset job when the ask wants the scraper's assembled schema. The catalogue also carries "Google Maps Images", `gd_min8y25y1z5op1eska`, which is place photos and not image search.
 
 ## The same surfaces through SERP instead
 
@@ -151,7 +154,7 @@ That is the fast and shallow path. The scrapers above are the slow and complete 
 
 | Question | Free move |
 |---|---|
-| Is this id visible in the platform catalogue for this key? | one call: `node ../../scrape/scripts/find-scraper.mjs <name or gd_ id> --schema` - it filters junk rows and returns the input contract. On a machine without node, fall back to `curl -H "Authorization: Bearer $BRIGHTDATA_API_KEY" https://api.brightdata.com/datasets/list`, which has no ownership marker and includes marketplace datasets |
-| What does it return? | `GET https://api.brightdata.com/datasets/<dataset_id>/metadata` |
-| What inputs does it require? | the empty-body probe in the `scrape` skill's `references/web-scraper-api.md` |
+| Is this id a real scraper, and what does it take? | one call: `node ../../scrape/scripts/find-scraper.mjs <gd_ id>`, or `<domain> --schema` - one GET, `/datasets/v3/scrapers?dataset_id=<id>`, or one or two with `?domain=`, both spellings; typed inputs, outputs, sample input and trigger line per variant. An id the catalogue omits gets one empty-body probe from the script, required fields certain, outputs unlisted. On a machine without node, `curl -H "Authorization: Bearer $BRIGHTDATA_API_KEY" "https://api.brightdata.com/datasets/v3/scrapers?domain=google.com"` lists every scraper whose domain is exactly `google.com` (ten on 2026-09-06); subdomains such as `gemini.google.com` and `maps.google.com` are their own domains |
+| What does it return? | `output_fields` in the same answer. `GET https://api.brightdata.com/datasets/<dataset_id>/metadata` answers, with the same active field set, for an id that is in both `/datasets/list` and the catalogue; it is 404 for every catalogue-only id; for a list-only row it is usually 404 (771 of 807 on 2026-09-06). It adds nothing here |
+| What inputs does it require, when the catalogue omits the id? | the empty-body probe in the `scrape` skill's `references/web-scraper-api.md`, with its zero-required-fields caution |
 | Which pipelines ship with the CLI? | `bdata pipelines list` |

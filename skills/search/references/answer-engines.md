@@ -8,15 +8,15 @@ A prompt goes in and one written answer comes back with its citations. Query in,
 
 Six engines are listed in the official library at docs.brightdata.com/datasets/scrapers/scrapers-library/ai-scrapers.
 
-| Engine | dataset_id | Required inputs | Status |
-|---|---|---|---|
-| ChatGPT | `gd_m7aof0k82r803d5bjm` | see Inputs below | probe verified 2026-08-26 |
-| Google AI Mode | `gd_mcswdt6z2elth3zqr2` | see Inputs below | probe verified 2026-08-26 |
-| Perplexity | `gd_m7dhdot1vw9a7gc1n` | `url`, `prompt` (optional `country`, `additional_prompt`) | probe verified 2026-08-26 |
-| Gemini | `gd_mbz66arm2mf9cu856y` | `url`, `prompt` | probe verified 2026-08-26 |
-| Copilot | `gd_m7di5jy6s9geokz8w` | `url`, `prompt` (optional `country`) | probe verified 2026-08-26 |
+| Engine | dataset_id | Required | Optional | Status |
+|---|---|---|---|---|
+| ChatGPT | `gd_m7aof0k82r803d5bjm` | `url`, `prompt` | `country`, `index`, `require_sources`, `additional_prompt`, `web_search`, `geolocation` | catalogue 2026-09-06, probe verified 2026-08-26 |
+| Google AI Mode | `gd_mcswdt6z2elth3zqr2` | `url`, `prompt` | `index`, `country`, `hl` | catalogue 2026-09-06, probe verified 2026-08-26 |
+| Perplexity | `gd_m7dhdot1vw9a7gc1n` | `url`, `prompt` | `country`, `index`, `export_markdown_file`, `additional_prompt` | catalogue 2026-09-06, probe verified 2026-08-26 |
+| Gemini | `gd_mbz66arm2mf9cu856y` | `url`, `prompt` | `country`, `index` | catalogue 2026-09-06, probe verified 2026-08-26 |
+| Copilot | `gd_m7di5jy6s9geokz8w` | `url`, `prompt` | `country`, `index` | catalogue 2026-09-06, probe verified 2026-08-26 |
 
-None of the five ids appears in `GET /datasets/list`, and metadata returns 404 for all of them. All five still answered the free empty-body trigger probe by naming their required inputs, so they are real and triggerable - the signature means "invisible to the discovery endpoints", not "wrong". These bundled rows are the only machine-reachable source for those ids, so when one is rejected, refresh it from the control panel page below rather than searching the catalogue. Never guess an id from a name.
+All five are in the scrapers catalogue, `GET https://api.brightdata.com/datasets/v3/scrapers`, each with a full typed schema, verified 2026-09-06, and all five answered the free empty-body trigger probe on 2026-08-26 by naming `url` and `prompt`. None of the five appears in `GET /datasets/list`, and metadata returns 404 for all of them. That is the normal signature of a scraper the catalogue carries and the list does not, and it is not a retirement signal. The catalogue is the machine-reachable source for these ids: `node ../../scrape/scripts/find-scraper.mjs <gd_ id>`, or the engine's domain with `--schema`. Never guess an id from a name.
 
 Google AI Mode is also a Google surface, so `google-scrapers.md` points here for it. This row is the one place in these skills its id is written down.
 
@@ -32,27 +32,30 @@ The docs print two of the five ids: ChatGPT's, in its introduction page example,
 | Copilot | brightdata.com/cp/scrapers/browse?domain=copilot.microsoft.com |
 | Google AI Mode | brightdata.com/cp/scrapers/browse?domain=google.com |
 
-The catalogue is the other lookup. One call does it: `node ../../scrape/scripts/find-scraper.mjs <name or gd_ id> --schema` - it filters junk rows and returns the input contract. On a machine without node, fall back to `curl -H "Authorization: Bearer $BRIGHTDATA_API_KEY" https://api.brightdata.com/datasets/list`. Either way the list carries only marketplace answer-engine rows, Meta AI Search and Deepseek Search, which cannot be triggered. So an empty result there, or a marketplace-only one, is not proof the scraper is missing.
+The catalogue is the other lookup, and it is one call: `node ../../scrape/scripts/find-scraper.mjs <domain> --schema`, or the bare `gd_` id, which prints the schema without the flag. A domain query is one or two GETs with `?domain=`, exact and case-sensitive, bare first, then with `www.`. `chatgpt.com`, `perplexity.ai`, `gemini.google.com` and `copilot.microsoft.com` each return one row on 2026-09-06; `google.com` returns every scraper whose domain is exactly `google.com` (ten on 2026-09-06), and subdomains such as `gemini.google.com` and `maps.google.com` are their own domains, so query AI Mode by id. On a machine without node, `curl -H "Authorization: Bearer $BRIGHTDATA_API_KEY" "https://api.brightdata.com/datasets/v3/scrapers?domain=chatgpt.com"`. `GET /datasets/list` is the wrong lookup here: it carries none of the five ids, only marketplace answer-engine rows, Meta AI Search and Deepseek Search, which answer "does not support collection" on trigger. So an empty result there, or a marketplace-only one, is not proof the scraper is missing.
 
 ## Inputs
 
-ChatGPT is the one engine with a full public input list, at docs.brightdata.com/datasets/scrapers/chatgpt/introduction. The rows below are that list checked against the live probe echo on 2026-08-26.
+The catalogue's `input_schema` gives name, type and required flag for every input and carries no descriptions. The rows below are its ChatGPT schema, read 2026-09-06, with meanings from the one public input list, at docs.brightdata.com/datasets/scrapers/chatgpt/introduction, where the docs give one.
 
-| Input | Required | Meaning |
-|---|---|---|
-| `url` | yes | the engine's own address |
-| `prompt` | yes | the question, up to 4,096 characters |
-| `web_search` | no | allow or disable live web search. Docs only, it does not appear in the live probe echo |
-| `additional_prompt` | no | a follow-up turn in the same session |
-| `geolocation` | no | the country the session runs from - the live probe names `geolocation`, not `country` |
+| Input | Required | Type | Meaning |
+|---|---|---|---|
+| `url` | yes | url | the engine's own address |
+| `prompt` | yes | text | the question, up to 4,096 characters (docs) |
+| `country` | no | country | in the catalogue next to `geolocation`; the 2026-08-26 probe echo named only `geolocation` |
+| `index` | no | number | no description in the catalogue |
+| `require_sources` | no | boolean | no description in the catalogue |
+| `additional_prompt` | no | text | a follow-up turn in the same session (docs) |
+| `web_search` | no | boolean | allow or disable live web search (docs). Absent from the 2026-08-26 probe echo, present in the catalogue |
+| `geolocation` | no | text | the country the session runs from (docs) |
 
-That table describes ChatGPT only. Google AI Mode is its own contract: it requires `url` and `prompt`, and optionally takes `country` and `hl`, probe verified 2026-08-26.
+That table describes ChatGPT only. Google AI Mode is its own contract: it requires `url` and `prompt`, and optionally takes `index`, `country` and `hl`, catalogue 2026-09-06 and probe 2026-08-26.
 
-Perplexity, Gemini and Copilot were probe-verified live on 2026-08-26: all three require `url` and `prompt`, Perplexity also accepts `country` and `additional_prompt`, Copilot also accepts `country`. The control panel examples show an `index` field too - that is input-array bookkeeping, not a required field. One docs-only difference worth knowing: Gemini decides internally whether to search the web, so prompt wording is the only lever there.
+Perplexity, Gemini and Copilot require `url` and `prompt`, probe verified 2026-08-26 and catalogue 2026-09-06. Perplexity also takes `country`, `index`, `export_markdown_file` and `additional_prompt`. Gemini and Copilot also take `country` and `index`. `index` is an optional number on all five. One docs-only difference worth knowing: Gemini decides internally whether to search the web, so prompt wording is the only lever there.
 
 Each engine ships in a limited set of countries. The lists are CSV files at github.com/brightdata/answer-engines-country-codes, one per engine. The repository is public and carries seven CSVs: chatgpt, copilot, gemini, perplexity, google_aimode, meta and grok.
 
-Learn any engine's real input list for free with the empty-body probe in the `scrape` skill's `references/web-scraper-api.md`.
+Learn any engine's full input list for free from the catalogue: `node ../../scrape/scripts/find-scraper.mjs <gd_ id>`, with `--sample` for a paste-ready trigger body. The empty-body probe in the `scrape` skill's `references/web-scraper-api.md` is the fallback for an id the catalogue omits, and none of these five is.
 
 ## How to call one
 
@@ -67,7 +70,7 @@ POST https://api.brightdata.com/datasets/v3/trigger?dataset_id=<id>&include_erro
 
 Then poll and download, or let the CLI wait. The one-line CLI poll is in `google-scrapers.md`, in its top-100 call section.
 
-Useful ChatGPT output fields, docs only: `answer_text`, `model`, `web_search_triggered`, `citations` with title, url and position, `search_sources`, and `prompt_sent_at`.
+Useful ChatGPT output fields, all six in the catalogue's `output_fields` on 2026-09-06: `answer_text`, `model`, `web_search_triggered`, `citations` (title, url and position per the docs), `search_sources`, and `prompt_sent_at`.
 
 ## No CLI pipeline, two SDK methods
 
@@ -85,8 +88,8 @@ On a plain SERP call the AI answer is the AI Overview block, not AI Mode. The to
 
 | Question | Free move |
 |---|---|
-| Does this engine have a scraper? | the library page at docs.brightdata.com/datasets/scrapers/scrapers-library/ai-scrapers |
-| What is its dataset id? | its control panel page above, API Request Builder tab |
+| Does this engine have a scraper? | `node ../../scrape/scripts/find-scraper.mjs <the engine's domain>` - one GET with `?domain=`, one row each for the four engine domains on 2026-09-06. The library page at docs.brightdata.com/datasets/scrapers/scrapers-library/ai-scrapers is the docs view |
+| What is its dataset id? | the same call, or its control panel page above, API Request Builder tab |
 | Is it available in this country? | the CSV for that engine in the public repo at github.com/brightdata/answer-engines-country-codes, which carries seven of them |
 
-The catalogue check and the empty-body input probe are the same two free moves as for the Google scrapers, and they are listed in `google-scrapers.md`.
+The catalogue check comes first and the empty-body probe is the fallback for an id the catalogue omits. They are the same two free moves as for the Google scrapers, and they are listed in `google-scrapers.md`.

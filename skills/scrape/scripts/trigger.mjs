@@ -43,14 +43,25 @@ const API = (() => {
     return base;
 })();
 
+/** An hour. Past any sane ceiling, and well inside what AbortSignal accepts. */
+const MAX_TIMEOUT_MS = 3_600_000;
+
 /**
  * Per-request ceiling. A server that accepts the socket and then says nothing
  * must not hang the caller, so every request carries it.
  * BRIGHTDATA_REQUEST_TIMEOUT_MS overrides the default.
+ *
+ * AbortSignal.timeout() takes a whole number of milliseconds in [0, 2^32-1] and
+ * throws ERR_OUT_OF_RANGE on anything else, and that throw would happen inside
+ * call(), where every exception is read as a transport failure. Anything that
+ * is not a positive whole number is not used at all, and anything absurd is
+ * clamped.
  */
-const REQUEST_TIMEOUT_MS = Number(process.env.BRIGHTDATA_REQUEST_TIMEOUT_MS) > 0
-  ? Number(process.env.BRIGHTDATA_REQUEST_TIMEOUT_MS)
-  : 15_000;
+const REQUEST_TIMEOUT_MS = (() => {
+  const asked = Number(process.env.BRIGHTDATA_REQUEST_TIMEOUT_MS);
+  if (!Number.isInteger(asked) || asked <= 0) return 15_000;
+  return Math.min(asked, MAX_TIMEOUT_MS);
+})();
 
 const USAGE = 'Usage: node trigger.mjs <dataset_id> <input_url> [--json]';
 
