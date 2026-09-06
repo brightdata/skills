@@ -210,4 +210,4 @@ A plain `crontab` line calling the same `bdata search` command does the same job
 |---|---|
 | What flags does the search command take? | `bdata search --help`. Bare `bdata search` prints only `error: missing required argument 'query'`, with no usage line |
 | Which zone should the REST body name? | `bdata zones --json` lists the account's zones with their type |
-| What inputs does a dataset scraper require? | the empty-body probe in the `scrape` skill's `references/web-scraper-api.md`. It works on the datasets in the two sibling files too |
+| What inputs does a dataset scraper require? | `node ../../scrape/scripts/find-scraper.mjs <gd_ id>`, one read of the scrapers catalogue (`GET /datasets/v3/scrapers`) with typed inputs per variant. The empty-body probe in the `scrape` skill's `references/web-scraper-api.md` is the fallback for an id the catalogue omits, required fields certain and outputs unlisted. Both work on the datasets in the two sibling files too |
