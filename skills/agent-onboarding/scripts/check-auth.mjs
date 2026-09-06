@@ -41,15 +41,26 @@ const FIXES = [
   '  or:   no account yet?           register one by email: SKILL.md, "No account yet"',
 ];
 
-/** Read JSON tolerating a UTF-8 BOM (Windows editors add one). */
-const readJson = p => JSON.parse(readFileSync(p, 'utf8').replace(/^﻿/, ''));
+/**
+ * Read JSON tolerating a UTF-8 BOM (Windows editors add one). The BOM is
+ * written as the \uFEFF escape because a literal one is invisible in a regex.
+ */
+const readJson = p => JSON.parse(readFileSync(p, 'utf8').replace(/^\uFEFF/, ''));
 
 const C = process.stdout.isTTY && !JSON_OUT
   ? { ok: '\x1b[32m', bad: '\x1b[31m', dim: '\x1b[90m', off: '\x1b[0m' }
   : { ok: '', bad: '', dim: '', off: '' };
 
-/** Read the API key without ever printing it. Same order the CLI resolves it in. */
-function readApiKey() {
+/**
+ * A usable key is visible ASCII and nothing else, because that is all an HTTP
+ * header value accepts. A key carrying a newline makes the Authorization header
+ * invalid, and the HTTP stack quotes the offending header back in its error,
+ * key included. Checking the shape here keeps that string from being built.
+ */
+const KEY_SHAPE = /^[\x21-\x7e]+$/;
+
+/** Find the key, in the same order the CLI resolves it in. */
+function findApiKey() {
   if (process.env.BRIGHTDATA_API_KEY) return process.env.BRIGHTDATA_API_KEY.trim();
   const paths = [
     process.env.APPDATA && join(process.env.APPDATA, 'brightdata-cli', 'credentials.json'),
@@ -64,10 +75,34 @@ function readApiKey() {
     try {
       const k = readJson(p).api_key;
       if (k) return k.trim();
-    } catch { /* try next */ }
+    } catch { /* corrupt file, try the next candidate */ }
   }
   return null;
 }
+
+/**
+ * Read the API key without ever printing it.
+ *
+ * Returns { key, illegal }. `illegal` means a value was found and cannot be
+ * used, which is a different fact from finding nothing: the fix is to repair
+ * the credential, not to log in again. The value is never returned or quoted.
+ */
+function readApiKey() {
+  const found = findApiKey();
+  if (!found) return { key: null, illegal: false };
+  if (!KEY_SHAPE.test(found)) return { key: null, illegal: true };
+  return { key: found, illegal: false };
+}
+
+/**
+ * Take the key out of any text on its way to stdout.
+ *
+ * An HTTP stack that rejects a malformed header quotes that header back in its
+ * error, so a failure message can carry "Bearer <key>". The shape check above
+ * keeps that header from being built, and this is the second lock on the same
+ * door: nothing printed here is allowed to contain the key.
+ */
+const scrub = (text, key) => (key ? String(text).split(key).join('<redacted>') : String(text));
 
 /**
  * Zone names out of the listing, in either shape the API uses: a bare array, or
@@ -87,7 +122,15 @@ const zoneNames = body => {
  * from it, so the caller cannot print the secret by accident.
  */
 async function check() {
-  const key = readApiKey();
+  const { key, illegal } = readApiKey();
+  if (illegal) {
+    // Never quotes the value, not even a prefix.
+    return { ok: false, zones: null, missing: null, error: 'bad_api_key', lines: [
+      `${C.bad}x the API key cannot be used: the credential file or env var contains an illegal character${C.off}`,
+      '  a key is printable ASCII with no spaces, so a stray newline or tab breaks it',
+      '  the value is not shown here, on purpose. Set it again from a clean copy:',
+      ...FIXES] };
+  }
   if (!key) {
     return { ok: false, zones: null, missing: null, error: 'no_api_key', lines: [
       `${C.bad}x no API key found - this machine is not logged in${C.off}`, ...FIXES] };
@@ -100,9 +143,12 @@ async function check() {
       signal: AbortSignal.timeout(15_000),
     });
   } catch (e) {
-    return { ok: false, zones: null, missing: null, error: `network: ${e.message}`, lines: [
+    // Fetch failed, DNS died, the socket hung, or the timeout fired. The
+    // message is scrubbed before it is printed or put in the --json error field.
+    const reason = scrub(e?.message ?? String(e), key);
+    return { ok: false, zones: null, missing: null, error: `network: ${reason}`, lines: [
       `${C.bad}x could not reach ${API}${C.off}`,
-      `  ${e.message} - the key was never checked, so this is not an auth failure`,
+      `  ${reason} - the key was never checked, so this is not an auth failure`,
       '  fix the network, proxy or DNS and run this again'] };
   }
 
