@@ -32,15 +32,15 @@ Selenium is the one exception. It speaks WebDriver, not CDP, so it uses `https:/
 
 ## The zone
 
-Login creates `cli_browser`. Confirm it before writing the string:
+Find the Browser API zone by type, not by name, before writing the string:
 
 ```
 bdata zones --json
 ```
 
-Expect an entry with `"name":"cli_browser"` and `"type":"browser_api"`. This is one free read and it starts no session. If `bdata` is not recognized, npm's global directory is not on PATH, and the fix lives in the `agent-onboarding` skill's Install section.
+Take the `name` of the entry whose `"type"` is `"browser_api"`, and use it wherever the connect string says `<ZONE>`. It is `cli_browser` after `bdata login`, `agent_browser_api` on an account made by agent registration, `mcp_browser` when the MCP server set the account up, and any name at all when a person created it by hand: read the type, then use whatever name it carries. This is one free read and it starts no session. If `bdata` is not recognized, npm's global directory is not on PATH, and the fix lives in the `agent-onboarding` skill's Install section.
 
-A missing zone is not a connect string to fix, but it is not an account problem yet either. The first remedy is local: `bdata login` recreates `cli_browser`, and `bdata browser open` creates it on demand as well, though that one starts a billable session, so login is the cheaper route. Escalate to `agent-onboarding` only when the creation itself is refused with `kyc_required` or `business_account_required`.
+No entry of that type at all is not a connect string to fix, but it is not an account problem yet either. The remedy is one free call, `POST https://api.brightdata.com/zone` with body `{"zone":{"name":"cli_browser","type":"browser_api"},"plan":{"type":"browser_api"}}`. `bdata browser open` creates one on demand too, but that starts a billable session. Do not reach for `bdata login` on a machine that is already logged in: it replaces the stored key. Escalate to `agent-onboarding` when the creation is refused with `kyc_required` or `business_account_required`, or on permissions, which means a key from agent registration and a zone the person must make in the Control Panel.
 
 ## The boundaries
 

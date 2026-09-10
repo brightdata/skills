@@ -17,7 +17,7 @@ Every request is unblocked: IP rotation, browser fingerprints, cookies, CAPTCHA 
 bdata fetch https://example.com/article
 ```
 
-Markdown is the default. A first `bdata login` creates `cli_unlocker` and stores it as the zone default, so a fresh login needs no `--zone`. It never overwrites a default you already set. Override with `--zone <name>`, or `BRIGHTDATA_UNLOCKER_ZONE`, or `bdata config set default_zone_unlocker <name>`.
+Markdown is the default. A first `bdata login` creates `cli_unlocker` and stores it as the zone default, so a fresh login needs no `--zone`. It never overwrites a default you already set. An account set up any other way carries its unlocker zone under another name (`agent_unlocker` from agent registration, `mcp_unlocker` from the MCP server, any name at all when a person made it by hand): find it by the entry whose `"type"` is `"unblocker"` in `bdata zones --json`, and pass that name. Override with `--zone <name>`, or `BRIGHTDATA_UNLOCKER_ZONE`, or `bdata config set default_zone_unlocker <name>`.
 
 If `bdata` is not recognized, npm's global directory is not on PATH, and the fix lives in the `agent-onboarding` skill's Install section.
 

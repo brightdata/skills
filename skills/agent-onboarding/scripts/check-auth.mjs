@@ -5,17 +5,24 @@
  * The login success message is not proof, so this asks the API instead:
  *   GET /zone/get_active_zones  -> the key is real, and these zones exist
  *
- * Login creates cli_unlocker and cli_browser, but when that creation fails it
- * only warns and still exits 0. A "successful" login with one of them missing
- * is therefore the normal failure this script exists to catch.
+ * Zones are matched by type, never by name. The name depends on how the
+ * account was set up - login makes cli_unlocker and cli_browser, agent
+ * registration makes agent_unlocker and agent_browser_api, the MCP server
+ * makes mcp_unlocker and mcp_browser, and a zone made by hand carries whatever
+ * name the person chose. The type is the same in every one of those cases, so
+ * the type is what this checks, and the name it finds is what it reports.
+ *
+ * Zone creation can also fail during login while login still exits 0, so an
+ * account with no zone of a needed type at all is the failure this catches.
  *
  * Spends no credits: one read-only listing call, the same one `bdata zones`
  * makes. Exits 1 on any failure, so it can gate a setup script.
  *
  * Usage:  node check-auth.mjs [--json]
  * Auth:   BRIGHTDATA_API_KEY env var, or the CLI's credentials.json.
- * --json: {ok, zones, missing, error} - zones is the active zone count,
- *         missing is the required zones that are absent, error is null when ok.
+ * --json: {ok, zones, found, missing, error} - zones is the active zone count,
+ *         found maps each needed type to the zone name to use for it, missing
+ *         lists the types with no zone, error is null when ok.
  */
 
 import { readFileSync, existsSync } from 'node:fs';
@@ -33,7 +40,15 @@ const API = (() => {
     }
     return base;
 })();
-const NEEDED = ['cli_unlocker', 'cli_browser'];
+/**
+ * The products this checks for, by zone type. `legacy` is only the name login
+ * happens to use, kept for the create-one hint and for the no-type fallback
+ * below. Nothing here compares a name to decide whether a zone is present.
+ */
+const NEEDED = [
+  { type: 'unblocker', label: 'Web Unlocker', legacy: 'cli_unlocker' },
+  { type: 'browser_api', label: 'Browser API', legacy: 'cli_browser' },
+];
 
 const FIXES = [
   '  run:  bdata login               one browser approval (on headless: bdata login --device)',
@@ -105,16 +120,34 @@ function readApiKey() {
 const scrub = (text, key) => (key ? String(text).split(key).join('<redacted>') : String(text));
 
 /**
- * Zone names out of the listing, in either shape the API uses: a bare array, or
- * {zones: [...]}, each holding name strings or {name} objects.
+ * Zones out of the listing, in either shape the API uses: a bare array, or
+ * {zones: [...]}, each holding name strings or {name, type} objects. Returns
+ * {name, type} pairs, with a null type for the bare-string shape.
  *
  * Returns null when the body is neither, which is a different fact from "no
  * zones" - an unreadable listing is no evidence that a zone is absent, so the
  * caller must not send the user back to login over it.
  */
-const zoneNames = body => {
+const zoneList = body => {
   const list = Array.isArray(body) ? body : Array.isArray(body?.zones) ? body.zones : null;
-  return list && list.map(z => (typeof z === 'string' ? z : z?.name)).filter(Boolean);
+  return list && list
+    .map(z => (typeof z === 'string' ? { name: z, type: null } : { name: z?.name, type: z?.type ?? null }))
+    .filter(z => z.name);
+};
+
+/**
+ * The zone to use for one product, found by type.
+ *
+ * The fallback matters only for a listing that carries no types at all, an
+ * unexpected shape rather than an empty account: matching the legacy name
+ * there beats reporting a zone absent on no evidence. As soon as any entry has
+ * a type, the listing is trusted and the type decides.
+ */
+const pickZone = (zones, need) => {
+  const byType = zones.find(z => z.type === need.type);
+  if (byType) return byType;
+  if (zones.some(z => z.type)) return null;
+  return zones.find(z => z.name === need.legacy) ?? null;
 };
 
 /**
@@ -170,32 +203,43 @@ async function check() {
       `${C.bad}x the zone listing was not JSON - the key was not confirmed${C.off}`] };
   }
 
-  const names = zoneNames(body);
-  if (!names) {
+  const zones = zoneList(body);
+  if (!zones) {
     return { ok: false, zones: null, missing: null, error: 'unrecognized_response_shape', lines: [
       `${C.bad}x the API answered, but the shape of the zone listing was not understood${C.off}`,
       '  the listing could not be read, so it says nothing about your zones or your key',
       '  run this again, and report it if it keeps happening'] };
   }
 
-  const missing = NEEDED.filter(n => !names.includes(n));
+  const found = {};
+  for (const need of NEEDED) {
+    const hit = pickZone(zones, need);
+    if (hit) found[need.type] = hit.name;
+  }
+  const missing = NEEDED.filter(need => !found[need.type]);
+
   if (missing.length) {
-    return { ok: false, zones: names.length, missing, error: 'missing_zones', lines: [
-      `${names.length} active zone${names.length === 1 ? '' : 's'}`,
-      `${C.bad}x missing zone: ${missing.join(', ')}${C.off}`,
+    const first = missing[0];
+    return { ok: false, zones: zones.length, found, missing: missing.map(n => n.type), error: 'missing_zones', lines: [
+      `${zones.length} active zone${zones.length === 1 ? '' : 's'}`,
+      `${C.bad}x no zone of type ${missing.map(n => `${n.type} (${n.label})`).join(', ')}${C.off}`,
       '  the key itself works - do NOT run bdata login again, it silently replaces the stored key',
-      '  create the missing zone with one free call instead:  POST https://api.brightdata.com/zone',
-      '  body: {"zone":{"name":"cli_unlocker","type":"unblocker"},"plan":{"type":"unblocker"}}',
-      '  (for cli_browser use "browser_api" as both type and plan)   then run this check again'] };
+      '  no zone serves this product under any name, so create one:  POST https://api.brightdata.com/zone',
+      `  body: {"zone":{"name":"${first.legacy}","type":"${first.type}"},"plan":{"type":"${first.type}"}}`,
+      '  refused on permissions? a key from agent registration cannot create zones,',
+      '  so make the zone in the Control Panel instead.   then run this check again'] };
   }
 
-  return { ok: true, zones: names.length, missing: [], error: null, lines: [
-    `${names.length} active zone${names.length === 1 ? '' : 's'}`,
-    `${C.dim}${NEEDED.join(' and ')} both present${C.off}`,
+  return { ok: true, zones: zones.length, found, missing: [], error: null, lines: [
+    `${zones.length} active zone${zones.length === 1 ? '' : 's'}`,
+    ...NEEDED.map(n => `${C.dim}${n.label}: ${found[n.type]}${C.off}`),
     `${C.ok}account ready${C.off}`] };
 }
 
-const { lines, ...result } = await check();
+// Every path prints the same keys in the same order, so a caller can read
+// `found` without first checking which failure it got.
+const { lines, ...rest } = await check();
+const result = { ok: false, zones: null, found: null, missing: null, error: null, ...rest };
 
 if (JSON_OUT) console.log(JSON.stringify(result, null, 2));
 else for (const l of lines) console.log(l);
