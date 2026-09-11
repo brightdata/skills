@@ -83,8 +83,15 @@ bdata pipelines x_posts "<x-profile-or-post-url>" --json -o x.json
 
 ### Instagram — brand aesthetics, comments, advocacy
 ```bash
-bdata pipelines instagram_posts "https://www.instagram.com/<brand>/" --json -o ig_posts.json
+bdata pipelines instagram_profiles "https://www.instagram.com/<brand>/" --json -o ig_profile.json   # bio, followers, posts_count
 bdata pipelines instagram_comments "<instagram-post-url>" --json -o ig_comments.json
+```
+`instagram_posts` takes a post URL, not a profile URL (a profile URL returns `It is not a post URL`). The brand's recent posts come from the Python SDK, the only route for discovery by profile; details in the `instagram` skill:
+```python
+from brightdata import SyncBrightDataClient
+
+with SyncBrightDataClient(auto_create_zones=False) as client:
+    posts = client.search.instagram.posts("https://www.instagram.com/<brand>/", num_of_posts=20).data
 ```
 
 ### TikTok — cultural relevance, viral sentiment
