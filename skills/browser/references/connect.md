@@ -18,7 +18,7 @@ Host and port are fixed for Playwright and Puppeteer, while Selenium is the exce
 |---|---|---|
 | `<CUSTOMER_ID>` | The account id, prefixed `hl_` | `GET https://api.brightdata.com/status` returns it as `customer` |
 | `<ZONE>` | The Browser API zone name, `cli_browser` after login | `bdata zones --json`, and look for `"type":"browser_api"` |
-| `<PASSWORD>` | The zone's own password, not the API key | `GET https://api.brightdata.com/zone/passwords?zone=cli_browser` returns a `passwords` array, take the first |
+| `<PASSWORD>` | The zone's own password, not the API key | `GET https://api.brightdata.com/zone/passwords?zone=<ZONE>` returns a `passwords` array, take the first |
 
 Both API reads take `Authorization: Bearer $BRIGHTDATA_API_KEY`, cost nothing, and start no browser session. All three also appear together on the zone's Overview tab in the control panel, which is the path for a user who has no CLI.
 

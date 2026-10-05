@@ -63,7 +63,7 @@ None for normal SERP use. Send the user to brightdata.com/cp/kyc only if a call 
 - Read [references/google-scrapers.md](references/google-scrapers.md) when the ask names a Google vertical or wants depth past page one: top 100 results, Shopping, Maps, Hotels or Flights.
 - Read [references/answer-engines.md](references/answer-engines.md) when the query targets ChatGPT, Perplexity, Gemini, Google AI Mode or Copilot.
 - **The general trigger, poll, download mechanics:** the `scrape` skill's `references/web-scraper-api.md`. Not repeated here.
-- **A refused call:** the `agent-onboarding` skill for "No API key found", 401, 407 and a missing `cli_unlocker` or `cli_browser`. A stale or missing serp zone is different: logging in again does not clear it, so fix it in [references/serp.md](references/serp.md)'s zone section. The `billing` skill for cost and credits.
+- **A refused call:** the `agent-onboarding` skill for "No API key found", 401, 407, and an account with no `unblocker` or `serp` zone at all (its `check-auth.mjs --for search`). The zone name does not matter: `cli_unlocker`, `agent_unlocker` and `mcp_unlocker` all work. A stale or missing serp zone is different: logging in again does not clear it, so fix it in [references/serp.md](references/serp.md)'s zone section. The `billing` skill for cost and credits.
 
 ## Red flags - stop if you catch yourself doing one of these
 
