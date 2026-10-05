@@ -17,7 +17,7 @@ Every request is unblocked: IP rotation, browser fingerprints, cookies, CAPTCHA 
 bdata fetch https://example.com/article
 ```
 
-Markdown is the default. A first `bdata login` creates `cli_unlocker` and stores it as the zone default, so a fresh login needs no `--zone`. It never overwrites a default you already set. Override with `--zone <name>`, or `BRIGHTDATA_UNLOCKER_ZONE`, or `bdata config set default_zone_unlocker <name>`.
+Markdown is the default. A first `bdata login` creates `cli_unlocker` and stores it as the zone default, so a fresh login needs no `--zone`. It never overwrites a default you already set. An account set up any other way carries its unlocker zone under another name (`agent_unlocker` from agent registration, `mcp_unlocker` from the MCP server, any name at all when a person made it by hand): find it by the entry whose `"type"` is `"unblocker"` in `bdata zones --json`, and pass that name. Override with `--zone <name>`, or `BRIGHTDATA_UNLOCKER_ZONE`, or `bdata config set default_zone_unlocker <name>`.
 
 If `bdata` is not recognized, npm's global directory is not on PATH, and the fix lives in the `agent-onboarding` skill's Install section.
 
@@ -31,6 +31,8 @@ POST https://api.brightdata.com/request
      {"zone":"cli_unlocker","url":"https://example.com/article",
       "format":"raw","data_format":"markdown"}
 ```
+
+`cli_unlocker` is the name after `bdata login`. On any other account use the name of your `unblocker` zone, as above.
 
 `format` is the envelope and `data_format` is the page. `"format":"raw"` returns the body itself, `"format":"json"` wraps it with status and headers.
 
@@ -71,7 +73,7 @@ Read the error first. A 403 from the target site is not on this list, because th
 
 | The message contains | What it means |
 |---|---|
-| `No Web Unlocker zone specified.` | No zone resolved. Pass `--zone`, or log in again to get `cli_unlocker`. |
+| `No Web Unlocker zone specified.` | No zone resolved. Take the name of the `"type":"unblocker"` entry in `bdata zones --json` and pass it as `--zone`, or save it once with `bdata config set default_zone_unlocker <name>`. Do not log in again: it replaces the stored key. |
 
 Two other refusals are not this skill's to fix. A missing or dead key (`No API key found`, or 401) means the machine is not logged in. A few targets need KYC on the account before Bright Data will serve them: sites that block themselves in robots.txt such as Reddit, government sites, sites on Bright Data's blocked list, and targets its compliance policy does not permit. Most sites need none of this. Both belong to the `agent-onboarding` skill, which carries the exact error codes. Send the user there, and never send anyone to KYC before a call has actually been refused.
 

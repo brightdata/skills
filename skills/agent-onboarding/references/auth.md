@@ -22,7 +22,9 @@ For CI and containers, use the environment variable. Set it from a secrets store
 
 ## A key from registration
 
-When the agent created the account itself (SKILL.md, No account yet), the key is `credential.token` in the response of `POST https://brightdata.com/users/auth/agent_registration/claim/complete`. Install it with `bdata login --api-key <token>` from the program that holds it, which writes the same `credentials.json` and creates the two `cli_` zones, or put it in `BRIGHTDATA_API_KEY` for CI. Read it in-process; never print it or paste it into chat.
+When the agent created the account itself (SKILL.md, No account yet), the key is `credential.token` in the response of `POST https://brightdata.com/users/auth/agent_registration/claim/complete`. Install it with `bdata login --api-key <token>` from the program that holds it, which writes the same `credentials.json`, or put it in `BRIGHTDATA_API_KEY` for CI. Read it in-process; never print it or paste it into chat.
+
+This key is not a full account key. It reads usage and billing, it uses the zones registration created (`agent_serp`, `agent_unlocker`, `agent_browser_api`), and it cannot create or edit zones, administer the account, or reach the proxy networks. So `bdata login --api-key` may warn that it could not create `cli_unlocker` or `cli_browser`. The warning is harmless, because the account already has its own zones, but the CLI still reaches for the `cli_` names: login saves `cli_unlocker` as the default even when it could not create it, and `bdata browser` falls back to `cli_browser`. Point the CLI at the real zones once, before the first call: `bdata config set default_zone_unlocker agent_unlocker`, and pass `--zone agent_browser_api` to `bdata browser` (or set `BRIGHTDATA_BROWSER_ZONE=agent_browser_api`). `scripts/check-auth.mjs` prints these exact lines under `cli` whenever a zone is not named `cli_`.
 
 That completion response also carries the account's `entitlements` (`monthly_credits`, `trial_credit_usd`, `trial_days`). None of the billing reads return them, so keep them if the `billing` skill will need them.
 
@@ -39,7 +41,7 @@ Every non-2xx answer from the three registration endpoints is `{"error": "<code>
 | `invalid_request` | 400 | Malformed body. Fix it and retry |
 | `otp_invalid` | 400 | The code did not match. Ask the user to re-read it and retry |
 | `otp_expired` | 400 | Request a fresh code through `/claim` |
-| `invalid_claim_token`, `claim_expired` | 400 | The pending registration is unusable, or older than 24 hours. Start over |
+| `invalid_claim_token`, `claim_expired` | 400 | The pending registration is unusable, or older than 24 hours. Start over only when a code actually reached the mailbox. When none ever arrived, the address already has an account: stop, and send the user to sign in |
 
 A person can later finish standard signup (password, GitHub, or Google) with the same email and get full access to the same account. That creates no duplicate and does not invalidate the key the agent received.
 

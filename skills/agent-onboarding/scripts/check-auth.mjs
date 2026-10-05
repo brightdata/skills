@@ -5,17 +5,35 @@
  * The login success message is not proof, so this asks the API instead:
  *   GET /zone/get_active_zones  -> the key is real, and these zones exist
  *
- * Login creates cli_unlocker and cli_browser, but when that creation fails it
- * only warns and still exits 0. A "successful" login with one of them missing
- * is therefore the normal failure this script exists to catch.
+ * Zones are matched by type, never by name. The name depends on how the
+ * account was set up - login makes cli_unlocker and cli_browser, agent
+ * registration makes agent_unlocker and agent_browser_api, the MCP server
+ * makes mcp_unlocker and mcp_browser, and a zone made by hand carries whatever
+ * name the person chose. The type is the same in every one of those cases, so
+ * the type is what this checks, and the name it finds is what it reports.
+ *
+ * A zone belongs to a task, not to setup. Fetch needs an unblocker zone, the
+ * browser needs a browser_api zone, search takes either an unblocker or a serp
+ * zone, and Scraper API, Scraper Studio, datasets and billing need no zone at
+ * all. So --for <skill> checks the key plus exactly the zone that skill needs,
+ * and without --for only the key decides; missing zones are then listed as
+ * information, never as a failure.
  *
  * Spends no credits: one read-only listing call, the same one `bdata zones`
- * makes. Exits 1 on any failure, so it can gate a setup script.
+ * makes.
  *
- * Usage:  node check-auth.mjs [--json]
+ * Usage:  node check-auth.mjs [--for <skill>] [--json]
+ *         <skill> is the skill name from the route table in SKILL.md.
  * Auth:   BRIGHTDATA_API_KEY env var, or the CLI's credentials.json.
- * --json: {ok, zones, missing, error} - zones is the active zone count,
- *         missing is the required zones that are absent, error is null when ok.
+ * Exit:   0 ready   1 key works, but no zone for that skill
+ *         2 key missing, malformed or rejected: log in
+ *         3 could not check (network, server, unreadable answer): NOT a login problem
+ *         4 bad usage (unknown skill)
+ * --json: {ok, for, zones, found, missing, cli, error} - ok is the ready
+ *         verdict, found maps each zone type to the zone name to use for it,
+ *         missing lists the zone types the skill could use and none exist,
+ *         cli lists the one-time steps that point the bdata CLI at a zone not
+ *         named cli_*, error is null when ok.
  */
 
 import { readFileSync, existsSync } from 'node:fs';
@@ -33,7 +51,46 @@ const API = (() => {
     }
     return base;
 })();
-const NEEDED = ['cli_unlocker', 'cli_browser'];
+/**
+ * The zone-backed products, by zone type. `legacy` is only the name login
+ * happens to use, kept for the create-one hint, the no-type fallback below and
+ * the CLI wiring hint. Nothing here compares a name to decide whether a zone
+ * is present.
+ */
+const PRODUCTS = {
+  unblocker: { label: 'Web Unlocker', legacy: 'cli_unlocker', registration: 'agent_unlocker',
+    // The CLI reaches for cli_unlocker unless told otherwise (login.ts sets it as
+    // default_zone_unlocker even when it could not create it), so another name
+    // has to be wired in once.
+    wire: name => `bdata config set default_zone_unlocker ${name}` },
+  serp: { label: 'SERP API', legacy: null, registration: 'agent_serp',
+    wire: name => `pass --zone ${name} to bdata search` },
+  browser_api: { label: 'Browser API', legacy: 'cli_browser', registration: 'agent_browser_api',
+    // `bdata browser` has no config key: --zone, then BRIGHTDATA_BROWSER_ZONE, then cli_browser.
+    wire: name => `pass --zone ${name} to bdata browser, or set the env var BRIGHTDATA_BROWSER_ZONE=${name}` },
+};
+
+/**
+ * What each skill in the SKILL.md route table needs: any ONE of these zone
+ * types, in order of preference, or none at all. Scraper API and Scraper
+ * Studio run on the key alone (their calls take a dataset or collector id and
+ * no zone), and so do datasets and billing. The MCP server and the SDKs make
+ * and pick their own zones, so for them too the key is what decides.
+ */
+const SKILLS = {
+  fetch: ['unblocker'],
+  search: ['unblocker', 'serp'],
+  browser: ['browser_api'],
+  scrape: [],
+  datasets: [],
+  billing: [],
+  'brightdata-cli': [],
+  'brightdata-mcp': [],
+  'brightdata-sdk': [],
+};
+
+const forAt = process.argv.indexOf('--for');
+const FOR = forAt === -1 ? null : (process.argv[forAt + 1] ?? '');
 
 const FIXES = [
   '  run:  bdata login               one browser approval (on headless: bdata login --device)',
@@ -105,16 +162,41 @@ function readApiKey() {
 const scrub = (text, key) => (key ? String(text).split(key).join('<redacted>') : String(text));
 
 /**
- * Zone names out of the listing, in either shape the API uses: a bare array, or
- * {zones: [...]}, each holding name strings or {name} objects.
+ * Zones out of the listing, in either shape the API uses: a bare array, or
+ * {zones: [...]}, each holding name strings or {name, type} objects. Returns
+ * {name, type} pairs, with a null type for the bare-string shape.
  *
  * Returns null when the body is neither, which is a different fact from "no
  * zones" - an unreadable listing is no evidence that a zone is absent, so the
  * caller must not send the user back to login over it.
  */
-const zoneNames = body => {
+const zoneList = body => {
   const list = Array.isArray(body) ? body : Array.isArray(body?.zones) ? body.zones : null;
-  return list && list.map(z => (typeof z === 'string' ? z : z?.name)).filter(Boolean);
+  return list && list
+    .map(z => (typeof z === 'string' ? { name: z, type: null } : { name: z?.name, type: z?.type ?? null }))
+    .filter(z => z.name);
+};
+
+/**
+ * The zone to use for one product, found by type.
+ *
+ * The fallback matters only for a listing that carries no types at all, an
+ * unexpected shape rather than an empty account: matching the legacy name
+ * there beats reporting a zone absent on no evidence. As soon as any entry has
+ * a type, the listing is trusted and the type decides.
+ */
+const pickZone = (zones, type) => {
+  const p = PRODUCTS[type];
+  // Several zones can share a type. Prefer the one the CLI uses by default,
+  // then the one agent registration made, so the name reported is the one the
+  // account is most likely already wired to.
+  const ofType = zones.filter(z => z.type === type);
+  const byType = ofType.find(z => z.name === p.legacy)
+    ?? ofType.find(z => z.name === p.registration)
+    ?? ofType[0];
+  if (byType) return byType;
+  if (zones.some(z => z.type)) return null;
+  return (p.legacy && zones.find(z => z.name === p.legacy)) ?? null;
 };
 
 /**
@@ -170,36 +252,83 @@ async function check() {
       `${C.bad}x the zone listing was not JSON - the key was not confirmed${C.off}`] };
   }
 
-  const names = zoneNames(body);
-  if (!names) {
+  const zones = zoneList(body);
+  if (!zones) {
     return { ok: false, zones: null, missing: null, error: 'unrecognized_response_shape', lines: [
       `${C.bad}x the API answered, but the shape of the zone listing was not understood${C.off}`,
       '  the listing could not be read, so it says nothing about your zones or your key',
       '  run this again, and report it if it keeps happening'] };
   }
 
-  const missing = NEEDED.filter(n => !names.includes(n));
-  if (missing.length) {
-    return { ok: false, zones: names.length, missing, error: 'missing_zones', lines: [
-      `${names.length} active zone${names.length === 1 ? '' : 's'}`,
-      `${C.bad}x missing zone: ${missing.join(', ')}${C.off}`,
-      '  the key itself works - do NOT run bdata login again, it silently replaces the stored key',
-      '  create the missing zone with one free call instead:  POST https://api.brightdata.com/zone',
-      '  body: {"zone":{"name":"cli_unlocker","type":"unblocker"},"plan":{"type":"unblocker"}}',
-      '  (for cli_browser use "browser_api" as both type and plan)   then run this check again'] };
+  // Every zone-backed product the account has, by type, whatever its name.
+  const found = {};
+  for (const type of Object.keys(PRODUCTS)) {
+    const hit = pickZone(zones, type);
+    if (hit) found[type] = hit.name;
+  }
+  const head = `${zones.length} active zone${zones.length === 1 ? '' : 's'}, the key works`;
+  const label = type => `${type} (${PRODUCTS[type].label})`;
+
+  // No skill named: the key is the whole verdict. Zones are listed so the
+  // agent knows what is there, and an absent one is information, not failure.
+  if (FOR === null) {
+    const lines = [head, ...Object.keys(PRODUCTS).map(type => (found[type]
+      ? `${C.dim}${PRODUCTS[type].label}: ${found[type]}${C.off}`
+      : `${C.dim}${PRODUCTS[type].label}: none (used by ${Object.keys(SKILLS).filter(s => SKILLS[s].includes(type)).join(', ')} only)${C.off}`)),
+      `${C.ok}logged in${C.off}   for one skill's zone as well, run again with --for <skill>`];
+    return { ok: true, code: 0, zones: zones.length, found, missing: [], cli: [], error: null, lines };
   }
 
-  return { ok: true, zones: names.length, missing: [], error: null, lines: [
-    `${names.length} active zone${names.length === 1 ? '' : 's'}`,
-    `${C.dim}${NEEDED.join(' and ')} both present${C.off}`,
-    `${C.ok}account ready${C.off}`] };
+  const anyOf = SKILLS[FOR];
+  if (!anyOf.length) {
+    return { ok: true, code: 0, zones: zones.length, found, missing: [], cli: [], error: null, lines: [
+      head, `${C.ok}ready for ${FOR}${C.off}: it runs on the key alone, no zone needed`] };
+  }
+
+  const use = anyOf.find(type => found[type]);
+  if (!use) {
+    const make = anyOf[0];
+    const name = PRODUCTS[make].legacy;
+    return { ok: false, code: 1, zones: zones.length, found, missing: anyOf, cli: [], error: 'missing_zone', lines: [
+      head,
+      `${C.bad}x not ready for ${FOR}: no zone of type ${anyOf.map(label).join(' or ')}${C.off}`,
+      '  do NOT run bdata login again, it silently replaces the stored key',
+      '  create one, it costs nothing:  POST https://api.brightdata.com/zone',
+      `  body: {"zone":{"name":"${name}","type":"${make}"},"plan":{"type":"${make}"}}`,
+      '  refused on permissions? a key from agent registration cannot create zones,',
+      '  so make the zone in the Control Panel instead.   then run this check again'] };
+  }
+
+  // A zone the CLI will not find on its own: the account is ready, but the CLI
+  // must be pointed at it once, or it looks for a cli_* name this account
+  // does not have.
+  const cli = found[use] === PRODUCTS[use].legacy ? [] : [PRODUCTS[use].wire(found[use])];
+  return { ok: true, code: 0, zones: zones.length, found, missing: [], cli, error: null, lines: [
+    head,
+    `${C.dim}${PRODUCTS[use].label}: ${found[use]}${C.off}`,
+    ...(cli.length ? ['  for the bdata CLI, point it at this zone once:', ...cli.map(c => `    ${c}`)] : []),
+    `${C.ok}ready for ${FOR}${C.off}`] };
 }
 
-const { lines, ...result } = await check();
+let report;
+if (FOR !== null && !Object.hasOwn(SKILLS, FOR)) {
+  report = { ok: false, code: 4, error: 'unknown_skill', lines: [
+    `${C.bad}x --for needs a skill name from the route table: ${Object.keys(SKILLS).join(', ')}${C.off}`] };
+} else {
+  report = await check();
+}
+
+// Every path prints the same keys in the same order, so a caller can read
+// `found` without first checking which failure it got.
+const { lines, code, ...rest } = report;
+const result = { ok: false, for: FOR, zones: null, found: null, missing: null, cli: null, error: null, ...rest };
 
 if (JSON_OUT) console.log(JSON.stringify(result, null, 2));
 else for (const l of lines) console.log(l);
 
 // process.exitCode, never process.exit(): exiting while a fetch socket is
 // still closing crashes Node on Windows (libuv assertion, exit 0xC0000409).
-process.exitCode = result.ok ? 0 : 1;
+// A failure that set no code of its own is a key failure (2) or a failed
+// check (3), told apart by the error it carries.
+const KEY_ERRORS = ['bad_api_key', 'no_api_key', 'http_401'];
+process.exitCode = code ?? (result.ok ? 0 : KEY_ERRORS.includes(result.error) ? 2 : 3);
