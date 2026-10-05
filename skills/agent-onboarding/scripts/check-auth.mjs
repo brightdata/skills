@@ -20,9 +20,11 @@
  *
  * Usage:  node check-auth.mjs [--json]
  * Auth:   BRIGHTDATA_API_KEY env var, or the CLI's credentials.json.
- * --json: {ok, zones, found, missing, error} - zones is the active zone count,
- *         found maps each needed type to the zone name to use for it, missing
- *         lists the types with no zone, error is null when ok.
+ * --json: {ok, zones, found, missing, cli, error} - zones is the active zone
+ *         count, found maps each needed type to the zone name to use for it,
+ *         missing lists the types with no zone, cli lists the one-time steps
+ *         that point the bdata CLI at a zone not named cli_*, error is null
+ *         when ok.
  */
 
 import { readFileSync, existsSync } from 'node:fs';
@@ -46,8 +48,14 @@ const API = (() => {
  * below. Nothing here compares a name to decide whether a zone is present.
  */
 const NEEDED = [
-  { type: 'unblocker', label: 'Web Unlocker', legacy: 'cli_unlocker' },
-  { type: 'browser_api', label: 'Browser API', legacy: 'cli_browser' },
+  { type: 'unblocker', label: 'Web Unlocker', legacy: 'cli_unlocker', registration: 'agent_unlocker',
+    // The CLI reaches for cli_unlocker unless told otherwise (login.ts sets it as
+    // default_zone_unlocker even when it could not create it), so another name
+    // has to be wired in once.
+    wire: name => `bdata config set default_zone_unlocker ${name}` },
+  { type: 'browser_api', label: 'Browser API', legacy: 'cli_browser', registration: 'agent_browser_api',
+    // `bdata browser` has no config key: --zone, then BRIGHTDATA_BROWSER_ZONE, then cli_browser.
+    wire: name => `pass --zone ${name} to bdata browser, or set the env var BRIGHTDATA_BROWSER_ZONE=${name}` },
 ];
 
 const FIXES = [
@@ -144,7 +152,13 @@ const zoneList = body => {
  * a type, the listing is trusted and the type decides.
  */
 const pickZone = (zones, need) => {
-  const byType = zones.find(z => z.type === need.type);
+  // Several zones can share a type. Prefer the one the CLI uses by default,
+  // then the one agent registration made, so the name reported is the one the
+  // account is most likely already wired to.
+  const ofType = zones.filter(z => z.type === need.type);
+  const byType = ofType.find(z => z.name === need.legacy)
+    ?? ofType.find(z => z.name === need.registration)
+    ?? ofType[0];
   if (byType) return byType;
   if (zones.some(z => z.type)) return null;
   return zones.find(z => z.name === need.legacy) ?? null;
@@ -230,16 +244,21 @@ async function check() {
       '  so make the zone in the Control Panel instead.   then run this check again'] };
   }
 
-  return { ok: true, zones: zones.length, found, missing: [], error: null, lines: [
+  // A zone the CLI will not find on its own: the account is ready, but the CLI
+  // must be pointed at it once, or `bdata scrape` and `bdata browser` look for
+  // cli_* names this account does not have.
+  const cli = NEEDED.filter(n => found[n.type] !== n.legacy).map(n => n.wire(found[n.type]));
+  return { ok: true, zones: zones.length, found, missing: [], cli, error: null, lines: [
     `${zones.length} active zone${zones.length === 1 ? '' : 's'}`,
     ...NEEDED.map(n => `${C.dim}${n.label}: ${found[n.type]}${C.off}`),
+    ...(cli.length ? ['  for the bdata CLI, point it at these zones once:', ...cli.map(c => `    ${c}`)] : []),
     `${C.ok}account ready${C.off}`] };
 }
 
 // Every path prints the same keys in the same order, so a caller can read
 // `found` without first checking which failure it got.
 const { lines, ...rest } = await check();
-const result = { ok: false, zones: null, found: null, missing: null, error: null, ...rest };
+const result = { ok: false, zones: null, found: null, missing: null, cli: null, error: null, ...rest };
 
 if (JSON_OUT) console.log(JSON.stringify(result, null, 2));
 else for (const l of lines) console.log(l);

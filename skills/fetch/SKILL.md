@@ -32,6 +32,8 @@ POST https://api.brightdata.com/request
       "format":"raw","data_format":"markdown"}
 ```
 
+`cli_unlocker` is the name after `bdata login`. On any other account use the name of your `unblocker` zone, as above.
+
 `format` is the envelope and `data_format` is the page. `"format":"raw"` returns the body itself, `"format":"json"` wraps it with status and headers.
 
 For code the user keeps, the SDK wraps this same call in one line: `const html = await client.scrapeUrl('https://example.com/article')`. The `brightdata-sdk` skill owns that surface. The `scrape` skill's web-unlocker reference covers the same one-POST shape and the KYC error codes. The full parameter list, including `render`, `country` and `method`, is in Bright Data's Web Unlocker API docs.
@@ -71,7 +73,7 @@ Read the error first. A 403 from the target site is not on this list, because th
 
 | The message contains | What it means |
 |---|---|
-| `No Web Unlocker zone specified.` | No zone resolved. Pass `--zone`, or log in again to get `cli_unlocker`. |
+| `No Web Unlocker zone specified.` | No zone resolved. Take the name of the `"type":"unblocker"` entry in `bdata zones --json` and pass it as `--zone`, or save it once with `bdata config set default_zone_unlocker <name>`. Do not log in again: it replaces the stored key. |
 
 Two other refusals are not this skill's to fix. A missing or dead key (`No API key found`, or 401) means the machine is not logged in. A few targets need KYC on the account before Bright Data will serve them: sites that block themselves in robots.txt such as Reddit, government sites, sites on Bright Data's blocked list, and targets its compliance policy does not permit. Most sites need none of this. Both belong to the `agent-onboarding` skill, which carries the exact error codes. Send the user there, and never send anyone to KYC before a call has actually been refused.
 

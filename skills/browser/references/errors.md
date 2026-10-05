@@ -39,11 +39,11 @@ Free, read-only, no session started.
 
 | What comes back | What it means |
 |---|---|
-| No `cli_browser` at all | Not a string problem, and not an account problem yet. Read the note under this table. |
-| `cli_browser` present but its `type` is not `browser_api` | Wrong zone type. A Web Unlocker zone will not accept a CDP connect. |
-| `cli_browser` present with `"type":"browser_api"` | The zone is fine. The customer id or the password is the problem. |
+| No entry with `"type":"browser_api"` at all | Not a string problem, and not an account problem yet. Read the note under this table. |
+| The zone in your string is listed, but its `type` is not `browser_api` | Wrong zone type. A Web Unlocker zone will not accept a CDP connect. Use the name of the `browser_api` entry instead. |
+| The zone in your string is listed with `"type":"browser_api"` | The zone is fine. The customer id or the password is the problem. |
 
-This listing returns active zones only, so an absent row cannot tell a zone that was never created from one that exists but is no longer active, which is the same inactive case the `zone_not_found` row above names. The remedy is the same either way and it is local first: `bdata login` recreates `cli_browser`, and `bdata browser open` creates it on demand too, though that one starts a billable session. Only when the creation itself comes back `kyc_required` or `business_account_required` is this an account problem for `agent-onboarding`.
+Match the zone by its type, not its name: it is `cli_browser` after `bdata login`, `agent_browser_api` after agent registration, `mcp_browser` from the MCP server, and any name a person chose. This listing returns active zones only, so an absent row cannot tell a zone that was never created from one that exists but is no longer active, which is the same inactive case the `zone_not_found` row above names. The remedy is the same either way: one free call, `POST https://api.brightdata.com/zone` with body `{"zone":{"name":"cli_browser","type":"browser_api"},"plan":{"type":"browser_api"}}`. Do not run `bdata login` for this, it replaces the stored key. A key from agent registration cannot create zones, so on such an account make the zone in the Control Panel. Only when the creation itself comes back `kyc_required` or `business_account_required` is this an account problem for `agent-onboarding`.
 
 ## The connect that never completed
 
