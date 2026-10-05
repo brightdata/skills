@@ -14,7 +14,7 @@ Install the CLI and the skills, log in once, then route to the task skill.
 Three free checks before doing any work:
 
 1. `bdata --version` works: skip to Add the skills.
-2. `bdata zones --json` prints a zone list: logged in, whatever the zone names are, skip straight to the route table. Judge this check by the printed text, never the exit code: `Error: No API key found.` or `Status: 401` means log in, and a network error means the key was never tested, so fix the connection instead of logging in. A list of unfamiliar zone names is still logged in: names differ by how the account was set up, and nothing here needs a zone called `cli_` anything. Only an account with no zone of a needed type at all needs a fix, and that is one free call (in Log in below) rather than another login.
+2. Pick the skill from the route table below, then run `node scripts/check-auth.mjs --for <skill>` ([scripts/check-auth.mjs](scripts/check-auth.mjs)). One free call, and the exit code is the answer: `0` ready, go to that skill. `2` means log in. `3` means the key was never tested (network or server), so fix that instead of logging in. `1` means the key works but the account has no zone of the type that skill needs, which is one free call (in Log in below), never another login. Zone names do not matter: they differ by how the account was set up, and the script matches by type.
 3. The skill folders already exist in the project: the skills are installed, so skip Add the skills entirely rather than running the installs again.
 
 Check 1 passes but check 2 answers logged out: go to Log in. On Windows, "bdata is not recognized" can also mean installed but not on PATH - apply the PATH fix in Install before reinstalling.
@@ -78,11 +78,11 @@ On SSH, in containers, or on any machine without a browser, use `bdata login --d
 
 Do not use `bdata login --github` in scripts or unattended runs. It shells out to `gh`, and on any failure it drops into an interactive prompt. With no terminal attached (CI, scripts), that prompt never returns.
 
-To confirm login actually worked, run `node scripts/check-auth.mjs --json` ([scripts/check-auth.mjs](scripts/check-auth.mjs) - the same zones check, packaged for scripts). One free call, and it exits nonzero on any failure.
+To confirm login actually worked, run the same `node scripts/check-auth.mjs --for <skill>` as in Already set up. Without `--for` it checks only the key and lists the zones it found.
 
-It matches zones by type, never by name, because the name depends on how the account was set up: `cli_unlocker` and `cli_browser` after login, `agent_unlocker` and `agent_browser_api` after agent registration, `mcp_unlocker` and `mcp_browser` from the MCP server, and any name at all when a person made the zone by hand. Every one of those is fine. The script prints the names it found under `found`, and that is the name to pass wherever a command wants `--zone`.
+It matches zones by type, never by name, because the name depends on how the account was set up: `cli_unlocker` and `cli_browser` after login, `agent_unlocker` and `agent_browser_api` after agent registration, `mcp_unlocker` and `mcp_browser` from the MCP server, and any name at all when a person made the zone by hand. Every one of those is fine. Only `fetch`, `search` and `browser` need a zone at all; Scraper API, Scraper Studio, datasets and billing run on the key alone. When the zone found is not named `cli_`, the script prints the one line that points the CLI at it (also under `cli` in `--json`): run it once.
 
-Only `missing_zones` needs a fix, and it means the account has no zone of that type under any name. That is one free call, not another login: `POST https://api.brightdata.com/zone` with Bearer auth and body `{"zone":{"name":"cli_unlocker","type":"unblocker"},"plan":{"type":"unblocker"}}`, or for the browser zone `{"zone":{"name":"cli_browser","type":"browser_api"},"plan":{"type":"browser_api"}}`. Zone creation costs nothing, and re-running login here would replace the stored key. A key from agent registration cannot create zones at all: when the call is refused on permissions, the person makes the zone in the Control Panel.
+Only exit `1` (`missing_zone`) needs a zone fix, and it means the account has no zone of that type under any name. That is one free call, not another login: `POST https://api.brightdata.com/zone` with Bearer auth and body `{"zone":{"name":"cli_unlocker","type":"unblocker"},"plan":{"type":"unblocker"}}`, or for the browser zone `{"zone":{"name":"cli_browser","type":"browser_api"},"plan":{"type":"browser_api"}}`. Zone creation costs nothing, and re-running login here would replace the stored key. A key from agent registration cannot create zones at all: when the call is refused on permissions, the person makes the zone in the Control Panel.
 
 ## No account yet
 
@@ -98,24 +98,26 @@ Three calls, all `POST` with a JSON body, no key needed:
 
 **When no code arrives, stop.** An address that already has an account gets the same 200 and the same `state: pending` as a new one, and its mailbox receives a notice about the existing account instead of a code. The endpoint does not distinguish the two, on purpose. So a code that never arrives is itself the answer: once `otp_expires_at` has passed with nothing in the mailbox, that address is already registered. Do not call the first endpoint again for it. A second attempt returns the same pending shape and puts a second notice in the user's inbox, and after three starts in an hour the address is rate limited. Tell the user to sign in at brightdata.com with that address instead, using "forgot password" if they need it. One `/auth` call per address, per session.
 
-Hand the key to the CLI without showing it: read `credential.token` inside the program that made the call and run `bdata login --api-key <token>` from there, never by pasting it into chat. That command validates the key and writes `credentials.json`. It may also warn that it could not create `cli_unlocker` or `cli_browser`: that is expected and harmless here, because this key cannot create zones and the account already has its own from registration (`agent_serp`, `agent_unlocker`, `agent_browser_api`). Then run `node scripts/check-auth.mjs --json` as after any login. If `bdata login --api-key` refuses the credential, stop rather than retrying registration: the person claims the account in the Control Panel with the same email (see [references/auth.md](references/auth.md)) and logs in the normal way. The error codes and the action for each are in [references/auth.md](references/auth.md).
+Hand the key to the CLI without showing it: read `credential.token` inside the program that made the call and run `bdata login --api-key <token>` from there, never by pasting it into chat. That command validates the key and writes `credentials.json`. It may also warn that it could not create `cli_unlocker` or `cli_browser`: that is expected and harmless here, because this key cannot create zones and the account already has its own from registration (`agent_serp`, `agent_unlocker`, `agent_browser_api`). Then run `node scripts/check-auth.mjs --for <skill>` as after any login, and run the CLI line it prints. If `bdata login --api-key` refuses the credential, stop rather than retrying registration: the person claims the account in the Control Panel with the same email (see [references/auth.md](references/auth.md)) and logs in the normal way. The error codes and the action for each are in [references/auth.md](references/auth.md).
 
 ## Route to the task skill
 
 Users ask for data, not for tools. When two rows both fit, prefer `scrape`: ready scrapers and Scraper Studio cover most real jobs end to end.
 
-| The user wants | Skill |
-|---|---|
-| To scrape a site, or data or information from it (LinkedIn, Amazon, ...) | `scrape` |
-| A page as markdown, HTML, or a screenshot | `fetch` |
-| Anything starting from a search query | `search` |
-| To point their own browser code at our cloud browser - Playwright, Puppeteer, Selenium, or an AI that clicks by itself | `browser` |
-| A big already-collected corpus, needed once, where months old is fine ("every US company") | `datasets` |
-| Setup, building or testing scrapers, quick one-off checks | `brightdata-cli` |
-| Their AI app to decide at run time | `brightdata-mcp` |
-| Code that repeats the same job on a schedule | `brightdata-sdk` |
-| To build their own API or service on top of Bright Data ("build me a scraper API") | `brightdata-sdk` |
-| Balance, charges, credits used, or what a job will cost | `billing` |
+The skill name is also the `--for` value for `scripts/check-auth.mjs`.
+
+| The user wants | Skill | Zone it needs |
+|---|---|---|
+| To scrape a site, or data or information from it (LinkedIn, Amazon, ...) | `scrape` | none |
+| A page as markdown, HTML, or a screenshot | `fetch` | `unblocker` |
+| Anything starting from a search query | `search` | `unblocker` or `serp` |
+| To point their own browser code at our cloud browser - Playwright, Puppeteer, Selenium, or an AI that clicks by itself | `browser` | `browser_api` |
+| A big already-collected corpus, needed once, where months old is fine ("every US company") | `datasets` | none |
+| Setup, building or testing scrapers, quick one-off checks | `brightdata-cli` | none |
+| Their AI app to decide at run time | `brightdata-mcp` | none |
+| Code that repeats the same job on a schedule | `brightdata-sdk` | none |
+| To build their own API or service on top of Bright Data ("build me a scraper API") | `brightdata-sdk` | none |
+| Balance, charges, credits used, or what a job will cost | `billing` | none |
 
 Torn between CLI, SDK, MCP, or plain REST for the same task: read [references/interfaces.md](references/interfaces.md).
 
