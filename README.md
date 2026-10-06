@@ -69,6 +69,7 @@ Built on Bright Data's [Web Unlocker](https://brightdata.com/products/web-unlock
 | **`search`** | Search Google and get structured JSON results with titles, links, and descriptions |
 | **`scrape`** | Scrape any webpage as clean markdown with automatic bot detection bypass |
 | **`data-feeds`** | Extract structured data from 40+ websites with automatic polling |
+| **`instagram`** | Instagram profiles, posts, reels and comments as JSON — routes between the CLI (one URL each), the Python SDK (the only route for an account's recent posts), and the MCP tools, with the credit costs, timeouts and error-row cases that the docstrings leave out |
 | **`bright-data-mcp`** | Orchestrate 60+ Bright Data MCP tools for search, scraping, structured extraction, and browser automation |
 | **`scraper-builder`** | Build production-ready scrapers for any website — guides through site analysis, API selection, selector extraction, pagination, and complete implementation. Triggers on "build a scraper for..." |
 | **`scraper-studio`** | Build and run AI-generated Bright Data scrapers from the terminal via `bdata scraper create` (generate from a natural-language description) and `bdata scraper run` (execute against a URL). Handles async + poll, `--sync` fast-path, and silent auto-fallback to batch for paginated pages |
@@ -161,7 +162,7 @@ bash skills/search/scripts/search.sh "artificial intelligence trends"
 bash skills/scrape/scripts/scrape.sh "https://example.com/article"
 
 # Get LinkedIn profile data
-bash skills/data-feeds/scripts/datasets.sh linkedin_person_profile "https://linkedin.com/in/satyanadella"
+bdata pipelines linkedin_person_profile "https://linkedin.com/in/satyanadella"
 ```
 
 ---
@@ -715,12 +716,12 @@ bash skills/scrape/scripts/scrape.sh "url"
 Extract structured data from 40+ supported websites.
 
 ```bash
-bash skills/data-feeds/scripts/datasets.sh <dataset_type> <url> [params...]
+bdata pipelines <type> <url> [params...]
 ```
 
-Run without arguments to see all available datasets:
+List every available type:
 ```bash
-bash skills/data-feeds/scripts/datasets.sh
+bdata pipelines list
 ```
 
 ---
@@ -731,58 +732,59 @@ bash skills/data-feeds/scripts/datasets.sh
 
 | Dataset | Command | Description |
 |---------|---------|-------------|
-| Amazon Product | `datasets.sh amazon_product <url>` | Product details, pricing, ratings |
-| Amazon Reviews | `datasets.sh amazon_product_reviews <url>` | Customer reviews |
-| Amazon Search | `datasets.sh amazon_product_search <keyword> <domain>` | Search results |
-| Walmart Product | `datasets.sh walmart_product <url>` | Product details |
-| eBay Product | `datasets.sh ebay_product <url>` | Listing details |
-| Best Buy | `datasets.sh bestbuy_products <url>` | Product info |
-| Etsy | `datasets.sh etsy_products <url>` | Listing data |
-| Home Depot | `datasets.sh homedepot_products <url>` | Product data |
-| Zara | `datasets.sh zara_products <url>` | Product details |
+| Amazon Product | `bdata pipelines amazon_product <url>` | Product details, pricing, ratings |
+| Amazon Reviews | `bdata pipelines amazon_product_reviews <url>` | Customer reviews |
+| Amazon Search | `bdata pipelines amazon_product_search <keyword> <domain>` | Search results |
+| Walmart Product | `bdata pipelines walmart_product <url>` | Product details |
+| eBay Product | `bdata pipelines ebay_product <url>` | Listing details |
+| Best Buy | `bdata pipelines bestbuy_products <url>` | Product info |
+| Etsy | `bdata pipelines etsy_products <url>` | Listing data |
+| Home Depot | `bdata pipelines homedepot_products <url>` | Product data |
+| Zara | `bdata pipelines zara_products <url>` | Product details |
 
 ### Professional Networks
 
 | Dataset | Command | Description |
 |---------|---------|-------------|
-| LinkedIn Person | `datasets.sh linkedin_person_profile <url>` | Profile, experience, skills |
-| LinkedIn Company | `datasets.sh linkedin_company_profile <url>` | Company page data |
-| LinkedIn Jobs | `datasets.sh linkedin_job_listings <url>` | Job posting details |
-| LinkedIn Posts | `datasets.sh linkedin_posts <url>` | Post content |
-| Crunchbase | `datasets.sh crunchbase_company <url>` | Funding, employees |
-| ZoomInfo | `datasets.sh zoominfo_company_profile <url>` | Company profile |
+| LinkedIn Person | `bdata pipelines linkedin_person_profile <url>` | Profile, experience, skills |
+| LinkedIn Company | `bdata pipelines linkedin_company_profile <url>` | Company page data |
+| LinkedIn Jobs | `bdata pipelines linkedin_job_listings <url>` | Job posting details |
+| LinkedIn Posts | `bdata pipelines linkedin_posts <url>` | Post content |
+| Crunchbase | `bdata pipelines crunchbase_company <url>` | Funding, employees |
+| ZoomInfo | `bdata pipelines zoominfo_company_profile <url>` | Company profile |
 
 ### Social Media
 
 | Dataset | Command | Description |
 |---------|---------|-------------|
-| Instagram Profiles | `datasets.sh instagram_profiles <url>` | Bio, followers |
-| Instagram Posts | `datasets.sh instagram_posts <url>` | Post details |
-| Instagram Reels | `datasets.sh instagram_reels <url>` | Reel metrics |
-| TikTok Profiles | `datasets.sh tiktok_profiles <url>` | Creator data |
-| TikTok Posts | `datasets.sh tiktok_posts <url>` | Video details |
-| TikTok Shop | `datasets.sh tiktok_shop <url>` | Product data |
-| Facebook Posts | `datasets.sh facebook_posts <url>` | Post content |
-| Facebook Marketplace | `datasets.sh facebook_marketplace_listings <url>` | Listings |
-| X (Twitter) | `datasets.sh x_posts <url>` | Tweet data |
-| YouTube Profiles | `datasets.sh youtube_profiles <url>` | Channel data |
-| YouTube Videos | `datasets.sh youtube_videos <url>` | Video details |
-| YouTube Comments | `datasets.sh youtube_comments <url> [num]` | Comments |
-| Reddit Posts | `datasets.sh reddit_posts <url>` | Post data |
+| Instagram Profiles | `bdata pipelines instagram_profiles <url>` | Bio, followers |
+| Instagram Posts | `bdata pipelines instagram_posts <url>` | Post details |
+| Instagram Reels | `bdata pipelines instagram_reels <url>` | Reel metrics |
+| Instagram Comments | `bdata pipelines instagram_comments <url>` | Comments on a post |
+| TikTok Profiles | `bdata pipelines tiktok_profiles <url>` | Creator data |
+| TikTok Posts | `bdata pipelines tiktok_posts <url>` | Video details |
+| TikTok Shop | `bdata pipelines tiktok_shop <url>` | Product data |
+| Facebook Posts | `bdata pipelines facebook_posts <url>` | Post content |
+| Facebook Marketplace | `bdata pipelines facebook_marketplace_listings <url>` | Listings |
+| X (Twitter) | `bdata pipelines x_posts <url>` | Tweet data |
+| YouTube Profiles | `bdata pipelines youtube_profiles <url>` | Channel data |
+| YouTube Videos | `bdata pipelines youtube_videos <url>` | Video details |
+| YouTube Comments | `bdata pipelines youtube_comments <url> [num]` | Comments |
+| Reddit Posts | `bdata pipelines reddit_posts <url>` | Post data |
 
 ### Other
 
 | Dataset | Command | Description |
 |---------|---------|-------------|
-| Google Maps Reviews | `datasets.sh google_maps_reviews <url> [days]` | Business reviews |
-| Google Shopping | `datasets.sh google_shopping <url>` | Product comparison |
-| Google Play Store | `datasets.sh google_play_store <url>` | App details |
-| Apple App Store | `datasets.sh apple_app_store <url>` | iOS app data |
-| Yahoo Finance | `datasets.sh yahoo_finance_business <url>` | Stock data |
-| Zillow | `datasets.sh zillow_properties_listing <url>` | Property listings |
-| Booking.com | `datasets.sh booking_hotel_listings <url>` | Hotel data |
-| Reuters News | `datasets.sh reuter_news <url>` | Article content |
-| GitHub | `datasets.sh github_repository_file <url>` | Repository file |
+| Google Maps Reviews | `bdata pipelines google_maps_reviews <url> [days]` | Business reviews |
+| Google Shopping | `bdata pipelines google_shopping <url>` | Product comparison |
+| Google Play Store | `bdata pipelines google_play_store <url>` | App details |
+| Apple App Store | `bdata pipelines apple_app_store <url>` | iOS app data |
+| Yahoo Finance | `bdata pipelines yahoo_finance_business <url>` | Stock data |
+| Zillow | `bdata pipelines zillow_properties_listing <url>` | Property listings |
+| Booking.com | `bdata pipelines booking_hotel_listings <url>` | Hotel data |
+| Reuters News | `bdata pipelines reuter_news <url>` | Article content |
+| GitHub | `bdata pipelines github_repository_file <url>` | Repository file |
 
 ---
 
@@ -819,19 +821,19 @@ bdata pipelines linkedin_company_profile "https://www.linkedin.com/company/notio
 ### Social Media Monitoring
 ```bash
 # Get Instagram profile
-bash skills/data-feeds/scripts/datasets.sh instagram_profiles "https://instagram.com/natgeo"
+bdata pipelines instagram_profiles "https://www.instagram.com/natgeo/"
 
 # Get YouTube video stats
-bash skills/data-feeds/scripts/datasets.sh youtube_videos "https://youtube.com/watch?v=dQw4w9WgXcQ"
+bdata pipelines youtube_videos "https://youtube.com/watch?v=dQw4w9WgXcQ"
 ```
 
 ### Lead Generation
 ```bash
 # Get LinkedIn profile
-bash skills/data-feeds/scripts/datasets.sh linkedin_person_profile "https://linkedin.com/in/satyanadella"
+bdata pipelines linkedin_person_profile "https://linkedin.com/in/satyanadella"
 
 # Get company funding data
-bash skills/data-feeds/scripts/datasets.sh crunchbase_company "https://crunchbase.com/organization/openai"
+bdata pipelines crunchbase_company "https://crunchbase.com/organization/openai"
 ```
 
 ---
@@ -855,10 +857,15 @@ brightdata-plugin/
 │   │   └── scripts/
 │   │       └── scrape.sh        # Web scraper implementation
 │   ├── data-feeds/
-│   │   ├── SKILL.md             # Data feeds skill
-│   │   └── scripts/
-│   │       ├── datasets.sh      # Dataset wrapper (40+ sources)
-│   │       └── fetch.sh         # Core polling logic
+│   │   ├── SKILL.md             # Data feeds skill (bdata pipelines)
+│   │   └── references/
+│   │       ├── examples.md      # Worked pipeline calls
+│   │       ├── flags.md         # CLI flags
+│   │       └── patterns.md      # Loops, timeouts, batching
+│   ├── instagram/
+│   │   ├── SKILL.md             # Instagram: CLI, SDK and MCP routes, costs, error rows
+│   │   └── references/
+│   │       └── sdk.md           # Every SDK call, complete snippets
 │   ├── bright-data-mcp/
 │   │   ├── SKILL.md             # MCP workflow guide
 │   │   └── references/
