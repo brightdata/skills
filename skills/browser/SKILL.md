@@ -42,7 +42,7 @@ bdata zones --json
 
 Take the `name` of the entry whose `"type"` is `"browser_api"`, and use it wherever the connect string says `<ZONE>`. It is `cli_browser` after `bdata login`, `agent_browser_api` on an account made by agent registration, `mcp_browser` when the MCP server set the account up, and any name at all when a person created it by hand: read the type, then use whatever name it carries. This is one free read and it starts no session. If `bdata` is not recognized, npm's global directory is not on PATH, and the fix lives in the `agent-onboarding` skill's Install section.
 
-No entry of that type at all is not a connect string to fix, but it is not an account problem yet either. The remedy is one free call, `POST https://api.brightdata.com/zone` with body `{"zone":{"name":"cli_browser","type":"browser_api"},"plan":{"type":"browser_api"}}`. `bdata browser open` creates one on demand too, but that starts a billable session, and it uses the name `cli_browser` unless given `--zone <name>` or `BRIGHTDATA_BROWSER_ZONE`, so on an account whose browser zone has another name, pass that name or it makes a second zone. Do not reach for `bdata login` on a machine that is already logged in: it replaces the stored key. Escalate to `agent-onboarding` when the creation is refused with `kyc_required` or `business_account_required`, or on permissions, which means a key from agent registration and a zone the person must make in the Control Panel.
+No entry of that type at all is not a connect string to fix, but it is not an account problem yet either. The remedy, after the user agrees (it changes their account), is one free call, `POST https://api.brightdata.com/zone` with body `{"zone":{"name":"cli_browser","type":"browser_api"},"plan":{"type":"browser_api"}}`. `bdata browser open` creates one on demand too, but that starts a billable session, and it uses the name `cli_browser` unless given `--zone <name>` or `BRIGHTDATA_BROWSER_ZONE`, so on an account whose browser zone has another name, pass that name or it makes a second zone. Do not reach for `bdata login` on a machine that is already logged in: it replaces the stored key. Escalate to `agent-onboarding` when the creation is refused with `kyc_required` or `business_account_required`, or on permissions, which means a key from agent registration and a zone the person must make in the Control Panel.
 
 ## The boundaries
 
@@ -65,7 +65,7 @@ Typing passwords through Browser API is blocked by default. It needs KYC plus a 
 - Printing, logging, or committing the assembled endpoint, which carries the password, or printing a connect error without redacting it
 - Running `bdata zones info <zone>` in a terminal: it prints the zone password
 - Leaving the user a variable to fill, or asking for a key, when the agent can read the stored key itself
-- Hardcoding a zone name in the script instead of finding the `browser_api` zone by type
 - Retrying a 407 without reading which code came with it
 - Sending the user to KYC before an error actually refused the connect
-- Guessing a zone name instead of running `bdata zones --json`
+- Hardcoding or guessing a zone name instead of finding the `browser_api` zone by type
+- Creating a zone without asking the user first

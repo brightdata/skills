@@ -12,8 +12,8 @@ A 407 at connect is proxy authentication. It is not a driver bug and not a netwo
 | `client_10001` | Malformed username, e.g. a bad `-country-` suffix | Fix the string shape, retry once |
 | `client_10002` | Zone not found or not active | Re-find the zone by type `browser_api` (below), retry once |
 | `client_10010` | No credentials in the URL | The endpoint was empty or lost its `user:pass@`; check what the script passed |
-| `client_10020` | Account suspended | Stop. Account problem for `agent-onboarding` |
-| `client_10030` | Client IP not allowlisted for the zone | Stop. Tell the user the zone's IP allowlist must include this machine |
+| `client_10020` | Account suspended | Stop. The user reactivates it at brightdata.com/cp/setting/billing (`billing` skill) |
+| `client_10030` | Client IP not allowlisted for the zone (also returned by api.brightdata.com when the account restricts API access by IP) | Stop. Tell the user the allowlist must include this machine |
 | `client_10040` | KYC required: the account is not approved for this | Stop. Route to `agent-onboarding` and brightdata.com/cp/kyc. Do not retry until approved |
 | nothing readable | The driver swallowed the error text | Read the raw connect error (redacted), not just the status, before changing anything |
 
@@ -21,7 +21,7 @@ A 407 at connect is proxy authentication. It is not a driver bug and not a netwo
 
 ## Browser API auth codes
 
-The Browser API docs also name these auth errors. They may appear in the error text instead of, or next to, a `client_100xx` code.
+The Browser API error page also lists these codes; the docs do not say whether they arrive with a 407.
 
 | Code | What the docs report | Which piece is wrong |
 |---|---|---|
@@ -32,7 +32,7 @@ The Browser API docs also name these auth errors. They may appear in the error t
 
 One trap is worth naming before reading any code: the password in the endpoint is the zone's own password, not the account API key. An API key in the password slot will always be refused.
 
-Connect errors can echo the full URL, password included. Replace `://<anything>@` with `://<redacted>@` before printing or logging any of them.
+Connect errors can echo the full URL, password included. Mask the zone password in them before printing or logging (connect.md shows how).
 
 ## Check the cheap thing before touching the string
 
@@ -48,7 +48,7 @@ Free, read-only, no session started.
 | The zone in your string is listed, but its `type` is not `browser_api` | Wrong zone type. A Web Unlocker zone will not accept a CDP connect. Use the name of the `browser_api` entry instead. |
 | The zone in your string is listed with `"type":"browser_api"` | The zone is fine. The customer id or the password is the problem. |
 
-Match the zone by its type, not its name: it is `cli_browser` after `bdata login`, `agent_browser_api` after agent registration, `mcp_browser` from the MCP server, and any name a person chose. This listing returns active zones only, so an absent row cannot tell a zone that was never created from one that exists but is no longer active, which is the same inactive case the `zone_not_found` row above names. The remedy is the same either way: one free call, `POST https://api.brightdata.com/zone` with body `{"zone":{"name":"cli_browser","type":"browser_api"},"plan":{"type":"browser_api"}}`. Do not run `bdata login` for this, it replaces the stored key. A key from agent registration cannot create zones, so on such an account make the zone in the Control Panel. Only when the creation itself comes back `kyc_required` or `business_account_required` is this an account problem for `agent-onboarding`.
+Match the zone by its type, not its name: it is `cli_browser` after `bdata login`, `agent_browser_api` after agent registration, `mcp_browser` from the MCP server, and any name a person chose. This listing returns active zones only, so an absent row cannot tell a zone that was never created from one that exists but is no longer active, which is the same inactive case the `zone_not_found` row above names. The remedy is the same either way, after the user agrees (it changes their account): one free call, `POST https://api.brightdata.com/zone` with body `{"zone":{"name":"cli_browser","type":"browser_api"},"plan":{"type":"browser_api"}}`. Do not run `bdata login` for this, it replaces the stored key. A key from agent registration cannot create zones, so on such an account make the zone in the Control Panel. Only when the creation itself comes back `kyc_required` or `business_account_required` is this an account problem for `agent-onboarding`.
 
 ## The connect that never completed
 

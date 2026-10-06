@@ -35,22 +35,22 @@ Every call sends `Authorization: Bearer <key>` to `https://api.brightdata.com`. 
 | `<ZONE>` | `GET /zone/get_active_zones` (same as `bdata zones --json`) | `name` of an entry whose `type` is `browser_api`. Match by type, never by name: names differ per account |
 | `<PASSWORD>` | `GET /zone/passwords?zone=<ZONE>` | `passwords[0]`. This is the zone's password, not the API key |
 
-`BRIGHTDATA_BROWSER_ZONE`, when set, names the zone and skips the search. When the account has several `browser_api` zones and no override, ask the user once which to use and record the answer in that variable. No `browser_api` zone at all: see SKILL.md, The zone.
+`BRIGHTDATA_BROWSER_ZONE` (the CLI's own zone override), when set, names the zone. Otherwise the script takes the first `browser_api` zone. Tell the user which zone it used and that the variable overrides it; ask only if they named a zone. No `browser_api` zone at all: see SKILL.md, The zone.
 
 Do not use `bdata zones info <zone>` to get the password: it prints it to the terminal.
 
 ## The agent finishes the job
 
-Do not hand the user placeholders to fill. Do the reads above yourself, wire the result into the script, run it once, and report whether it connected. Pick one of two designs and say which you picked and why.
+Do not hand the user placeholders to fill. Do the reads above yourself, wire the result into the script, run it once, and report whether it connected. Pick one of two designs and say which you picked and why. Default to B; choose A only when whoever runs the script has no Bright Data login.
 
 | | A. Endpoint in a secret | B. Look up at run time |
 |---|---|---|
 | Script reads | One variable holding the full endpoint | The API key, then the three reads |
 | Who fills it | The agent, once, from the three reads | Nobody; the script does it every run |
-| Exposed to the script | Only the zone password | The full account API key |
-| Pick when | CI, servers, containers, or anyone running it who should not hold the account key | Every machine that runs it is already logged in (CLI or `BRIGHTDATA_API_KEY`), e.g. each person on their own account |
+| Exposed to the script | Only the zone password | The account API key |
+| Pick when | CI, servers, containers, or anyone running it who should not hold the account key | Every machine that runs it is already logged in (CLI or `BRIGHTDATA_API_KEY`), e.g. developers' laptops |
 
-The variable name in A is the project's own choice: no Bright Data tool sets or reads it, so the agent that picks it must also fill it. Fill it without the value passing through the screen: pipe it straight into the secrets store (for example a CI secret command reading stdin), or into the user's own shell environment. A local `.env` is the last resort: it puts the zone password on disk in plaintext, so only with the file git-ignored, readable by the user alone, and the user told so.
+The variable name in A is the project's own choice: no Bright Data tool sets or reads it, so the agent that picks it must also fill it. Fill it without the value passing through the screen: pipe it straight into the secrets store (for example `node -e "<build and print endpoint>" | gh secret set NAME`; never run the inner command bare, as in `agent-onboarding` auth.md). A local `.env` is the last resort: it puts the zone password on disk in plaintext, so only with the file git-ignored, readable by the user alone, and the user told so.
 
 A script can support both: use the endpoint variable when it is set, else look up.
 
@@ -67,43 +67,65 @@ After:
 
 ```js
 import { chromium } from 'playwright';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-function apiKey() {
-  if (process.env.BRIGHTDATA_API_KEY) return process.env.BRIGHTDATA_API_KEY;
-  const dir = process.platform === 'win32' ? join(process.env.APPDATA || join(homedir(), 'AppData', 'Roaming'), 'brightdata-cli')
-    : process.platform === 'darwin' ? join(homedir(), 'Library', 'Application Support', 'brightdata-cli')
-    : join(homedir(), '.config', 'brightdata-cli');
-  try { return JSON.parse(readFileSync(join(dir, 'credentials.json'), 'utf8')).api_key; }
-  catch { throw new Error('No Bright Data API key: run `bdata login` or set BRIGHTDATA_API_KEY'); }
+// Where `bdata login` stores the key, per OS (same folders the CLI uses).
+const CLI_DIRS = {
+  win32: [homedir(), 'AppData', 'Roaming', 'brightdata-cli'],
+  darwin: [homedir(), 'Library', 'Application Support', 'brightdata-cli'],
+};
+
+function loadApiKey() {
+  const fromEnv = process.env.BRIGHTDATA_API_KEY?.trim();
+  if (fromEnv) return fromEnv;
+  const file = join(...(CLI_DIRS[process.platform] ?? [homedir(), '.config', 'brightdata-cli']), 'credentials.json');
+  const stored = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')).api_key : undefined;
+  if (!stored) throw new Error('Bright Data is not set up on this machine (no BRIGHTDATA_API_KEY, no CLI login).');
+  return stored;
 }
 
-async function brightdataEndpoint() {
-  const headers = { Authorization: `Bearer ${apiKey()}` };
-  const get = async (path) => {
-    const res = await fetch(`https://api.brightdata.com${path}`, { headers });
-    if (!res.ok) throw new Error(`Bright Data ${path.split('?')[0]}: HTTP ${res.status}`);
-    return res.json();
-  };
-  const { customer } = await get('/status');
-  const zone = process.env.BRIGHTDATA_BROWSER_ZONE
-    || (await get('/zone/get_active_zones')).find((z) => z.type === 'browser_api')?.name;
-  if (!zone) throw new Error('No browser_api zone on this account');
-  const { passwords } = await get(`/zone/passwords?zone=${encodeURIComponent(zone)}`);
-  return `wss://brd-customer-${customer}-zone-${zone}:${passwords[0]}@brd.superproxy.io:9222`;
+async function bdGet(apiKey, path) {
+  const res = await fetch(new URL(path, 'https://api.brightdata.com'), {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  if (!res.ok) throw new Error(`api.brightdata.com refused ${path.replace(/\?.*/, '')} (${res.status})`);
+  return res.json();
 }
 
-const redact = (e) => String(e?.message || e).replace(/:\/\/[^@\s]+@/g, '://<redacted>@');
-let browser;
-try { browser = await chromium.connectOverCDP(await brightdataEndpoint()); }
-catch (e) { console.error(redact(e)); process.exit(1); }
+// Builds the endpoint the same way `bdata browser open` does, but picks the zone by type.
+async function cdpEndpoint({ country } = {}) {
+  const apiKey = loadApiKey();
+  const { customer } = await bdGet(apiKey, '/status');
+  if (!customer) throw new Error('/status returned no customer id.');
+
+  let zone = process.env.BRIGHTDATA_BROWSER_ZONE?.trim();
+  if (!zone) {
+    const zones = await bdGet(apiKey, '/zone/get_active_zones');
+    zone = zones.filter((z) => z.type === 'browser_api').map((z) => z.name)[0];
+  }
+  if (!zone) throw new Error('This account has no active Browser API zone.');
+
+  const { passwords = [] } = await bdGet(apiKey, `/zone/passwords?zone=${encodeURIComponent(zone)}`);
+  const password = passwords[0];
+  if (!password) throw new Error(`Zone "${zone}" has no password to connect with.`);
+
+  const cc = country?.trim().toLowerCase();
+  if (cc && !/^[a-z]{2}$/.test(cc)) throw new Error('Country must be a two-letter ISO code.');
+  const user = `brd-customer-${customer}-zone-${zone}${cc ? `-country-${cc}` : ''}`;
+  return { zone, password, url: `wss://${user}:${password}@brd.superproxy.io:9222` };
+}
+
+const cdp = await cdpEndpoint();
+console.error(`Using Browser API zone ${cdp.zone}`);
+const browser = await chromium.connectOverCDP(cdp.url).catch((err) => {
+  // The driver may echo the URL; strip the password before anything is shown.
+  throw new Error(String(err?.message ?? err).split(cdp.password).join('****'));
+});
 ```
 
-Everything after that line (`newPage`, `goto`, selectors, `close`) stays as the user wrote it. `headless` is gone because the remote browser decides that. Top-level `await` needs an ES module: `.mjs`, or `"type": "module"` in `package.json`. For design A, replace `await brightdataEndpoint()` with the variable, and fail with a clear message when it is unset.
-
-Driver connect errors can include the full URL with the password. Always pass them through a redaction like the one above before printing or logging.
+Everything after that line (`newPage`, `goto`, selectors, `close`) stays as the user wrote it. `headless` is gone because the remote browser decides that. Top-level `await` needs an ES module: `.mjs`, or `"type": "module"` in `package.json`. For design A, replace `cdp.url` with the variable, fail with a clear message when it is unset, and still mask the password in connect errors.
 
 ## Puppeteer
 
