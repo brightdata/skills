@@ -21,7 +21,7 @@ All three pieces are read with the account API key. Resolve it the way the CLI d
    - Linux: `~/.config/brightdata-cli/credentials.json`
    - macOS: `~/Library/Application Support/brightdata-cli/credentials.json`
    - Windows: `%APPDATA%\brightdata-cli\credentials.json`
-3. Neither exists: the user is not set up. Hand off to the `agent-onboarding` skill. Never ask the user to paste a key into chat.
+3. Neither exists: the user is not set up. Hand off to the `agent-onboarding` skill (its Log in section: you start the login in the background, the user approves it). Never ask the user to paste a key into chat.
 
 After `bdata login` the environment variable is normally empty and the key is only in the file. That is a logged-in machine, not a missing key. Reading the stored key in code is expected and allowed (`agent-onboarding`, `references/auth.md`, "Reading the key in code"): do it in-process and never print it.
 
