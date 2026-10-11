@@ -31,7 +31,7 @@ import { bdclient } from '@brightdata/sdk';
 const client = new bdclient();
 ```
 
-The client implements `Symbol.asyncDispose`, so `await using client = new bdclient()` disposes it when the scope ends and no explicit close is needed. That form wants TypeScript 5.2 or newer, or a runtime that supports explicit resource management. Everywhere else, close by hand with `await client.close()`, which is what the disposer calls anyway. Closing is not optional either way, because the client holds an undici connection pool that will keep a process alive.
+The client implements `Symbol.asyncDispose`, so `await using client = new bdclient()` disposes it when the scope ends and no explicit close is needed. That form wants TypeScript 5.2 or newer, or a runtime that supports explicit resource management. Everywhere else, close by hand with `await client.close()`, which is what the disposer calls anyway. Close it either way: the client holds an undici connection pool, and skipping `close()` leaks it, with a `[brightdata-sdk] ... Transport(s) were not closed` warning when the process exits.
 
 ## The key
 

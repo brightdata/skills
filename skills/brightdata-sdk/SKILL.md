@@ -28,7 +28,7 @@ Two neighbours own the other cases. A one-off check typed at a shell is `brightd
 
 Install, login and API key problems belong to `agent-onboarding`, which owns credential paths and what a refused call means. See its `references/auth.md`.
 
-The one fact this skill needs: both SDKs read `BRIGHTDATA_API_TOKEN` first, accept `BRIGHTDATA_API_KEY` as an alternate, and fall back to the credentials the Bright Data CLI stored at login. Never write a key into source. Both reference files show the key coming from the environment.
+The one fact this skill needs: both SDKs read `BRIGHTDATA_API_TOKEN` first, accept `BRIGHTDATA_API_KEY` as an alternate, and fall back to the credentials the Bright Data CLI stored at login. Never write a key into source. Both reference files show the key coming from the environment. To check that a key exists, run `node scripts/check-auth.mjs` from the `agent-onboarding` skill; never `cat`, `echo` or `jq` the credentials file or the variable, because whatever a command prints lands in the conversation and its logs.
 
 ## What both packages cover
 
