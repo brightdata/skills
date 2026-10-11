@@ -1,291 +1,169 @@
-# Bright Data CLI — Full Command Reference
+# The bdata command surface
 
-**Package:** `@brightdata/cli` | **Commands:** `brightdata` / `bdata` (shorthand) | **Requires:** Node.js >= 20
+Answers the question "which command and which flag does this job, and where does the CLI get the key from".
 
-## Installation
+## Contents
 
-```bash
-# macOS / Linux
-curl -fsSL https://cli.brightdata.com/install.sh | bash
+- [The shape of every command](#the-shape-of-every-command)
+- [Where the key comes from](#where-the-key-comes-from)
+- [Sign in and check the account](#sign-in-and-check-the-account)
+- [Get data](#get-data)
+- [Zone resolution and the stale SERP zone](#zone-resolution-and-the-stale-serp-zone)
+- [Build and fix a scraper](#build-and-fix-a-scraper)
+- [Drive a browser](#drive-a-browser)
+- [Wire up a repo](#wire-up-a-repo)
+- [Not in the CLI](#not-in-the-cli)
 
-# Any platform
-npm install -g @brightdata/cli
+## The shape of every command
 
-# Without installing
-npx --yes --package @brightdata/cli brightdata <command>
+Two binaries, one tool: `bdata` and `brightdata`. The CLI's own messages and examples say `brightdata`, with one exception: the next-step lines that `scraper create` and `scraper heal` print are spelled `bdata`.
+
+Global options, valid before any subcommand:
+
+| Option | Does |
+|---|---|
+| `-v, --version` | Print the version and exit |
+| `-k, --api-key <key>` | Use this key, overriding env and stored credentials |
+| `--timing` | Print request timing |
+| `-h, --help` | Help for the command or subcommand it follows |
+
+Most data commands also take `-o, --output <path>`, `--json`, and `--pretty`. `-o` picks the format from the file extension. Use `--json --pretty` whenever something downstream parses the output.
+
+Full command list: `login`, `logout`, `scrape`, `search`, `pipelines`, `status`, `zones`, `config`, `init`, `version`, `skill`, `budget`, `browser`, `discover`, `scraper`, `add`, `help`.
+
+Every table below is mapped from `--help` on the matching subcommand of `@brightdata/cli`.
+
+## Where the key comes from
+
+Resolution order, highest first: the `--api-key` flag, then the `BRIGHTDATA_API_KEY` environment variable, then `credentials.json` in the CLI's own config directory.
+
+For the exact paths, the file shape, and what each refused call means, read the agent-onboarding skill's references/auth.md. Never print the key.
+
+## Sign in and check the account
+
+| Command | Purpose | Key flags |
+|---|---|---|
+| `login` | Authenticate and store the key | `-d, --device` (headless and SSH safe), `-k, --api-key <key>`, `-c, --customer-id <id>`, `-g, --github` |
+| `logout` | Delete the stored credentials | none |
+| `init` | Interactive setup wizard for auth and zone defaults | `--skip-auth`, `-k, --api-key <key>` |
+| `zones` | List active zones. The one free account check | `--json`, `--pretty`, `-o` |
+| `zones info <name>` | Detail for a single zone | `--json`, `--pretty`, `-o` |
+| `budget balance` | Account balance | `--json`, `--pretty` |
+| `budget zones` | Cost and bandwidth across all active zones | `--from <date>`, `--to <date>` |
+| `budget zone <name>` | Cost and bandwidth for one zone | `--from <date>`, `--to <date>` |
+| `config` | Print the whole local config | `--json`, `--pretty`, `-o` |
+| `config get <key>` | Read one value | none |
+| `config set <key> <value>` | Write one value | none |
+| `version` | Version detail | `--json`, `--pretty` |
+
+Only four config keys exist: `default_zone_unlocker`, `default_zone_serp`, `default_format`, `api_url`. Anything else is rejected.
+
+The full flow, the zones it creates, and the `--github` warning live in the agent-onboarding skill. Re-running `login` on a machine that is already authenticated silently replaces the stored key and breaks anything still using the old one, so run `bdata zones --json` first and skip the login if it succeeds.
+
+## Get data
+
+| Command | Purpose | Key flags |
+|---|---|---|
+| `scrape <url>` | One page through Web Unlocker | `-f, --format <markdown\|html\|screenshot\|json>`, `--country <code>`, `--zone <name>`, `--async` (`--mobile` is accepted but not yet sent with the request) |
+| `search <query>` | SERP results | `--engine <google\|bing\|yandex>`, `--type <web\|news\|images\|shopping>`, `--country`, `--language`, `--page <n>`, `--device <desktop\|mobile>`, `--zone <name>` |
+| `discover <query>` | Web results ranked by a stated intent | `--intent <text>`, `--num-results <n>`, `--filter-keywords <words>`, `--include-content`, `--country` (default `US`), `--city`, `--language` (default `en`), `--start-date`, `--end-date`, `--no-remove-duplicates`, `--timeout <s>` |
+| `pipelines <type> [params...]` | Structured records from a supported site | `--format <json\|csv\|ndjson\|jsonl>`, `--timeout <s>` |
+| `pipelines list` | Every pipeline type the CLI knows | prints a plain name list; the output flags apply to data runs, not to `list` |
+| `status <job-id>` | Poll an async snapshot job | `--wait`, `--timeout <s>` |
+
+`status` polls the async snapshot jobs that `pipelines` triggers (`/datasets/v3/progress`). `--async` on `scrape` returns a Web Unlocker response id from a different job system: fetch its result with `GET /unblocker/get_result?response_id=...`, not with `bdata status`. `pipelines` ships 43 built-in types covering Amazon, Walmart, eBay, LinkedIn, Instagram, Facebook, TikTok, X, YouTube, Reddit, Google Maps, Zillow, Booking and more. Read the live list rather than guessing a name.
+
+`discover` is an AI web search. It is not the discovery-input mode of the record scrapers, which is a different thing with the same word attached.
+
+`--type images` sends `tbm=isch`, `--type news` sends `tbm=nws`, and `--type shopping` sends `udm=28`.
+
+Polling defaults to 600 seconds and honours `BRIGHTDATA_POLLING_TIMEOUT`.
+
+```
+bdata pipelines linkedin_person_profile https://www.linkedin.com/in/satyanadella --format csv -o profile.csv
 ```
 
----
+## Zone resolution and the stale SERP zone
 
-## Global Options
+`scrape` resolves its zone as `--zone`, then `BRIGHTDATA_UNLOCKER_ZONE`, then `default_zone_unlocker`.
 
-These flags work with any command:
+`search` resolves in five steps: `--zone`, then `BRIGHTDATA_SERP_ZONE`, then `default_zone_serp`, then `BRIGHTDATA_UNLOCKER_ZONE`, then `default_zone_unlocker`.
 
-| Flag | Description |
-|------|-------------|
-| `-k, --api-key <key>` | Override API key for this request |
-| `--timing` | Show request timing info |
-| `-v, --version` | Show CLI version |
+`login` never sets `default_zone_serp`: only `bdata init` (interactive or not, it writes zone defaults either way) and an explicit `config set` write it. The DEFAULTS object in `dist/utils/config.js` holds `default_format` and `api_url` and nothing else, no `config.json` ships inside the package, and `login` writes only `default_zone_unlocker`. On a fresh machine step three is empty, `search` falls through to the unlocker zone, and it works.
 
----
+What breaks it is a `default_zone_serp` that is already set and names a zone the account does not have, a leftover from an earlier experiment or a hand-written value, `cli_serp` being the usual example. The CLI never validates a configured zone against the account, so that one truthy value both goes out on the wire and blocks the fall-through at step four. Every `search` then returns `zone "<name>" not found` with `Status: 400` (verified live), with no hint about the cause and no self-heal.
 
-## `bdata login`
+Detect it by reading the configured name and checking it against the account's own zone list. Read the printed text, not the exit code: `config get` on an unset key prints `is not set` and exits 1, and unset is the healthy state here.
 
-Authenticate with Bright Data. Opens the browser for OAuth by default.
-
-| Flag | Description |
-|------|-------------|
-| `-k, --api-key <key>` | Use API key directly (skips browser) |
-| `-c, --customer-id <id>` | Bright Data account ID (optional) |
-| `-d, --device` | Use device flow for SSH/headless environments |
-
-**What happens on login:**
-1. Opens browser for OAuth (or uses device flow / direct API key)
-2. Validates the API key
-3. Saves credentials locally (`~/.config/brightdata-cli/credentials.json`)
-4. Checks for required zones (`cli_unlocker`, `cli_browser`)
-5. Creates missing zones automatically
-6. Sets `cli_unlocker` as default zone if none configured
-
-```bash
-bdata login                        # Browser OAuth (recommended)
-bdata login --device               # Headless/SSH environments
-bdata login --api-key <key>        # Direct API key
+```
+bdata config get default_zone_serp
+bdata zones --json
 ```
 
----
+A name that `zones` does not list is the bug. Repair it by pointing the key at a real unlocker zone picked from that same output, usually `cli_unlocker`:
 
-## `bdata logout`
-
-Clear stored credentials.
-
-```bash
-bdata logout
+```
+bdata config set default_zone_serp cli_unlocker
 ```
 
----
+An unlocker zone serves SERP traffic.
 
-## `bdata scrape <url>`
+## Build and fix a scraper
 
-Scrape any URL using Bright Data's Web Unlocker. Handles CAPTCHAs, JavaScript rendering, and anti-bot protections automatically.
+For a site no pipeline covers. Studio writes the scraper, runs it, and repairs it when the page changes.
 
-| Flag | Description |
-|------|-------------|
-| `-f, --format <fmt>` | `markdown` (default), `html`, `screenshot`, `json` |
-| `--country <code>` | ISO country code for geo-targeting (e.g. `us`, `de`, `jp`) |
-| `--zone <name>` | Web Unlocker zone name |
-| `--mobile` | Use a mobile user agent |
-| `--async` | Submit async, return a snapshot ID |
-| `-o, --output <path>` | Write output to file |
-| `--json` | Force JSON output |
-| `--pretty` | Pretty-print JSON output |
+| Command | Purpose | Key flags |
+|---|---|---|
+| `scraper create <url> <description>` | Build a scraper from a plain-language description | `--name <name>`, `--deliver-webhook <url>`, `--timeout <s>`, `--max-retries <n>`, `--no-retry` |
+| `scraper run <collector_id> [url]` | Run it and return the data | `--urls <list>`, `--input-file <path>`, `--sync`, `--sync-timeout <25-50>`, `--timeout <s>`, `--name <name>`, `--version <version>` |
+| `scraper heal <collector_id> <prompt>` | Repair a broken scraper via AI | `--url <url>`, `--auto-approve`, `--auto-save`, `--timeout <s>`, `--max-retries <n>`, `--no-retry` |
+| `scraper approve <collector_id>` | Accept a heal waiting at the gate | `--reject`, `--auto-save`, `--url <url>`, `--timeout <s>` |
 
-```bash
-bdata scrape https://news.ycombinator.com
-bdata scrape https://example.com -f html
-bdata scrape https://amazon.com -f json --country us -o product.json
-bdata scrape https://example.com -f screenshot -o page.png
-bdata scrape https://example.com --async
-bdata scrape https://docs.github.com | glow -
+`create` takes 5 to 10 minutes, so budget for it. The description caps at 500 characters and a heal prompt caps at 1000. Without `--auto-approve` a heal stops at the approval gate and waits for `scraper approve`.
+
+`run` defaults to async and polls. `--sync` is single-URL only and the server caps it between 25 and 50 seconds, so keep it for small fast pages. Batches go through `--urls` or `--input-file`, where the file holds one URL per line, or a JSON array of strings, or a JSON array of `{"url": "..."}` objects. Batch polling defaults to 3600 seconds.
+
+`--legacy-output` on `create`, `heal` and `approve` emits the pre-v0.3 payload shape. Leave it alone unless migrating.
+
+```
+bdata scraper run <collector_id> https://news.ycombinator.com --sync --pretty
 ```
 
----
+## Drive a browser
 
-## `bdata search <query>`
+A stateful session on Bright Data's cloud browser, driven one command at a time. Elements are addressed by the `ref` values a snapshot hands back, such as `e1`.
 
-Search Google, Bing, or Yandex via Bright Data's SERP API.
+Navigate and read: `open <url>`, `back`, `forward`, `reload`, `snapshot`, `screenshot [path]`, `get text [selector]`, `get html [selector]`.
 
-Google returns structured JSON with: organic results, ads, People Also Ask, related searches.
-Bing/Yandex return markdown by default.
+Act: `click <ref>`, `type <ref> <text>` (`--append`, `--submit`), `fill <ref> <value>`, `select <ref> <value>`, `check <ref>`, `uncheck <ref>`, `hover <ref>`, `scroll` (`--direction`, `--distance`, `--ref`).
 
-| Flag | Description |
-|------|-------------|
-| `--engine <name>` | `google` (default), `bing`, `yandex` |
-| `--country <code>` | Localized results (e.g. `us`, `de`) |
-| `--language <code>` | Language code (e.g. `en`, `fr`) |
-| `--page <n>` | Page number, 0-indexed (default: `0`) |
-| `--type <type>` | `web` (default), `news`, `images`, `shopping` |
-| `--device <type>` | `desktop`, `mobile` |
-| `--zone <name>` | SERP zone name |
-| `-o, --output <path>` | Write output to file |
-| `--json` | Force JSON output |
-| `--pretty` | Pretty-print JSON output |
+Inspect and clean up: `status`, `network`, `cookies`, `sessions`, `close` (`--all`).
 
-```bash
-bdata search "typescript best practices"
-bdata search "restaurants berlin" --country de --language de
-bdata search "AI regulation" --type news
-bdata search "web scraping" --page 1
-bdata search "open source scraping" --json | jq -r '.organic[].link'
-bdata search "bright data pricing" --engine bing
+Session-level options go on the `browser` command itself and are accepted before or after the subcommand: `--session <name>` (default `default`), `--zone <name>` (default `cli_browser`), `--country <code>`, `--timeout <ms>` (default 30000), `--idle-timeout <ms>` (default 600000). `--headed` is accepted but answers that headed mode is not implemented yet.
+
+Snapshot shaping, worth using because a full snapshot is large: `--compact` keeps interactive elements and their ancestors, `--interactive` returns a flat list of interactive elements only, `--depth <n>` caps depth, `--selector <sel>` scopes to a subtree, `--wrap` adds AI-safe content boundaries. Screenshots take `--full-page` and `--base64`.
+
+```
+bdata browser open https://example.com --session shop
+bdata browser snapshot --session shop --interactive
 ```
 
----
+## Wire up a repo
 
-## `bdata pipelines <type> [params...] [options]`
+| Command | Purpose | Key flags |
+|---|---|---|
+| `skill list` | Show the installable Bright Data skills | none |
+| `skill add <name>` | Install one skill into this repo's agent folders | none |
+| `add mcp` | Register the Bright Data MCP server | `--agent <claude-code,cursor,codex>`, `--global`, `--project` |
 
-Extract structured data from 40+ platforms. Triggers an async collection job, polls until ready, returns results.
+`skill add` is non-interactive only when a name is given. A bare `bdata skill add` opens a picker in an interactive terminal; without a TTY it exits 1 immediately with `Interactive skill selection requires a TTY`, so always pass the name in scripts and CI. It installs into the current working directory, so run it from the project root.
 
-| Flag | Description |
-|------|-------------|
-| `--format <fmt>` | `json` (default), `csv`, `ndjson`, `jsonl` |
-| `--timeout <seconds>` | Polling timeout (default: `600`) |
-| `-o, --output <path>` | Write output to file |
-| `--json` | Force JSON output |
-| `--pretty` | Pretty-print JSON output |
+`brightdata-cli` is itself a name in the registry. `bdata skill add brightdata-cli` installs that published skill, a separate artifact, not a reinstall of this file.
 
-```bash
-bdata pipelines list                                           # List all types
-bdata pipelines linkedin_person_profile "https://linkedin.com/in/username"
-bdata pipelines amazon_product "https://amazon.com/dp/B09V3KXJPB" --format csv -o product.csv
-bdata pipelines instagram_profiles "https://instagram.com/username"
-bdata pipelines amazon_product_search "laptop" "https://amazon.com"
-bdata pipelines google_maps_reviews "https://maps.google.com/..." 7
-bdata pipelines youtube_comments "https://youtube.com/watch?v=..." 50
+```
+bdata skill add scrape
 ```
 
-See [pipelines.md](pipelines.md) for the full list of types and their parameters.
+## Not in the CLI
 
----
-
-## `bdata status <job-id>`
-
-Check status of an async snapshot job.
-
-| Flag | Description |
-|------|-------------|
-| `--wait` | Poll until the job completes |
-| `--timeout <seconds>` | Polling timeout (default: `600`) |
-| `-o, --output <path>` | Write output to file |
-| `--json` / `--pretty` | JSON output |
-
-```bash
-bdata status s_abc123xyz
-bdata status s_abc123xyz --wait --pretty
-bdata status s_abc123xyz --wait --timeout 300
-```
-
----
-
-## `bdata zones`
-
-List and inspect Bright Data proxy zones.
-
-```bash
-bdata zones                        # List all active zones
-bdata zones info <name>            # Full details for a zone
-bdata zones --json -o zones.json   # Export as JSON
-bdata zones info my_zone --pretty  # Pretty-print zone info
-```
-
----
-
-## `bdata budget`
-
-View account balance and per-zone cost/bandwidth. Read-only.
-
-> New accounts get **5,000 free credits/month** (~$7.50, 1 credit per
-> request) shared across Unlocker, SERP, Web Scraper, and Scraper Studio;
-> they reset on the 1st and don't roll over. Proxy and Browser API are
-> billed separately (not from free credits). With no deposited funds a
-> hard stop kicks in when credits run out — so a "balance" near zero on a
-> free account is expected, not an error.
-> See: https://docs.brightdata.com/general/account/billing-and-pricing/free-tier
-
-| Subcommand | Description |
-|------------|-------------|
-| *(none)* | Quick account balance |
-| `balance` | Balance + pending charges |
-| `zones` | Cost & bandwidth table for all zones |
-| `zone <name>` | Detailed cost & bandwidth for one zone |
-
-| Flag | Description |
-|------|-------------|
-| `--from <datetime>` | Start of date range (e.g. `2024-01-01T00:00:00`) |
-| `--to <datetime>` | End of date range |
-| `--json` / `--pretty` | JSON output |
-
-```bash
-bdata budget
-bdata budget balance
-bdata budget zones
-bdata budget zone my_zone
-bdata budget zones --from 2024-01-01T00:00:00 --to 2024-02-01T00:00:00
-```
-
----
-
-## `bdata config`
-
-View and manage CLI configuration.
-
-| Subcommand | Description |
-|------------|-------------|
-| *(none)* | Show all config |
-| `get <key>` | Get a single value |
-| `set <key> <value>` | Set a value |
-
-| Config Key | Description |
-|------------|-------------|
-| `default_zone_unlocker` | Default zone for `scrape` and `search` |
-| `default_zone_serp` | Override zone for `search` only |
-| `default_format` | Default output format: `markdown` or `json` |
-| `api_url` | Override API base URL |
-
-```bash
-bdata config
-bdata config set default_zone_unlocker my_zone
-bdata config set default_format json
-bdata config get default_zone_unlocker
-```
-
----
-
-## `bdata init`
-
-Interactive setup wizard. Walks through authentication, zone selection, and default configuration.
-
-| Flag | Description |
-|------|-------------|
-| `--skip-auth` | Skip the authentication step |
-| `-k, --api-key <key>` | Provide API key directly |
-
-```bash
-bdata init
-```
-
----
-
-## `bdata skill`
-
-Install Bright Data AI agent skills into coding agents (Claude Code, Cursor, Copilot, etc.).
-
-| Subcommand | Description |
-|------------|-------------|
-| `add` | Interactive picker — choose skills + target agents |
-| `add <name>` | Install a specific skill directly |
-| `list` | List all available skills |
-
-Available skills: `search`, `scrape`, `data-feeds`, `bright-data-mcp`, `bright-data-best-practices`
-
-```bash
-bdata skill add              # Interactive
-bdata skill add scrape       # Direct install
-bdata skill list             # See what's available
-```
-
----
-
-## Configuration Storage
-
-| OS | Path |
-|----|------|
-| macOS | `~/Library/Application Support/brightdata-cli/` |
-| Linux | `~/.config/brightdata-cli/` |
-| Windows | `%APPDATA%\brightdata-cli\` |
-
-Two files:
-- `credentials.json` — API key (mode 0o600)
-- `config.json` — Zones, output format, preferences
-
-Priority order: CLI flags > Environment variables > config.json > Defaults
+There is no `schedule` subcommand and no cron anywhere in the tool. Recurring runs are configured in the Bright Data control panel, which offers hourly, daily, weekly and custom. From a terminal, the alternative is the host's own scheduler calling `bdata` on a timer.
