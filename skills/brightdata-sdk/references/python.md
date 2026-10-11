@@ -31,7 +31,7 @@ from brightdata import BrightDataClient      # async
 from brightdata import SyncBrightDataClient  # sync
 ```
 
-Both are context managers and both must be entered. The HTTP session is opened in `__aenter__`, so calling a method on a bare client raises `RuntimeError: BrightDataClient not initialized.`
+Both are context managers and both must be entered (`async with BrightDataClient() as c:`, or `with SyncBrightDataClient() as c:`). The HTTP session is opened on entry, so a bare client fails: the flat methods such as `scrape_url` raise `RuntimeError: BrightDataClient not initialized`, and the platform scrapers such as `scrape.amazon.products` raise `RuntimeError: Engine must be used as async context manager`.
 
 ## The key
 

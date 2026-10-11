@@ -31,6 +31,21 @@ own release line. Do not assume a tool name present in one is present in the
 other, and do not carry a working config across. Confirm against the variant
 actually in use.
 
+## The key
+
+Both `?token=` and `API_TOKEN` take the account API key. Find it the way the
+CLI does: `BRIGHTDATA_API_KEY` if set, else `api_key` in the `credentials.json`
+that `bdata login` writes (Linux `~/.config/brightdata-cli/`, macOS
+`~/Library/Application Support/brightdata-cli/`, Windows
+`%APPDATA%\brightdata-cli\`). After login the variable is normally empty and
+the key is only in the file: that is a logged-in machine, not a missing key,
+so read it in code and never print it. To check that it exists, run
+`node scripts/check-auth.mjs` from the `agent-onboarding` skill (it never
+prints the key); never `cat`, `echo` or `jq` the file or the variable. To
+pass it into a config or URL, read it inside the same command and mask the
+output, e.g. `K=$(...)` then `| sed "s/$K/****/g"`. Neither exists: hand off to
+`agent-onboarding`. Never ask the user to paste a key into chat.
+
 ## The routing default
 
 Records from a platform the agent can name go to a `web_data_*` scraper. Page

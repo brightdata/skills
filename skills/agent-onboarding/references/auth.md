@@ -53,6 +53,8 @@ An MCP client connected to `mcp.brightdata.com` through OAuth 2.1 holds an acces
 
 After `bdata login`, `BRIGHTDATA_API_KEY` is **unset, and that is normal**. Login writes the key into `credentials.json` and nowhere else. An empty environment variable on a logged-in machine is not a logged-out machine. Do not run `bdata login` again because of it, and do not ask the user for a key.
 
+To check whether a key is there, never look at it: run `node scripts/check-auth.mjs`, which answers ready or log in and never prints the key. Never `cat`, `echo`, `jq` or `grep` the credentials file or the key variable, even to "check" it: whatever a command prints lands in the conversation and its logs.
+
 To use the key in your own REST call, put it straight into a variable, or do the same read in-process. Never echo it to the terminal.
 
 PowerShell, with the Windows path:

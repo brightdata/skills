@@ -23,7 +23,7 @@ All three pieces are read with the account API key. Resolve it the way the CLI d
    - Windows: `%APPDATA%\brightdata-cli\credentials.json`
 3. Neither exists: the user is not set up. Hand off to the `agent-onboarding` skill (its Log in section: you start the login in the background, the user approves it). Never ask the user to paste a key into chat.
 
-After `bdata login` the environment variable is normally empty and the key is only in the file. That is a logged-in machine, not a missing key. Reading the stored key in code is expected and allowed (`agent-onboarding`, `references/auth.md`, "Reading the key in code"): do it in-process and never print it.
+After `bdata login` the environment variable is normally empty and the key is only in the file. That is a logged-in machine, not a missing key. Reading the stored key in code is expected and allowed (`agent-onboarding`, `references/auth.md`, "Reading the key in code"): do it in-process and never print it. To check that a key exists, run `node scripts/check-auth.mjs --for browser` from the `agent-onboarding` skill; never `cat`, `echo` or `jq` the credentials file or the variable.
 
 ## The three pieces, all free reads
 
@@ -130,6 +130,17 @@ Everything after that line (`newPage`, `goto`, selectors, `close`) stays as the 
 ## Puppeteer
 
 `puppeteer.connect({ browserWSEndpoint: endpoint })` replaces `puppeteer.launch(...)`. Same `wss://` string, same port 9222, same lookup and redaction.
+
+## Playwright (Python)
+
+`p.chromium.connect_over_cdp(url)` replaces `p.chromium.launch(...)`, with the same three reads done in Python (`urllib.request` with the `Authorization: Bearer` header). Playwright's error repeats the URL, password included, so mask it and drop the original exception:
+
+```python
+try:
+    browser = p.chromium.connect_over_cdp(url)
+except Exception as err:
+    raise RuntimeError(str(err).replace(password, "****")) from None
+```
 
 ## Selenium
 
