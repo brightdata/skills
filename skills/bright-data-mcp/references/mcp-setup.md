@@ -19,30 +19,30 @@ https://mcp.brightdata.com/mcp?token=<YOUR_BRIGHTDATA_API_TOKEN>
 
 | Parameter | Values | Description |
 |-----------|--------|-------------|
-| `pro` | `1` | Enable all 60+ Pro tools (browser automation, structured extraction) |
+| `pro` | `1` | Enable all Pro tools (browser automation, AI extraction, raw HTML) |
 | `groups` | Group name(s) | Enable specific tool groups without full Pro mode |
 | `tools` | Tool name(s) | Enable only specific individual tools |
 
 ### URL Examples
 
-**Rapid (Free) mode** - search and scrape only:
+**Rapid (Free) mode** - search, scrape and pre-built scrapers:
 ```
 https://mcp.brightdata.com/mcp?token=YOUR_TOKEN
 ```
 
-**Full Pro mode** - all 60+ tools:
+**Full Pro mode** - all tools:
 ```
 https://mcp.brightdata.com/mcp?token=YOUR_TOKEN&pro=1
 ```
 
-**Specific groups** - e.g., social media + e-commerce:
+**Specific groups** - e.g., pre-built scrapers + browser automation:
 ```
-https://mcp.brightdata.com/mcp?token=YOUR_TOKEN&groups=social,ecommerce
+https://mcp.brightdata.com/mcp?token=YOUR_TOKEN&groups=scrapers,browser
 ```
 
-**Specific tools** - e.g., only Amazon product and search:
+**Specific tools** - e.g., only AI extraction and search:
 ```
-https://mcp.brightdata.com/mcp?token=YOUR_TOKEN&tools=web_data_amazon_product,search_engine
+https://mcp.brightdata.com/mcp?token=YOUR_TOKEN&tools=extract,search_engine
 ```
 
 ### Setup in Claude.ai
@@ -108,25 +108,22 @@ All modes are **free for up to 5,000 requests per month** — including Pro tool
 
 ### Rapid (Free) - Default
 - `search_engine` and `scrape_as_markdown` available (plus batch variants)
-- Best for: everyday browsing, reading web pages, search queries
+- Scraper tools: structured data from 1,200+ sites (Amazon, LinkedIn, Instagram, TikTok, YouTube, etc.)
+- Best for: everyday browsing, reading web pages, search queries, data extraction
 
 ### Pro Mode (`pro=1`)
-- All 60+ tools enabled
-- Structured data from Amazon, LinkedIn, Instagram, TikTok, YouTube, etc.
-- Browser automation tools
-- Best for: data extraction, social media analysis, e-commerce monitoring, automation
+- All tools enabled
+- Browser automation tools, AI extraction, raw HTML
+- Best for: interactive sites, automation, social media analysis, e-commerce monitoring
 
 ### Groups (Selective Pro)
 Enable only the tool groups you need:
-- `ecommerce` - Amazon, Walmart, eBay, Best Buy, etc.
-- `social` - LinkedIn, Instagram, Facebook, TikTok, YouTube, X, Reddit
-- `business` - Crunchbase, ZoomInfo, Google Maps, Zillow
-- `finance` - Yahoo Finance
-- `research` - Reuters, GitHub
-- `app_stores` - Google Play, Apple App Store
-- `travel` - Booking.com
+- `scrapers` - Pre-built scrapers for 1,200+ sites (on by default)
 - `browser` - Full browser automation
 - `advanced_scraping` - HTML scraping, AI extraction, batch operations
+- `geo` - ChatGPT and Perplexity answer collection
+
+Older group names (`ecommerce`, `social`, `business`, ...) still work and enable the scraper tools.
 
 ## Verifying Your Setup
 

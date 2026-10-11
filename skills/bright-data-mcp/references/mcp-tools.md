@@ -32,83 +32,30 @@ Scrape up to 10 webpages in one request and return an array of URL/content pairs
 | `search_engine_batch` | Run up to 10 search queries in parallel. |
 | `scrape_batch` | Scrape up to 10 webpages in one request. |
 
-### E-Commerce Group (`ecommerce`)
+### Scraper Tools (`scrapers`, on by default)
 
-| Tool | URL Requirement | Description |
-|------|-----------------|-------------|
-| `web_data_amazon_product` | Must contain `/dp/` | Structured Amazon product data (title, price, rating, images, etc.) |
-| `web_data_amazon_product_reviews` | Must contain `/dp/` | Structured Amazon review data |
-| `web_data_amazon_product_search` | Requires keyword + Amazon domain URL | Structured search results (first page only) |
-| `web_data_walmart_product` | Must contain `/ip/` | Structured Walmart product data |
-| `web_data_walmart_seller` | Valid Walmart seller URL | Structured seller data |
-| `web_data_ebay_product` | Valid eBay product URL | Structured eBay listing data |
-| `web_data_homedepot_products` | Valid homedepot.com URL | Structured Home Depot data |
-| `web_data_zara_products` | Valid Zara product URL | Structured Zara data |
-| `web_data_etsy_products` | Valid Etsy product URL | Structured Etsy data |
-| `web_data_bestbuy_products` | Valid Best Buy product URL | Structured Best Buy data |
-| `web_data_google_shopping` | Valid Google Shopping URL | Structured Google Shopping data |
+Structured JSON from 1,200+ pre-built scrapers (Amazon, Walmart, LinkedIn, Instagram, TikTok, YouTube, Facebook, X, Reddit, Crunchbase, Zillow, Booking.com, Google Play, npm, PyPI, and more). The scraper list is refreshed daily.
 
-### Social Media Group (`social`)
+| Tool | Description |
+|------|-------------|
+| `search_scrapers` | Find scrapers by site or data type (e.g. "amazon reviews", "linkedin.com"). Returns `dataset_id`, name, domain and `collection_methods`. |
+| `get_scraper_details` | Description, input fields, `sample_input` and main output fields for one method. |
+| `run_scraper` | Run a method on a list of inputs shaped like `sample_input`. Waits up to 45 seconds; if still running, returns a `snapshot_id` with status `running`. |
+| `get_scraper_progress` | Status of a run: starting, running, ready, failed or canceled. |
+| `get_scraper_results` | Records of a finished run. |
+| `refresh_scrapers` | Reload the scraper list now. |
 
-| Tool | URL Requirement | Description |
-|------|-----------------|-------------|
-| `web_data_linkedin_person_profile` | Valid LinkedIn profile URL | Profile data (experience, skills, education) |
-| `web_data_linkedin_company_profile` | Valid LinkedIn company URL | Company profile data |
-| `web_data_linkedin_job_listings` | Valid LinkedIn jobs URL | Job listing details |
-| `web_data_linkedin_posts` | Valid LinkedIn post URL | Post content and engagement |
-| `web_data_linkedin_people_search` | LinkedIn people search URL | People search results |
-| `web_data_instagram_profiles` | Valid Instagram profile URL | Bio, followers, following |
-| `web_data_instagram_posts` | Valid Instagram post URL | Post details, likes, captions |
-| `web_data_instagram_reels` | Valid Instagram reel URL | Reel data and metrics |
-| `web_data_instagram_comments` | Valid Instagram URL | Post comments |
-| `web_data_facebook_posts` | Valid Facebook post URL | Post content and reactions |
-| `web_data_facebook_marketplace_listings` | Valid Marketplace listing URL | Listing details |
-| `web_data_facebook_company_reviews` | Valid Facebook company URL (+ optional review count) | Company reviews |
-| `web_data_facebook_events` | Valid Facebook event URL | Event details |
-| `web_data_tiktok_profiles` | Valid TikTok profile URL | Creator profile data |
-| `web_data_tiktok_posts` | Valid TikTok post URL | Video details and metrics |
-| `web_data_tiktok_shop` | Valid TikTok Shop product URL | Product data |
-| `web_data_tiktok_comments` | Valid TikTok video URL | Video comments |
-| `web_data_x_posts` | Valid X (Twitter) post URL | Tweet data |
-| `web_data_youtube_videos` | Valid YouTube video URL | Video metadata |
-| `web_data_youtube_profiles` | Valid YouTube channel URL | Channel profile data |
-| `web_data_youtube_comments` | Valid YouTube video URL (+ optional num_of_comments, default 10) | Video comments |
-| `web_data_reddit_posts` | Valid Reddit post URL | Post and comment data |
+Typical flow: `search_scrapers` → `get_scraper_details` → `run_scraper`.
+- `collect_by_url` returns one record per input; `discover_by_*` methods return up to `limit_per_input` records per input (default 10). Every record is billed.
+- Records with an `error` field explain inputs that failed, e.g. a URL of the wrong type.
+- Call `search_scrapers` once per site and reuse the `dataset_id`.
 
-### Business Intelligence Group (`business`)
+### GEO Group (`geo`)
 
-| Tool | URL Requirement | Description |
-|------|-----------------|-------------|
-| `web_data_crunchbase_company` | Valid Crunchbase company URL | Company funding, employees, rounds |
-| `web_data_zoominfo_company_profile` | Valid ZoomInfo company URL | Company profile data |
-| `web_data_google_maps_reviews` | Valid Google Maps URL (+ optional days_limit, default 3) | Business reviews |
-| `web_data_zillow_properties_listing` | Valid Zillow listing URL | Property listing data |
-
-### Finance Group (`finance`)
-
-| Tool | URL Requirement | Description |
-|------|-----------------|-------------|
-| `web_data_yahoo_finance_business` | Valid Yahoo Finance business URL | Company profile and stock data |
-
-### Research Group (`research`)
-
-| Tool | URL Requirement | Description |
-|------|-----------------|-------------|
-| `web_data_reuter_news` | Valid Reuters news article URL | Structured news data |
-| `web_data_github_repository_file` | Valid GitHub file URL | Repository file data |
-
-### App Stores Group (`app_stores`)
-
-| Tool | URL Requirement | Description |
-|------|-----------------|-------------|
-| `web_data_google_play_store` | Valid Play Store app URL | App data and reviews |
-| `web_data_apple_app_store` | Valid App Store app URL | App data and reviews |
-
-### Travel Group (`travel`)
-
-| Tool | URL Requirement | Description |
-|------|-----------------|-------------|
-| `web_data_booking_hotel_listings` | Valid Booking.com listing URL | Hotel listing data |
+| Tool | Input | Description |
+|------|-------|-------------|
+| `chatgpt_ai_insights` | Prompt | ChatGPT's answer as Markdown |
+| `perplexity_ai_insights` | Prompt | Perplexity's answer as Markdown |
 
 ### Browser Automation Group (`browser`)
 
@@ -122,6 +69,7 @@ Use these tools in sequence for interactive web automation.
 | `scraping_browser_snapshot` | Capture ARIA snapshot listing interactive elements with refs. |
 | `scraping_browser_click_ref` | Click an element by its ref from the ARIA snapshot. Requires ref + human-readable description. |
 | `scraping_browser_type_ref` | Fill an input element by ref. Optionally press Enter after typing. |
+| `scraping_browser_fill_form` | Fill several form fields by ref in one call. |
 | `scraping_browser_screenshot` | Capture screenshot. Supports optional `full_page` mode. |
 | `scraping_browser_network_requests` | List network requests since page load (method, URL, status). |
 | `scraping_browser_wait_for_ref` | Wait until an element becomes visible (optional timeout in ms). |
@@ -146,12 +94,9 @@ Use these tools in sequence for interactive web automation.
 
 | Group | Description | Key Tools |
 |-------|-------------|-----------|
-| `ecommerce` | E-commerce platforms | Amazon, Walmart, eBay, Best Buy, Etsy, etc. |
-| `social` | Social media & professional | LinkedIn, Instagram, Facebook, TikTok, YouTube, X, Reddit |
-| `business` | Business intelligence | Crunchbase, ZoomInfo, Google Maps, Zillow |
-| `finance` | Financial data | Yahoo Finance |
-| `research` | Research & news | Reuters, GitHub |
-| `app_stores` | App stores | Google Play, Apple App Store |
-| `travel` | Travel platforms | Booking.com |
+| `scrapers` | Pre-built scrapers for 1,200+ sites (on by default) | `search_scrapers`, `get_scraper_details`, `run_scraper` |
 | `browser` | Browser automation | Navigate, click, type, screenshot, extract |
 | `advanced_scraping` | Advanced extraction | HTML scraping, AI extraction, batch operations |
+| `geo` | LLM answer collection | `chatgpt_ai_insights`, `perplexity_ai_insights` |
+
+Older group names (`ecommerce`, `social`, `business`, `finance`, `research`, `app_stores`, `travel`, `code`) still work and enable the scraper tools.

@@ -265,8 +265,9 @@ zone name and key.
 
 Use this when the consumer is an LLM agent that should call Bright
 Data as tools (e.g., Claude Code, ChatGPT desktop, custom agent
-loops). The MCP server exposes 60+ tools — search, scrape, structured
-data per platform, browser automation — over a single URL.
+loops). The MCP server exposes 30+ tools — search, scrape, structured
+data from 1,200+ pre-built scrapers, browser automation — over a single
+URL.
 
 Connect with:
 
@@ -278,8 +279,8 @@ Optional URL parameters:
 
 | Parameter | Effect |
 |---|---|
-| `pro=1` | Enable all 60+ Pro tools |
-| `groups=<name>` | Enable a tool group (`social`, `ecommerce`, `business`, `finance`, `research`, `app_stores`, `travel`, `browser`, `advanced_scraping`) |
+| `pro=1` | Enable all Pro tools |
+| `groups=<name>` | Enable a tool group (`scrapers`, `browser`, `advanced_scraping`, `geo`) |
 | `tools=<names>` | Enable a specific tool list, comma-separated |
 
 Hand off to the `bright-data-mcp` skill for tool selection, tool-group

@@ -13,7 +13,7 @@
   <a href="#license"><img src="https://img.shields.io/badge/License-MIT-10b981?style=for-the-badge" alt="MIT License"></a>
   <a href="#skills"><img src="https://img.shields.io/badge/Skills-21-9D97F4?style=for-the-badge" alt="21 Skills"></a>
   <a href="#data-feeds-skill"><img src="https://img.shields.io/badge/Datasets-40+-15C1E6?style=for-the-badge" alt="40+ Datasets"></a>
-  <a href="#bright-data-mcp-skill"><img src="https://img.shields.io/badge/MCP_Tools-60+-FF6B35?style=for-the-badge" alt="60+ MCP Tools"></a>
+  <a href="#bright-data-mcp-skill"><img src="https://img.shields.io/badge/MCP_Tools-30+-FF6B35?style=for-the-badge" alt="30+ MCP Tools"></a>
 </p>
 
 <p align="center">
@@ -46,7 +46,7 @@ This plugin brings **Bright Data's powerful web infrastructure** directly into C
 - **Scrape any webpage** as clean markdown — bypassing bot detection, CAPTCHAs, and JavaScript rendering
 - **Search Google** with structured JSON results — titles, links, and descriptions ready for processing
 - **Extract structured data** from 40+ websites — Amazon, LinkedIn, Instagram, TikTok, YouTube, and more
-- **Orchestrate 60+ MCP tools** — search, scrape, extract structured data, and automate browsers via Bright Data's MCP server
+- **Orchestrate 30+ MCP tools** — search, scrape, extract structured data from 1,200+ pre-built scrapers, and automate browsers via Bright Data's MCP server
 - **Use the Bright Data CLI** — scrape, search, extract data, manage zones, and check budget directly from the terminal with `brightdata` / `bdata`
 - **Run competitive intelligence** — real-time competitor analysis, pricing monitoring, review mining, hiring signal analysis, and market landscape mapping using live web data
 - **Write correct Bright Data code** — built-in best practices for Web Unlocker, SERP API, Web Scraper API, and Browser API
@@ -69,7 +69,7 @@ Built on Bright Data's [Web Unlocker](https://brightdata.com/products/web-unlock
 | **`search`** | Search Google and get structured JSON results with titles, links, and descriptions |
 | **`scrape`** | Scrape any webpage as clean markdown with automatic bot detection bypass |
 | **`data-feeds`** | Extract structured data from 40+ websites with automatic polling |
-| **`bright-data-mcp`** | Orchestrate 60+ Bright Data MCP tools for search, scraping, structured extraction, and browser automation |
+| **`bright-data-mcp`** | Orchestrate 30+ Bright Data MCP tools for search, scraping, structured extraction, and browser automation |
 | **`scraper-builder`** | Build production-ready scrapers for any website — guides through site analysis, API selection, selector extraction, pagination, and complete implementation. Triggers on "build a scraper for..." |
 | **`scraper-studio`** | Build and run AI-generated Bright Data scrapers from the terminal via `bdata scraper create` (generate from a natural-language description) and `bdata scraper run` (execute against a URL). Handles async + poll, `--sync` fast-path, and silent auto-fallback to batch for paginated pages |
 | **`bright-data-best-practices`** | Built-in reference for Web Unlocker, SERP API, Web Scraper API, and Browser API — Claude consults this automatically when writing Bright Data code |
@@ -168,7 +168,7 @@ bash skills/data-feeds/scripts/datasets.sh linkedin_person_profile "https://link
 
 ## Bright Data MCP Skill
 
-The `bright-data-mcp` skill teaches Claude how to optimally use Bright Data's MCP server — selecting the right tool, handling errors, and following best practices across 60+ tools.
+The `bright-data-mcp` skill teaches Claude how to optimally use Bright Data's MCP server — selecting the right tool, handling errors, and following best practices across 30+ tools.
 
 ### MCP Server Connection
 
@@ -182,24 +182,21 @@ https://mcp.brightdata.com/mcp?token=YOUR_BRIGHTDATA_API_TOKEN
 
 | Parameter | Description | Example |
 |-----------|-------------|---------|
-| `pro=1` | Enable all 60+ Pro tools | `...&pro=1` |
-| `groups=<name>` | Enable specific tool groups | `...&groups=social,ecommerce` |
+| `pro=1` | Enable all Pro tools | `...&pro=1` |
+| `groups=<name>` | Enable specific tool groups | `...&groups=scrapers,browser` |
 | `tools=<names>` | Enable specific tools only | `...&tools=search_engine,scrape_as_markdown` |
 
 ### Available Tool Groups
 
 | Group | Tools | Platforms |
 |-------|-------|-----------|
-| **Rapid (Free)** | `search_engine`, `scrape_as_markdown` | Google/Bing/Yandex search, any webpage |
-| **ecommerce** | 11 tools | Amazon, Walmart, eBay, Best Buy, Etsy, Home Depot, Zara, Google Shopping |
-| **social** | 22 tools | LinkedIn, Instagram, Facebook, TikTok, YouTube, X, Reddit |
-| **business** | 4 tools | Crunchbase, ZoomInfo, Google Maps, Zillow |
-| **finance** | 1 tool | Yahoo Finance |
-| **research** | 2 tools | Reuters, GitHub |
-| **app_stores** | 2 tools | Google Play, Apple App Store |
-| **travel** | 1 tool | Booking.com |
-| **browser** | 13 tools | Full browser automation (navigate, click, type, screenshot) |
+| **Rapid (Free)** | `search_engine`, `scrape_as_markdown` and batch variants | Google/Bing/Yandex search, any webpage |
+| **scrapers** (on by default) | 6 tools | 1,200+ pre-built scrapers: Amazon, Walmart, LinkedIn, Instagram, TikTok, YouTube, Crunchbase, Zillow, ... |
+| **browser** | 14 tools | Full browser automation (navigate, click, type, screenshot) |
 | **advanced_scraping** | 5 tools | HTML scraping, AI extraction, batch operations |
+| **geo** | 2 tools | ChatGPT and Perplexity answer collection |
+
+Older group names (`ecommerce`, `social`, `business`, ...) still work and enable the scraper tools.
 
 ### Claude Code Setup
 
@@ -223,7 +220,7 @@ With this skill:
 - **Default web tool** — Claude always uses Bright Data MCP for any web data request, no exceptions
 - **Replaces built-in tools** — `search_engine` replaces WebSearch, `scrape_as_markdown` replaces WebFetch
 - **Automatic tool selection** — the most specific tool is chosen based on the task
-- **Structured data preferred** — `web_data_*` tools used over raw scraping when available
+- **Structured data preferred** — pre-built scrapers (`search_scrapers` → `run_scraper`) used over raw scraping when one covers the site
 - **Error handling** — built-in fallback strategies and URL validation guidance
 - **Workflow orchestration** — multi-step workflows for research, competitive analysis, social monitoring, and lead generation
 
@@ -862,7 +859,7 @@ brightdata-plugin/
 │   ├── bright-data-mcp/
 │   │   ├── SKILL.md             # MCP workflow guide
 │   │   └── references/
-│   │       ├── mcp-tools.md     # Complete MCP tool reference (60+ tools)
+│   │       ├── mcp-tools.md     # Complete MCP tool reference (30+ tools)
 │   │       └── mcp-setup.md     # MCP server setup guide
 │   ├── bright-data-best-practices/
 │   │   ├── SKILL.md             # API best practices (user-invocable: false)
