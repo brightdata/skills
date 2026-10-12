@@ -77,7 +77,7 @@ One row per normalized mention.
 
 ```bash
 # Pipelines can emit CSV directly:
-bdata pipelines reddit_posts "<url>" --format csv -o reddit_mentions.csv
+bdata pipelines run <dataset_id> collect_by_url "<url>" --format csv -o reddit_mentions.csv
 # Then merge platform files and add sentiment/themes columns during normalization.
 ```
 

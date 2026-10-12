@@ -90,8 +90,8 @@ fi
 **Proxy/firewall blocking OAuth:**
 — Use `bdata login --device` or `bdata login --api-key <key>` (obtain the key from https://brightdata.com/cp/setting/users).
 
-**Polling timeout during `bdata pipelines <type>`:**
-— Raise with `--timeout 1800` (30 min) or set `BRIGHTDATA_POLLING_TIMEOUT=1800` before running. Some pipelines (reviews, company employees, long post lists) legitimately take 5–15 minutes.
+**Polling timeout during `bdata pipelines run`:**
+— Raise with `--timeout 1800` (30 min) or set `BRIGHTDATA_POLLING_TIMEOUT=1800` before running. Some pipelines (reviews, company employees, long post lists) legitimately take 5–15 minutes. For long runs, add `--async` and check later with `bdata pipelines status <snapshot_id> --wait`, then `bdata pipelines results <snapshot_id>`.
 
 ## Env-var fallback (legacy)
 

@@ -36,7 +36,7 @@ That's it. No env vars, no zone config, no API keys to manage.
 For every competitive intelligence request, follow this workflow:
 
 1. **Clarify scope** — Which competitors? What specifically does the user want to know? Select the right module(s).
-2. **Gather live data** — Run `bdata` commands. Parallelize independent calls. Prefer `bdata pipelines` (structured JSON) over `bdata scrape` (raw markdown) when a pipeline exists.
+2. **Gather live data** — Run `bdata` commands. Parallelize independent calls. Prefer `bdata pipelines` (structured JSON) over `bdata scrape` (raw markdown) when a scraper exists for the site.
 3. **Analyze** — Apply the appropriate strategic framework. Read [references/analysis-frameworks.md](references/analysis-frameworks.md) for SWOT, Porter's Five Forces, positioning matrices, and more.
 4. **Format output** — Use the report templates from [references/output-templates.md](references/output-templates.md).
 5. **Deliver actionable insights** — Every report MUST end with a "Strategic Recommendations" section. Never deliver raw data without interpretation.
@@ -44,7 +44,8 @@ For every competitive intelligence request, follow this workflow:
 ## Data Collection Rules
 
 - **Always use `--json` flag** when you need to pipe or parse `bdata` output programmatically
-- **Prefer `bdata pipelines`** over `bdata scrape` whenever a pipeline type exists for the target platform — pipelines return clean structured JSON
+- **Prefer `bdata pipelines`** over `bdata scrape` whenever a pre-built scraper exists for the target platform. Pipelines return clean structured JSON
+- **Look up scrapers, never guess them.** `bdata pipelines search "<site or data type>"`, then `bdata pipelines info <dataset_id> <method>` for the input fields, then `bdata pipelines run`. Never guess a `dataset_id` or field names. Full workflow: the `brightdata-cli` skill, [pipelines reference](../brightdata-cli/references/pipelines.md)
 - **Be cost-efficient** — A snapshot should use 3-8 `bdata` calls, not 50. Scrape what you need.
 - **Parallelize** — Run independent `bdata` calls in parallel using multiple Bash tool calls in a single response
 - **Handle failures gracefully** — If a page is gated or returns empty, say so and try the fallback. Never hallucinate data to fill gaps.
@@ -73,8 +74,10 @@ bdata scrape [competitor-url]/pricing      # Pricing tiers and model
 bdata scrape [competitor-url]/about        # Team, mission, history (try /about, /about-us, /company)
 
 # Step 3: Structured data enrichment (if URLs available)
-bdata pipelines crunchbase_company "[crunchbase-url]"       # Funding, investors, employee count
-bdata pipelines linkedin_company_profile "[linkedin-url]"   # Employee count, growth, locations
+bdata pipelines search "crunchbase company"      # Funding, investors, employee count
+bdata pipelines search "linkedin company"        # Employee count, growth, locations
+bdata pipelines info <dataset_id> collect_by_url
+bdata pipelines run <dataset_id> collect_by_url "[company-url]"
 ```
 
 **Analysis**: Synthesize into a structured profile. Identify positioning, target audience, key claims, strengths, and vulnerabilities. Compare to user's product if context is available.
@@ -94,9 +97,9 @@ bdata scrape [competitor-a-url]/pricing
 bdata scrape [competitor-b-url]/pricing
 bdata scrape [competitor-c-url]/pricing
 
-# For e-commerce products
-bdata pipelines amazon_product "[amazon-url]"
-bdata pipelines walmart_product "[walmart-url]"
+# For e-commerce products: find the retailer's product scraper first
+bdata pipelines search "[retailer] product"
+bdata pipelines run <dataset_id> collect_by_url "[product-url]"
 
 # Supplementary: third-party pricing breakdowns
 bdata search "[competitor] pricing review" --json
@@ -123,10 +126,9 @@ bdata scrape [g2-url]
 bdata scrape [capterra-url]
 
 # Structured review data (use when direct URLs are available)
-bdata pipelines google_maps_reviews "[google-maps-url]" 30
-bdata pipelines amazon_product_reviews "[amazon-url]"
-bdata pipelines google_play_store "[play-store-url]"
-bdata pipelines apple_app_store "[app-store-url]"
+bdata pipelines search "[platform] reviews"      # e.g. maps, app store, marketplace
+bdata pipelines info <dataset_id> collect_by_url # check required fields
+bdata pipelines run <dataset_id> collect_by_url "[review-page-url]"
 ```
 
 **Analysis**: Categorize sentiment (positive/neutral/negative). Extract top praised features, top complaints, and feature requests. Identify comparison mentions ("switched from X", "better than Y"). Complaints are the user's positioning opportunity.
@@ -145,7 +147,9 @@ bdata pipelines apple_app_store "[app-store-url]"
 bdata search "[competitor] linkedin company" --json
 
 # Get structured job listings
-bdata pipelines linkedin_job_listings "[linkedin-company-url]"
+bdata pipelines search "linkedin job listings"
+bdata pipelines info <dataset_id>                # pick a method, check its fields
+bdata pipelines run <dataset_id> <method> "[linkedin-company-url]"
 
 # Fallback: scrape careers page directly
 bdata search "[competitor] careers" --json
@@ -203,7 +207,8 @@ bdata scrape [competitor-2-url]
 # ... for each key player (limit to top 8-10)
 
 # Enrich key players with funding/size data
-bdata pipelines crunchbase_company "[crunchbase-url]"
+bdata pipelines search "crunchbase company"
+bdata pipelines run <dataset_id> collect_by_url "[crunchbase-url]"
 ```
 
 **Analysis**: Categorize players by tier (enterprise, mid-market, SMB, open-source). Build a positioning map (e.g., price vs. feature breadth). Identify white space — underserved segments or positioning no one owns. Note market trends, recent entrants, and consolidation signals.

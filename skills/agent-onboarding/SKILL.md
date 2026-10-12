@@ -11,15 +11,16 @@ description: |
 license: MIT
 metadata:
   author: brightdata
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # Bright Data — Agent Onboarding
 
 Bright Data gives agents reliable access to the open web: SERP results
 that look like a real browser, clean markdown from any URL (with
-CAPTCHA + JS handled), structured datasets for 40+ platforms (Amazon,
-LinkedIn, Instagram, TikTok, YouTube, Reddit, Crunchbase, …), and a
+CAPTCHA + JS handled), structured data from thousands of pre-built
+scrapers (Amazon, LinkedIn, Instagram, TikTok, YouTube, Reddit,
+Crunchbase, …), and a
 Browser API for pages that need real interaction.
 
 This skill is the entry point. Read it once, pick a path, then hand
@@ -136,14 +137,15 @@ platform, or running a quick competitive scan.
 After install + login, hand off to the narrower skills:
 
 - `brightdata-cli` — overall command surface (`scrape`, `search`,
-  `pipelines`, `status`, `zones`, `budget`, `config`)
+  `pipelines`, `zones`, `budget`, `config`)
 - `search` — discovery via `bdata search` (Google / Bing / Yandex
   SERP, structured JSON)
 - `scrape` — clean content from a known URL via `bdata scrape`
   (markdown / HTML / JSON / screenshot)
-- `data-feeds` — structured records from 40+ supported platforms via
-  `bdata pipelines <type>` (Amazon, LinkedIn, Instagram, TikTok,
-  YouTube, Reddit, Crunchbase, Google Maps, …)
+- `data-feeds` — structured records from thousands of pre-built
+  scrapers via `bdata pipelines search` / `info` / `run` (Amazon,
+  LinkedIn, Instagram, TikTok, YouTube, Reddit, Crunchbase, Google
+  Maps, …)
 - `discover-api` — intent-ranked semantic web search via
   `bdata discover` (relevance-scored results + optional page content)
 - `scraper-studio` — generate and run an AI-built scraper from a
@@ -161,9 +163,12 @@ Default flow for live web work:
 
 1. **Search first** when you need discovery
    `bdata search "query" --json`
-2. **Pipelines next** if the target is a supported platform — you get
-   structured JSON with no parsing
-   `bdata pipelines amazon_product "https://amazon.com/dp/..."`
+2. **Pipelines next** if a pre-built scraper covers the site — you get
+   structured JSON with no parsing. Look it up, never guess the
+   `dataset_id` or fields:
+   `bdata pipelines search "<site or data type>"`, then
+   `bdata pipelines info <dataset_id> <method>`, then
+   `bdata pipelines run <dataset_id> <method> "<url>"`
 3. **Scrape** when you have a URL and no platform pipeline applies
    `bdata scrape "https://example.com" -f markdown`
 4. **Browser API** only when the page truly needs clicks, forms, or
@@ -396,7 +401,7 @@ POST /request
 ```
 
 ```http
-# Web Scraper API — structured data for 40+ platforms (async)
+# Web Scraper API — structured data from pre-built scrapers (async)
 POST /datasets/v3/trigger?dataset_id=<id>
 [ { "url": "https://amazon.com/dp/B09V3KXJPB" } ]
 

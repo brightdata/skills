@@ -69,9 +69,11 @@ async with BrightDataClient() as client:
         print(result.data)  # Structured product data
 ```
 
-**REST API approach (shell/curl):**
+**CLI approach (Bright Data CLI 0.4.0+):**
 ```bash
-bash scripts/datasets.sh amazon_product "https://www.amazon.com/dp/B09V3KXJPB"
+bdata pipelines search "<site or data type>"      # find the dataset_id
+bdata pipelines info <dataset_id> <method>        # check input fields
+bdata pipelines run <dataset_id> <method> "<url>"
 ```
 
 For bulk scraping with pre-built scrapers, use the async trigger/poll/fetch pattern:

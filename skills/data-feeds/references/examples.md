@@ -1,101 +1,120 @@
 # Data-feeds — worked examples
 
-## Example 1 — single Amazon product
+Every example starts with `search` and `info`. Search queries below are
+only illustrations; use the user's site or data type. Copy `dataset_id`,
+method and field names from the CLI output, never from these examples.
+
+## Example 1: single URL
+
+User says: "Get the structured data for this product page: `<url>`."
 
 ```bash
-bdata pipelines amazon_product \
-    "https://www.amazon.com/dp/B08N5WRWNW" \
+# 1. Find the scraper for the site and pick by domain
+bdata pipelines search "<site> product"
+
+# 2. Check methods and inputs
+bdata pipelines info <dataset_id>
+bdata pipelines info <dataset_id> collect_by_url
+
+# 3. Run
+bdata pipelines run <dataset_id> collect_by_url "<url>" \
     --format json --pretty -o product.json
 
 # Verify
 jq . product.json >/dev/null || { echo "parse fail"; exit 1; }
-jq -e 'has("error") | not' product.json >/dev/null \
-    || { echo "pipeline error: $(jq -r .error product.json)"; exit 1; }
-jq -r '.title, .price // .final_price' product.json
+jq -e 'if type == "array" then map(has("error")) | any | not else (has("error") | not) end' \
+    product.json >/dev/null || { echo "record error: $(jq -c '..|.error? // empty' product.json)"; exit 1; }
+jq '.[0] | keys' product.json
 ```
 
-## Example 2 — batch LinkedIn companies via shell loop
+## Example 2: many URLs in one run
 
-Given `companies.txt` (one LinkedIn company URL per line):
+Given `companies.txt` (one company page URL per line, all on the same
+site). Each URL argument becomes one record, so one `run` covers the list:
 
 ```bash
-mkdir -p out
-xargs -a companies.txt -n 1 -P 2 -I {} bash -c '
-    url="$1"
-    hash=$(printf "%s" "$url" | md5sum | cut -c1-8)
-    bdata pipelines linkedin_company_profile "$url" \
-        --timeout 900 -o "out/${hash}.json" || echo "FAIL: $url" >&2
-' _ {}
+bdata pipelines search "<site> company profile"
+bdata pipelines info <dataset_id> collect_by_url
 
-# Summarize results
+xargs -a companies.txt bdata pipelines run <dataset_id> collect_by_url \
+    --timeout 900 -o companies.json
+
+# Summarize
 total=$(wc -l < companies.txt)
-ok=$(find out -name "*.json" -size +0 | wc -l)
+ok=$(jq '[.[] | select(has("error") | not)] | length' companies.json)
 echo "Fetched $ok of $total companies"
 
 # Partial-failure sweep
-for f in out/*.json; do
-    jq -e 'has("error") | not' "$f" >/dev/null \
-        || echo "ERROR in $f: $(jq -r .error "$f")"
-done
+jq -r '.[] | select(has("error")) | .error' companies.json
 ```
 
-## Example 3 — long reviews job with raised timeout
+For very long lists, split into chunks (for example `split -l 50`) and run
+the chunks with a parallelism cap of 2. See `patterns.md`.
 
-Amazon product reviews can take 10+ minutes for products with many reviews:
+## Example 3: long job with `--async`
+
+Reviews and large feeds can take 10+ minutes. Start the run, then come
+back for the results:
 
 ```bash
-bdata pipelines amazon_product_reviews \
-    "https://www.amazon.com/dp/B08N5WRWNW" \
-    --timeout 1800 \
-    --format json --pretty -o reviews.json
+bdata pipelines search "<site> reviews"
+bdata pipelines info <dataset_id> <method>
 
-# Verify count
-count=$(jq 'if type == "array" then length else 1 end' reviews.json)
-echo "Got $count reviews"
+bdata pipelines run <dataset_id> <method> "<url>" --async
+# → prints snapshot_id
 
-# Check first record schema
+bdata pipelines status <snapshot_id>          # starting, running, ready, failed
+bdata pipelines status <snapshot_id> --wait --timeout 1800
+bdata pipelines results <snapshot_id> --format json -o reviews.json
+
+# Verify count and schema
+jq 'if type == "array" then length else 1 end' reviews.json
 jq '.[0] | keys' reviews.json
 ```
 
-## Example 4 — mixed platform workflow (discover types first)
+Without `--async`, `--timeout 1800` on `run` does the same in one call.
 
-User says: "Give me all the data on this TikTok profile and their recent posts."
+## Example 4: discover by keyword (no URL)
 
-```bash
-# 1. Find the right pipelines
-bdata pipelines list | grep '^tiktok'
-# → tiktok_comments, tiktok_posts, tiktok_profiles, tiktok_shop
-
-# 2. Profile info
-bdata pipelines tiktok_profiles \
-    "https://www.tiktok.com/@example" -o profile.json
-
-# 3. Recent posts
-bdata pipelines tiktok_posts \
-    "https://www.tiktok.com/@example" --timeout 1200 -o posts.json
-
-# Verify both
-for f in profile.json posts.json; do
-    jq . "$f" >/dev/null || { echo "$f: parse fail"; exit 1; }
-    jq -e 'if type == "object" then has("error") | not else true end' "$f" \
-        >/dev/null || { echo "$f: pipeline error"; exit 1; }
-done
-
-echo "profile: $(jq 'keys' profile.json)"
-echo "posts: $(jq 'if type == "array" then length else 1 end' posts.json) records"
-```
-
-## Example 5 — keyword-shaped `amazon_product_search`
-
-Search Amazon by keyword on a given domain (no URL needed, just the domain root):
+User says: "Find job listings for 'data engineer' on `<site>`."
 
 ```bash
-bdata pipelines amazon_product_search \
-    "mechanical keyboard" "https://www.amazon.com" \
-    --format json --pretty -o search.json
+# 1. Find a scraper with a discover_by_* method
+bdata pipelines search "<site> jobs"
+bdata pipelines info <dataset_id>
+# → pick the discover_by_* method that matches the input you have
 
-jq 'length' search.json                                     # number of results (output is a top-level array)
-jq -r '.[0:5][] | "\(.title) — \(.price)"' search.json
+# 2. Read its required fields
+bdata pipelines info <dataset_id> <method>
+
+# 3. Run with a small limit first (every record is billed)
+bdata pipelines run <dataset_id> <method> --<field> "data engineer" \
+    --limit-per-input 5 --format json --pretty -o jobs.json
+
+jq 'length' jobs.json
+jq '.[0] | keys' jobs.json
 ```
 
-Two positional args: `<keyword> <domain_url>`. The CLI hardcodes `pages_to_search` to `1` internally — pass only those two args. Calling with fewer args prints the expected usage.
+Use the method name exactly as `info` prints it, even if it looks
+misspelled.
+
+## Example 5: per-record values with `--input`
+
+When each record needs different values, or a field holds nested data,
+pass the records as JSON. Field names come from
+`bdata pipelines info <dataset_id> <method>`:
+
+```bash
+cat > records.json <<'EOF'
+[
+  {"url": "<url1>", "<field>": "<value1>"},
+  {"url": "<url2>", "<field>": "<value2>"}
+]
+EOF
+
+bdata pipelines run <dataset_id> <method> --input @records.json \
+    --format ndjson -o out.ndjson
+```
+
+A typo in a field name fails before anything is triggered, so nothing is
+billed. The error lists the valid fields.

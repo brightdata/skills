@@ -12,7 +12,7 @@
   <a href="https://brightdata.com"><img src="https://img.shields.io/badge/Powered%20by-Bright%20Data-3D7FFC?style=for-the-badge" alt="Powered by Bright Data"></a>
   <a href="#license"><img src="https://img.shields.io/badge/License-MIT-10b981?style=for-the-badge" alt="MIT License"></a>
   <a href="#skills"><img src="https://img.shields.io/badge/Skills-21-9D97F4?style=for-the-badge" alt="21 Skills"></a>
-  <a href="#data-feeds-skill"><img src="https://img.shields.io/badge/Datasets-40+-15C1E6?style=for-the-badge" alt="40+ Datasets"></a>
+  <a href="#data-feeds-skill"><img src="https://img.shields.io/badge/Scrapers-thousands-15C1E6?style=for-the-badge" alt="Thousands of pre-built scrapers"></a>
   <a href="#bright-data-mcp-skill"><img src="https://img.shields.io/badge/MCP_Tools-30+-FF6B35?style=for-the-badge" alt="30+ MCP Tools"></a>
 </p>
 
@@ -45,7 +45,7 @@ This plugin brings **Bright Data's powerful web infrastructure** directly into C
 
 - **Scrape any webpage** as clean markdown — bypassing bot detection, CAPTCHAs, and JavaScript rendering
 - **Search Google** with structured JSON results — titles, links, and descriptions ready for processing
-- **Extract structured data** from 40+ websites — Amazon, LinkedIn, Instagram, TikTok, YouTube, and more
+- **Extract structured data** with thousands of pre-built scrapers — Amazon, LinkedIn, Instagram, TikTok, YouTube, and more
 - **Orchestrate 30+ MCP tools** — search, scrape, extract structured data from 1,200+ pre-built scrapers, and automate browsers via Bright Data's MCP server
 - **Use the Bright Data CLI** — scrape, search, extract data, manage zones, and check budget directly from the terminal with `brightdata` / `bdata`
 - **Run competitive intelligence** — real-time competitor analysis, pricing monitoring, review mining, hiring signal analysis, and market landscape mapping using live web data
@@ -68,7 +68,7 @@ Built on Bright Data's [Web Unlocker](https://brightdata.com/products/web-unlock
 | **`agent-onboarding`** | Entry point for agents new to Bright Data — one install command, then routes to the right path: live CLI tools, app integration, MCP server, auth-only, or REST without installing |
 | **`search`** | Search Google and get structured JSON results with titles, links, and descriptions |
 | **`scrape`** | Scrape any webpage as clean markdown with automatic bot detection bypass |
-| **`data-feeds`** | Extract structured data from 40+ websites with automatic polling |
+| **`data-feeds`** | Extract structured data with thousands of pre-built scrapers (`bdata pipelines search`, `info`, `run`) |
 | **`bright-data-mcp`** | Orchestrate 30+ Bright Data MCP tools for search, scraping, structured extraction, and browser automation |
 | **`scraper-builder`** | Build production-ready scrapers for any website — guides through site analysis, API selection, selector extraction, pagination, and complete implementation. Triggers on "build a scraper for..." |
 | **`scraper-studio`** | Build and run AI-generated Bright Data scrapers from the terminal via `bdata scraper create` (generate from a natural-language description) and `bdata scraper run` (execute against a URL). Handles async + poll, `--sync` fast-path, and silent auto-fallback to batch for paginated pages |
@@ -79,7 +79,7 @@ Built on Bright Data's [Web Unlocker](https://brightdata.com/products/web-unlock
 | **`discover-api`** | Use the Discover API — intent-ranked, AI-relevance-scored semantic web search with parsed page content. Covers REST (`POST`/`GET /discover`), CLI (`bdata discover`), the SDKs (`client.discover`), the standard/zeroRanking/deep/fast modes, and the trigger→poll flow. Foundation for `live-research` and `rag-pipeline` |
 | **`live-research`** | Produce a deep, multi-source, cited research brief — decompose a question into multiple intent-ranked Discover queries, pull page content, dedup and rank by relevance, then synthesize a structured report with inline citations |
 | **`rag-pipeline`** | Build a RAG pipeline or custom search engine on top of Discover — live web-grounded retrieval for an LLM, or ingestion into a vector store (discover → chunk → embed → retrieve). Provider-agnostic JS + Python code |
-| **`brightdata-cli`** | Guide for using the Bright Data CLI (`brightdata` / `bdata`) to scrape, search, extract structured data from 40+ platforms, manage proxy zones, and check account budget — all from the terminal |
+| **`brightdata-cli`** | Guide for using the Bright Data CLI (`brightdata` / `bdata`) to scrape, search, extract structured data with thousands of pre-built scrapers, manage proxy zones, and check account budget — all from the terminal |
 | **`competitive-intel`** | Real-time competitive intelligence using live web data — competitor snapshots, pricing comparison, review mining, hiring signal analysis, content & SEO battles, and market landscape mapping. Replaces $15K+/yr enterprise CI tools at pennies per analysis |
 | **`brand-listening`** | Social listening and brand reputation research — collects what people are saying about a brand across Reddit, X, Instagram, TikTok, YouTube, news, and review sites, then classifies sentiment, clusters themes, and delivers a cited digest with recommendations. Triggers on "what are people saying about us", "monitor mentions", "brand sentiment" |
 | **`price-comparison`** | Shopping price comparison using live retailer data — resolves a product (name, ASIN, or URL) across Amazon, Walmart, eBay, Best Buy, and Google Shopping, normalizes prices/availability/condition into one ranked table, and names the cheapest in-stock buy. Region-aware (currency, stock, local retailers). Triggers on "compare prices", "find the cheapest", "price check", "how much is X on Amazon vs Walmart" |
@@ -160,8 +160,9 @@ bash skills/search/scripts/search.sh "artificial intelligence trends"
 # Scrape a webpage
 bash skills/scrape/scripts/scrape.sh "https://example.com/article"
 
-# Get LinkedIn profile data
-bash skills/data-feeds/scripts/datasets.sh linkedin_person_profile "https://linkedin.com/in/satyanadella"
+# Get structured data (Bright Data CLI): find a scraper, then run it
+bdata pipelines search "<site or data type>"
+bdata pipelines run <dataset_id> <method> "<url>"
 ```
 
 ---
@@ -450,8 +451,10 @@ brightdata scrape https://example.com
 # Search Google with structured results
 brightdata search "web scraping best practices"
 
-# Extract LinkedIn profile data
-brightdata pipelines linkedin_person_profile "https://linkedin.com/in/username"
+# Extract structured data: find a scraper, check its inputs, run it
+brightdata pipelines search "<site or data type>"
+brightdata pipelines info <dataset_id> <method>
+brightdata pipelines run <dataset_id> <method> "<url>"
 
 # Check account balance
 brightdata budget
@@ -463,8 +466,10 @@ brightdata budget
 |---------|---------|
 | `brightdata scrape <url>` | Scrape any URL as markdown, HTML, JSON, or screenshot |
 | `brightdata search "<query>"` | Search Google/Bing/Yandex with structured results |
-| `brightdata pipelines <type> [params]` | Extract structured data from 40+ platforms |
-| `brightdata status <job-id>` | Check async job status |
+| `brightdata pipelines search "<query>"` | Find a pre-built scraper by site or data type |
+| `brightdata pipelines info <dataset_id> [method]` | Show a scraper's methods and input fields |
+| `brightdata pipelines run <dataset_id> <method> [urls...]` | Run a scraper and return structured records |
+| `brightdata pipelines status <snapshot_id>` | Check an async run (`--async`) |
 | `brightdata zones` | List proxy zones |
 | `brightdata budget` | View account balance and costs |
 | `brightdata skill add` | Install AI agent skills |
@@ -478,15 +483,15 @@ brightdata search "top open source projects" --json \
   | jq -r '.organic[0].link' \
   | xargs brightdata scrape
 
-# Amazon product data to CSV
-brightdata pipelines amazon_product "https://amazon.com/dp/xxx" --format csv > product.csv
+# Structured records to CSV
+brightdata pipelines run <dataset_id> collect_by_url "<url>" --format csv -o records.csv
 ```
 
 ### Reference files
 
 - [skills/brightdata-cli/SKILL.md](skills/brightdata-cli/SKILL.md) — Main skill with command overview and usage patterns
 - [skills/brightdata-cli/references/commands.md](skills/brightdata-cli/references/commands.md) — Full command reference with all flags and options
-- [skills/brightdata-cli/references/pipelines.md](skills/brightdata-cli/references/pipelines.md) — 40+ pipeline types with platform-specific parameters
+- [skills/brightdata-cli/references/pipelines.md](skills/brightdata-cli/references/pipelines.md) — Find, inspect and run pre-built scrapers (`search`, `info`, `run`, `status`, `results`)
 
 ---
 
@@ -709,77 +714,31 @@ bash skills/scrape/scripts/scrape.sh "url"
 
 ### Data Feeds Skill
 
-Extract structured data from 40+ supported websites.
+Extract structured data with thousands of pre-built scrapers via the Bright Data CLI (0.4.0+). Always look the scraper up first; never guess a `dataset_id` or field names.
 
 ```bash
-bash skills/data-feeds/scripts/datasets.sh <dataset_type> <url> [params...]
+bdata pipelines search "<site or data type>"   # find a dataset_id
+bdata pipelines info <dataset_id> <method>     # input fields and a ready-to-run command
+bdata pipelines run <dataset_id> <method> "<url>" [--<field> <value>...]
 ```
 
-Run without arguments to see all available datasets:
-```bash
-bash skills/data-feeds/scripts/datasets.sh
-```
+See [skills/brightdata-cli/references/pipelines.md](skills/brightdata-cli/references/pipelines.md) for the full workflow.
 
 ---
 
 ## Data Feeds
 
-### E-Commerce
+Bright Data has thousands of pre-built scrapers, and the list changes, so there is no fixed table here. Find the one you need by site or data type:
 
-| Dataset | Command | Description |
-|---------|---------|-------------|
-| Amazon Product | `datasets.sh amazon_product <url>` | Product details, pricing, ratings |
-| Amazon Reviews | `datasets.sh amazon_product_reviews <url>` | Customer reviews |
-| Amazon Search | `datasets.sh amazon_product_search <keyword> <domain>` | Search results |
-| Walmart Product | `datasets.sh walmart_product <url>` | Product details |
-| eBay Product | `datasets.sh ebay_product <url>` | Listing details |
-| Best Buy | `datasets.sh bestbuy_products <url>` | Product info |
-| Etsy | `datasets.sh etsy_products <url>` | Listing data |
-| Home Depot | `datasets.sh homedepot_products <url>` | Product data |
-| Zara | `datasets.sh zara_products <url>` | Product details |
+| Category | Example search |
+|----------|----------------|
+| E-commerce (Amazon, Walmart, eBay, Best Buy, Etsy, ...) | `bdata pipelines search "<retailer> product"` |
+| Professional networks (LinkedIn, Crunchbase, ZoomInfo) | `bdata pipelines search "linkedin company"` |
+| Social media (Instagram, TikTok, Facebook, X, YouTube, Reddit) | `bdata pipelines search "<platform> posts"` |
+| Reviews and apps (Google Maps, Play Store, App Store) | `bdata pipelines search "google maps reviews"` |
+| Other (finance, real estate, travel, news, code) | `bdata pipelines search "<site or data type>"` |
 
-### Professional Networks
-
-| Dataset | Command | Description |
-|---------|---------|-------------|
-| LinkedIn Person | `datasets.sh linkedin_person_profile <url>` | Profile, experience, skills |
-| LinkedIn Company | `datasets.sh linkedin_company_profile <url>` | Company page data |
-| LinkedIn Jobs | `datasets.sh linkedin_job_listings <url>` | Job posting details |
-| LinkedIn Posts | `datasets.sh linkedin_posts <url>` | Post content |
-| Crunchbase | `datasets.sh crunchbase_company <url>` | Funding, employees |
-| ZoomInfo | `datasets.sh zoominfo_company_profile <url>` | Company profile |
-
-### Social Media
-
-| Dataset | Command | Description |
-|---------|---------|-------------|
-| Instagram Profiles | `datasets.sh instagram_profiles <url>` | Bio, followers |
-| Instagram Posts | `datasets.sh instagram_posts <url>` | Post details |
-| Instagram Reels | `datasets.sh instagram_reels <url>` | Reel metrics |
-| TikTok Profiles | `datasets.sh tiktok_profiles <url>` | Creator data |
-| TikTok Posts | `datasets.sh tiktok_posts <url>` | Video details |
-| TikTok Shop | `datasets.sh tiktok_shop <url>` | Product data |
-| Facebook Posts | `datasets.sh facebook_posts <url>` | Post content |
-| Facebook Marketplace | `datasets.sh facebook_marketplace_listings <url>` | Listings |
-| X (Twitter) | `datasets.sh x_posts <url>` | Tweet data |
-| YouTube Profiles | `datasets.sh youtube_profiles <url>` | Channel data |
-| YouTube Videos | `datasets.sh youtube_videos <url>` | Video details |
-| YouTube Comments | `datasets.sh youtube_comments <url> [num]` | Comments |
-| Reddit Posts | `datasets.sh reddit_posts <url>` | Post data |
-
-### Other
-
-| Dataset | Command | Description |
-|---------|---------|-------------|
-| Google Maps Reviews | `datasets.sh google_maps_reviews <url> [days]` | Business reviews |
-| Google Shopping | `datasets.sh google_shopping <url>` | Product comparison |
-| Google Play Store | `datasets.sh google_play_store <url>` | App details |
-| Apple App Store | `datasets.sh apple_app_store <url>` | iOS app data |
-| Yahoo Finance | `datasets.sh yahoo_finance_business <url>` | Stock data |
-| Zillow | `datasets.sh zillow_properties_listing <url>` | Property listings |
-| Booking.com | `datasets.sh booking_hotel_listings <url>` | Hotel data |
-| Reuters News | `datasets.sh reuter_news <url>` | Article content |
-| GitHub | `datasets.sh github_repository_file <url>` | Repository file |
+Then run `bdata pipelines info <dataset_id> <method>` to see the input fields before `bdata pipelines run`.
 
 ---
 
@@ -806,29 +765,24 @@ bdata search "Notion project management" --json
 # Scrape competitor pricing page
 bdata scrape https://www.notion.com/pricing
 
-# Get company data from Crunchbase
-bdata pipelines crunchbase_company "https://www.crunchbase.com/organization/notion-so"
-
-# Get LinkedIn company profile
-bdata pipelines linkedin_company_profile "https://www.linkedin.com/company/notionhq"
+# Get company data from Crunchbase: find the scraper, then run it
+bdata pipelines search "crunchbase company"
+bdata pipelines run <dataset_id> collect_by_url "https://www.crunchbase.com/organization/notion-so"
 ```
 
 ### Social Media Monitoring
 ```bash
-# Get Instagram profile
-bash skills/data-feeds/scripts/datasets.sh instagram_profiles "https://instagram.com/natgeo"
-
-# Get YouTube video stats
-bash skills/data-feeds/scripts/datasets.sh youtube_videos "https://youtube.com/watch?v=dQw4w9WgXcQ"
+# Find the scraper for the platform, check its inputs, run it
+bdata pipelines search "<platform> profile"
+bdata pipelines info <dataset_id> collect_by_url
+bdata pipelines run <dataset_id> collect_by_url "<profile-url>"
 ```
 
 ### Lead Generation
 ```bash
-# Get LinkedIn profile
-bash skills/data-feeds/scripts/datasets.sh linkedin_person_profile "https://linkedin.com/in/satyanadella"
-
-# Get company funding data
-bash skills/data-feeds/scripts/datasets.sh crunchbase_company "https://crunchbase.com/organization/openai"
+# Find a profile or company scraper, then run it on the URLs you have
+bdata pipelines search "<site> profile"
+bdata pipelines run <dataset_id> collect_by_url "<url1>" "<url2>"
 ```
 
 ---
@@ -852,10 +806,8 @@ brightdata-plugin/
 │   │   └── scripts/
 │   │       └── scrape.sh        # Web scraper implementation
 │   ├── data-feeds/
-│   │   ├── SKILL.md             # Data feeds skill
-│   │   └── scripts/
-│   │       ├── datasets.sh      # Dataset wrapper (40+ sources)
-│   │       └── fetch.sh         # Core polling logic
+│   │   ├── SKILL.md             # Data feeds skill (bdata pipelines)
+│   │   └── references/          # Examples, flags, patterns
 │   ├── bright-data-mcp/
 │   │   ├── SKILL.md             # MCP workflow guide
 │   │   └── references/
@@ -916,7 +868,7 @@ brightdata-plugin/
 │   │   ├── SKILL.md             # CLI usage guide and command patterns
 │   │   └── references/
 │   │       ├── commands.md      # Full command reference with all flags
-│   │       └── pipelines.md     # 40+ pipeline types and parameters
+│   │       └── pipelines.md     # Find, inspect and run pre-built scrapers
 │   ├── competitive-intel/
 │   │   ├── SKILL.md             # Competitive intelligence (6 analysis modules)
 │   │   └── references/
@@ -1044,7 +996,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Proxy Troubleshooting](skills/proxy/references/troubleshooting.md) - Error catalog, TLS/cert fixes, rotation issues, escalation order
 - [Bright Data CLI](skills/brightdata-cli/SKILL.md) - Terminal tool for scraping, search, and data extraction
 - [CLI Commands Reference](skills/brightdata-cli/references/commands.md) - Full command reference with all flags
-- [CLI Pipelines Reference](skills/brightdata-cli/references/pipelines.md) - 40+ platform pipeline types
+- [CLI Pipelines Reference](skills/brightdata-cli/references/pipelines.md) - Find, inspect and run pre-built scrapers
 - [Competitive Intelligence](skills/competitive-intel/SKILL.md) - Real-time competitor analysis with live web data
 - [CI Data Source Guide](skills/competitive-intel/references/data-source-guide.md) - CI needs mapped to bdata commands
 - [CI Analysis Frameworks](skills/competitive-intel/references/analysis-frameworks.md) - SWOT, Porter's, positioning, JTBD, Blue Ocean

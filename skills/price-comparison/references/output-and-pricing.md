@@ -85,7 +85,7 @@ One row per normalized offer.
 
 ```bash
 # Pipelines can emit CSV directly:
-bdata pipelines amazon_product "<url>" --format csv -o amazon_offer.csv
+bdata pipelines run <dataset_id> collect_by_url "<url>" --format csv -o offer.csv
 # Then merge retailer files and add total/condition/availability columns
 # during normalization.
 ```

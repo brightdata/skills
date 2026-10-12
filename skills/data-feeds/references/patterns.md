@@ -2,41 +2,53 @@
 
 ## Verification checklist (shared across all Bright Data CLI skills)
 
-Before claiming a pipeline succeeded:
+Before claiming a pipeline run succeeded:
 
 1. **JSON parses cleanly** (`jq . <output>` for json; line-by-line for ndjson).
 2. **Record count matches expected.** Partial failures are silent — count explicitly.
 3. **No top-level `error` key** on object-shaped outputs.
 4. **No per-record `error` key** on array-shaped outputs.
-5. **Core fields present** for the pipeline type — spot-check with `jq keys` on record 0.
+5. **Core fields present** for what the user asked for. Fields differ per scraper; spot-check with `jq keys` on record 0.
 
-## Sync timeout tuning
+## Sync timeout tuning and async runs
 
 ```bash
-# Default — good for products / profiles
-bdata pipelines amazon_product "<url>" -o out.json
+# Default: good for single products / profiles
+bdata pipelines run <dataset_id> collect_by_url "<url>" -o out.json
 
-# Long jobs — reviews, comment feeds, company employees
-bdata pipelines amazon_product_reviews "<url>" --timeout 1800 -o out.json
+# Long jobs: reviews, comment feeds, discover methods
+bdata pipelines run <dataset_id> <method> "<url>" --timeout 1800 -o out.json
 
 # Or set a session default
 export BRIGHTDATA_POLLING_TIMEOUT=1800
-bdata pipelines linkedin_posts "<url>" -o out.json
+
+# Or start async and come back later
+bdata pipelines run <dataset_id> <method> "<url>" --async   # prints snapshot_id
+bdata pipelines status <snapshot_id> --wait
+bdata pipelines results <snapshot_id> -o out.json
 ```
 
-## Batching same pipeline across many URLs (parallelism-capped)
+## Batching many URLs on the same scraper
+
+One `run` takes many URLs; each URL argument is one record:
+
+```bash
+xargs -a urls.txt bdata pipelines run <dataset_id> collect_by_url \
+    --timeout 900 -o out.json
+```
+
+For very long lists, split into chunks and keep parallelism low:
 
 ```bash
 mkdir -p out
-xargs -a urls.txt -n 1 -P 2 -I {} bash -c '
-    url="$1"
-    hash=$(printf "%s" "$url" | md5sum | cut -c1-8)
-    bdata pipelines linkedin_company_profile "$url" \
-        --timeout 900 -o "out/${hash}.json" || echo "FAIL: $url" >&2
+split -l 50 urls.txt chunk_
+ls chunk_* | xargs -n 1 -P 2 -I {} bash -c '
+    xargs -a "$1" bdata pipelines run <dataset_id> collect_by_url \
+        --timeout 1800 -o "out/$1.json" || echo "FAIL: $1" >&2
 ' _ {}
 ```
 
-`-P 2` — keep parallelism LOW for pipelines. Each call can trigger a long server-side job; over-provisioning wastes quota and triggers rate limits.
+`-P 2`: keep parallelism LOW for pipelines. Each call triggers a server-side job; over-provisioning wastes quota and triggers rate limits.
 
 ## NDJSON verification (line-by-line parsing)
 
@@ -71,62 +83,50 @@ for f in out/*.json; do
 done
 ```
 
-## Pipeline-type resolution workflow
+## Scraper resolution workflow
 
-When the user names a platform but not a pipeline type:
-
-```bash
-# 1. Get the source of truth
-bdata pipelines list > types.txt
-
-# 2. Grep by platform
-grep '^linkedin' types.txt
-# → linkedin_company_profile
-# → linkedin_job_listings
-# → linkedin_people_search
-# → linkedin_person_profile
-# → linkedin_posts
-
-# 3. Pick by intent:
-#    - Profile of a person → linkedin_person_profile
-#    - Profile of a company → linkedin_company_profile
-#    - Job postings for a company → linkedin_job_listings
-#    - Posts from a profile → linkedin_posts
-#    - Search for people by attributes → linkedin_people_search
-```
-
-## Keyword- and multi-arg pipeline cheatsheet
-
-These pipelines take non-URL or multi-positional inputs. Verify with the CLI error message if unsure — invoke with no args:
+When the user names a site or data type but you have no `dataset_id`:
 
 ```bash
-# amazon_product_search — search Amazon by keyword on a given domain
-bdata pipelines amazon_product_search \
-    "running shoes" "https://www.amazon.com" \
-    -o search.json
+# 1. Search (example query; use the user's site or data type)
+bdata pipelines search "<site or data type>" --limit 20
 
-# linkedin_people_search — find a named person on a company/school URL
-bdata pipelines linkedin_people_search \
-    "https://www.linkedin.com/company/example" "Jane" "Doe" \
-    -o people.json
+# 2. Pick by domain and intent. Names can repeat, so compare dataset_id and domain.
+#    Script-friendly form:
+bdata pipelines search "<site or data type>" --json \
+    | jq -r '.[] | "\(.dataset_id)\t\(.domain)\t\(.name)\t\(.collection_methods)"'
 
-# google_maps_reviews — reviews for a place; optional days_limit defaults to 3
-bdata pipelines google_maps_reviews \
-    "https://maps.google.com/?cid=1234567890" 90 \
-    -o gmaps-reviews.json
-
-# facebook_company_reviews — optional num_reviews defaults to 10
-bdata pipelines facebook_company_reviews \
-    "https://www.facebook.com/example" 50 \
-    -o fb-reviews.json
-
-# youtube_comments — optional num_comments defaults to 10
-bdata pipelines youtube_comments \
-    "https://www.youtube.com/watch?v=abc123" 100 \
-    -o yt-comments.json
+# 3. List methods, then read the chosen method's fields
+bdata pipelines info <dataset_id>
+bdata pipelines info <dataset_id> <method>
 ```
 
-When unsure about args, invoke with none — CLI prints the expected usage.
+Pick the method by the input you have:
+
+- Have item URLs → `collect_by_url` (one record per URL).
+- Have a keyword, category URL or other seed → the matching `discover_by_*` method (many records per input, capped by `--limit-per-input`).
+
+If nothing matches, try a broader query (data type instead of site), then `bdata pipelines refresh` to reload the cached scraper list. If still nothing, hand off to `scrape`.
+
+## Input patterns
+
+`info <dataset_id> <method>` prints the input fields, an example input and a ready-to-run command. Start from that command.
+
+```bash
+# URL args: one record per URL; other flags apply to every record
+bdata pipelines run <dataset_id> collect_by_url "<url1>" "<url2>" --<field> <value>
+
+# Methods without a url field take only flags
+bdata pipelines run <dataset_id> <method> --<field> "<value>" --limit-per-input 5
+
+# Per-record values, nested data or odd field names: JSON
+bdata pipelines run <dataset_id> <method> --input '[{"url": "<url>", "<field>": "<value>"}]'
+bdata pipelines run <dataset_id> <method> --input @records.json
+```
+
+- Values are converted by field type: numbers, `true`/`false` (a bare boolean flag means true), arrays as comma-separated values.
+- Unknown or missing required fields fail before anything is triggered, so nothing is billed. The error lists the valid fields.
+- Every returned record is billed. Start with one input and a small `--limit-per-input`.
 
 ## Legacy `curl` fallback (deprecated)
 

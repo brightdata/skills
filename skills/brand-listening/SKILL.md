@@ -53,7 +53,8 @@ Halt and route to setup if either check fails.
 ## Data Collection Rules
 
 - **Discovery first.** You rarely have the right URLs up front. Run `bdata search "<brand> site:reddit.com" --json` (and per-platform variants) to find threads, profiles, and articles, *then* feed those URLs to pipelines.
-- **Prefer `bdata pipelines`** over `bdata scrape` whenever a pipeline exists for the platform — pipelines return clean structured JSON (author, date, engagement, text).
+- **Prefer `bdata pipelines`** over `bdata scrape` whenever a pre-built scraper exists for the platform. Pipelines return clean structured JSON (author, date, engagement, text).
+- **Look up scrapers, never guess them.** For each platform: `bdata pipelines search "<platform> <data type>"`, then `bdata pipelines info <dataset_id> <method>` to see the input fields, then `bdata pipelines run`. Never guess a `dataset_id` or field names. Full workflow: the `brightdata-cli` skill, [pipelines reference](../brightdata-cli/references/pipelines.md).
 - **Always pass `--json`** when you need to parse or pipe output.
 - **Be cost-efficient** — a standard sweep is ~6–12 `bdata` calls, not 50. Pull the highest-signal threads/profiles, not everything.
 - **Parallelize** independent calls across multiple Bash tool calls in one response.
@@ -64,6 +65,8 @@ Halt and route to setup if either check fails.
 
 Pick the platforms that fit the brand. Consumer/cultural brands skew TikTok/Instagram/Reddit; B2B/SaaS skews Reddit/X/review sites; local businesses skew Google Maps reviews.
 
+Each `run` below uses the `dataset_id` you picked from the `search` line above it. Check `bdata pipelines info <dataset_id> <method>` first: extra inputs (comment count, days back) are `--<field> <value>` flags named there.
+
 ### Reddit — honest, unfiltered sentiment
 ```bash
 # Discover relevant threads
@@ -71,46 +74,47 @@ bdata search "<brand> site:reddit.com" --json
 bdata search "<brand> review reddit" --json
 
 # Pull structured post + comment data from the threads found
-bdata pipelines reddit_posts "<reddit-thread-url>" --json -o reddit.json
+bdata pipelines search "reddit posts"
+bdata pipelines run <dataset_id> collect_by_url "<reddit-thread-url>" -o reddit.json
 ```
 Reddit is the single best source for candid opinions brand channels hide. Prioritize it.
 
 ### X / Twitter — real-time reaction
 ```bash
 bdata search "<brand>" --json                      # find recent discussion
-bdata pipelines x_posts "<x-profile-or-post-url>" --json -o x.json
+bdata pipelines search "x posts"
+bdata pipelines run <dataset_id> collect_by_url "<x-post-url>" -o x.json
 ```
 
 ### Instagram — brand aesthetics, comments, advocacy
 ```bash
-bdata pipelines instagram_posts "https://www.instagram.com/<brand>/" --json -o ig_posts.json
-bdata pipelines instagram_comments "<instagram-post-url>" --json -o ig_comments.json
+bdata pipelines search "instagram posts"         # profile posts; pick a method with info
+bdata pipelines search "instagram comments"
+bdata pipelines run <dataset_id> collect_by_url "<instagram-post-url>" -o ig_comments.json
 ```
 
 ### TikTok — cultural relevance, viral sentiment
 ```bash
-bdata pipelines tiktok_posts "https://www.tiktok.com/@<brand>" --json -o tt_posts.json
-bdata pipelines tiktok_comments "<tiktok-video-url>" --json -o tt_comments.json
+bdata pipelines search "tiktok posts"            # profile posts; pick a method with info
+bdata pipelines search "tiktok comments"
+bdata pipelines run <dataset_id> collect_by_url "<tiktok-video-url>" -o tt_comments.json
 ```
 
 ### YouTube — reviews, tutorials, long-form opinion (comments are gold)
 ```bash
 bdata search "<brand> review youtube" --json
-bdata pipelines youtube_videos "<video-url>" --json -o yt_videos.json
-bdata pipelines youtube_comments "<video-url>" 100 --json -o yt_comments.json   # url + num_comments
+bdata pipelines search "youtube videos"
+bdata pipelines search "youtube comments"
+bdata pipelines run <dataset_id> collect_by_url "<video-url>" -o yt_comments.json
 ```
 
 ### Reviews — structured customer sentiment
 ```bash
-# App-based products
-bdata pipelines google_play_store "<play-store-url>" --json -o play.json
-bdata pipelines apple_app_store "<app-store-url>" --json -o appstore.json
-
-# Local / physical businesses
-bdata pipelines google_maps_reviews "<maps-url>" 90 --json -o gmaps.json   # url + days_limit
-
-# Facebook page reviews
-bdata pipelines facebook_company_reviews "<fb-page-url>" 50 --json -o fb_reviews.json   # url + num
+# App-based products, local businesses, Facebook pages: find the review scraper
+bdata pipelines search "google play"             # or "apple app store"
+bdata pipelines search "google maps reviews"
+bdata pipelines search "facebook reviews"
+bdata pipelines run <dataset_id> collect_by_url "<listing-or-page-url>" -o reviews.json
 
 # SaaS / software — discover then scrape (no pipeline)
 bdata search "<brand> site:g2.com" --json
@@ -124,7 +128,7 @@ bdata search "<brand>" --json                  # general SERP, scan for news
 bdata scrape "<article-url>"                    # pull full article text for tone
 ```
 
-> **Pipeline names change.** Always confirm with `bdata pipelines list` before hardcoding a type. Names are inconsistent across platforms (`tiktok_posts` plural, `reddit_posts` plural, `x_posts`). The `data-feeds` skill has the verified list.
+> **Never hardcode a scraper.** The catalog changes, and two scrapers can share a name. Always pick the `dataset_id` from `bdata pipelines search` and the fields from `bdata pipelines info` in the same session.
 
 ## Choosing What to Collect
 

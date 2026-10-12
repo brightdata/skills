@@ -1,11 +1,11 @@
 ---
 name: data-feeds
-description: Extract structured data from 40+ supported platforms (Amazon, LinkedIn, Instagram, TikTok, Facebook, YouTube, Reddit, and more) via the Bright Data CLI (`bdata pipelines`). Use when the user wants clean JSON from a known platform URL rather than raw HTML. Hands off to `scrape` for unsupported URLs and to `search` when target URLs must be discovered first. Requires the Bright Data CLI; proactively guides install + login if missing.
+description: Extract structured data from thousands of pre-built Bright Data scrapers (e-commerce, social, jobs, maps, real estate and more) via the Bright Data CLI (`bdata pipelines search`, `info`, `run`). Use when the user wants clean JSON from a known site rather than raw HTML. Hands off to `scrape` when no scraper fits and to `search` when target URLs must be discovered first. Requires the Bright Data CLI 0.4.0+; proactively guides install + login if missing.
 ---
 
 # Bright Data — Data Feeds (Pipelines)
 
-Extract structured data from supported platforms via `bdata pipelines`. One call, clean JSON, no scraping logic. For unsupported URLs, hand off to `scrape`. To find target URLs first, hand off to `search`.
+Extract structured data via `bdata pipelines`: search for a pre-built scraper, check its inputs, run it, get clean JSON. No scraping logic. If no scraper fits, hand off to `scrape`. To find target URLs first, hand off to `search`.
 
 ## Setup gate (run first)
 
@@ -19,102 +19,81 @@ fi
 
 Halt and route to `skills/bright-data-best-practices/references/cli-setup.md` if either check fails.
 
-## Supported pipeline types (verified 2026-04-19)
+## Workflow (always search, then info, then run)
 
-**Always verify with `bdata pipelines list` before hardcoding names** — they change. Current 43 types:
+Requires CLI 0.4.0 or later. The fixed pipeline types (`bdata pipelines <type> <url>`), `bdata pipelines list` and top-level `bdata status` were removed. Never guess a `dataset_id`, method or field name: look them up every time.
 
-`amazon_product`, `amazon_product_reviews`, `amazon_product_search`, `apple_app_store`, `bestbuy_products`, `booking_hotel_listings`, `crunchbase_company`, `ebay_product`, `etsy_products`, `facebook_company_reviews`, `facebook_events`, `facebook_marketplace_listings`, `facebook_posts`, `github_repository_file`, `google_maps_reviews`, `google_play_store`, `google_shopping`, `homedepot_products`, `instagram_comments`, `instagram_posts`, `instagram_profiles`, `instagram_reels`, `linkedin_company_profile`, `linkedin_job_listings`, `linkedin_people_search`, `linkedin_person_profile`, `linkedin_posts`, `reddit_posts`, `reuter_news`, `tiktok_comments`, `tiktok_posts`, `tiktok_profiles`, `tiktok_shop`, `walmart_product`, `walmart_seller`, `x_posts`, `yahoo_finance_business`, `youtube_comments`, `youtube_profiles`, `youtube_videos`, `zara_products`, `zillow_properties_listing`, `zoominfo_company_profile`
+```bash
+# 1. Find a scraper by site or data type
+bdata pipelines search <site or data type> [--limit n]
 
-**Naming note:** inconsistent across platforms. `amazon_product` (singular), `tiktok_profiles` (plural), `linkedin_person_profile` (not `linkedin_profile`). Always copy from `bdata pipelines list`.
+# 2. List its collection methods
+bdata pipelines info <dataset_id>
+
+# 3. Show one method's input fields, example input and a ready-to-run command
+bdata pipelines info <dataset_id> <method>
+
+# 4. Run it
+bdata pipelines run <dataset_id> <method> <url> [--<field> <value>...]
+```
+
+- `search` returns `dataset_id`, name, domain and `collection_methods`. Two scrapers can share a name, so pick by `dataset_id` and domain.
+- `collect_by_url` returns one record per input URL. `discover_by_*` methods (keyword, category URL, ...) return up to `--limit-per-input` records per input (default 10).
+- Use method names exactly as listed, including misspelled ones.
+
+Full command reference: [`../brightdata-cli/references/pipelines.md`](../brightdata-cli/references/pipelines.md).
 
 ## Pick your path
 
 | Situation | Action |
 |---|---|
-| Know the platform + have URL(s) | `bdata pipelines <type> <url>` |
-| Don't know which pipeline fits | `bdata pipelines list` first |
-| Pipeline takes keyword or multi-arg input | See "Keyword- and multi-arg pipelines" below |
-| Multiple URLs on the same pipeline type | shell loop with parallelism cap (see `references/patterns.md`) |
-| Long job (reviews, company employees, big post feeds) | raise `--timeout 1800` |
-| URL is on an unsupported platform | **stop — hand off to `scrape`** |
+| Know the site + have URL(s) | `search` for the scraper, `info`, then `run ... collect_by_url <url>...` |
+| Don't know which scraper fits | `bdata pipelines search <site or data type>` and compare results |
+| Input is a keyword, category or other non-URL field | use a `discover_by_*` method; `info <dataset_id> <method>` shows the fields |
+| Multiple URLs on the same scraper | pass them all to one `run` (each URL = one record) |
+| Different values per record or nested input | `--input '<json>'` or `--input @records.json` |
+| Long job (reviews, big feeds, discover methods) | `--async`, then `status --wait` and `results`; or raise `--timeout 1800` |
+| No scraper fits the site | **stop, hand off to `scrape`** |
 | Need to find URLs first | **hand off to `search`** |
-
-## Keyword- and multi-arg pipelines (do NOT take a single URL)
-
-A few pipelines take non-URL or multi-positional inputs. Invoke with no args to see the exact usage line from the CLI:
-
-| Pipeline | Args |
-|---|---|
-| `amazon_product_search` | `<keyword> <domain_url>` — e.g., `"running shoes" https://www.amazon.com` |
-| `linkedin_people_search` | `<url> <first_name> <last_name>` — search a company/school/URL for a named person |
-| `facebook_company_reviews` | `<url> [num_reviews]` — optional num_reviews defaults to `10` |
-| `google_maps_reviews` | `<url> [days_limit]` — optional days_limit defaults to `3` |
-| `youtube_comments` | `<url> [num_comments]` — optional num_comments defaults to `10` |
-
-All other 37 pipelines take a single URL.
 
 ## Action
 
 Core commands:
 
 ```bash
-# List available pipeline types (source of truth)
-bdata pipelines list
+# Find the scraper and its inputs (example query; use the user's site)
+bdata pipelines search "<site or data type>"
+bdata pipelines info <dataset_id>
+bdata pipelines info <dataset_id> collect_by_url
 
-# Amazon product
-bdata pipelines amazon_product \
-    "https://www.amazon.com/dp/B08N5WRWNW" \
-    --format json --pretty -o product.json
+# One record per URL; other --<field> flags apply to every record
+bdata pipelines run <dataset_id> collect_by_url "<url1>" "<url2>" \
+    --format json --pretty -o out.json
 
-# Amazon product reviews (slower — reviews can be hundreds)
-bdata pipelines amazon_product_reviews \
-    "https://www.amazon.com/dp/B08N5WRWNW" \
-    --timeout 1200 -o reviews.json
+# Discover method: no URL, fields as flags, keep the limit small (every record is billed)
+bdata pipelines run <dataset_id> <discover_method> --<field> "<value>" \
+    --limit-per-input 5 -o out.json
 
-# Amazon product search (keyword + domain URL)
-bdata pipelines amazon_product_search \
-    "noise cancelling headphones" "https://www.amazon.com" \
-    --format json --pretty -o search.json
+# Per-record values or nested data as JSON
+bdata pipelines run <dataset_id> <method> --input @records.json -o out.json
 
-# LinkedIn person profile
-bdata pipelines linkedin_person_profile \
-    "https://www.linkedin.com/in/example" -o person.json
+# Long job: start async, come back later
+bdata pipelines run <dataset_id> <method> "<url>" --async   # prints snapshot_id
+bdata pipelines status <snapshot_id> --wait
+bdata pipelines results <snapshot_id> --format ndjson -o out.ndjson
 
-# LinkedIn company
-bdata pipelines linkedin_company_profile \
-    "https://www.linkedin.com/company/example" -o company.json
-
-# LinkedIn people search (url + first + last name)
-bdata pipelines linkedin_people_search \
-    "https://www.linkedin.com/company/example" "Jane" "Doe" \
-    -o people.json
-
-# Instagram posts
-bdata pipelines instagram_posts \
-    "https://www.instagram.com/example/" -o posts.json
-
-# Google Maps reviews (url + days_limit, default 3)
-bdata pipelines google_maps_reviews \
-    "https://maps.google.com/?cid=1234567890" 90 -o reviews.json
-
-# YouTube comments (url + num_comments, default 10)
-bdata pipelines youtube_comments \
-    "https://www.youtube.com/watch?v=abc123" 100 -o yt-comments.json
-
-# NDJSON for big feeds (one record per line)
-bdata pipelines linkedin_posts "https://www.linkedin.com/in/example" \
-    --format ndjson -o posts.ndjson
-
-# Raise polling timeout for long jobs
-bdata pipelines amazon_product_reviews "<url>" --timeout 1800 -o out.json
+# Script-friendly: JSON from search when piped or with --json
+bdata pipelines search "<site or data type>" --json | jq -r '.[] | "\(.dataset_id) \(.domain) \(.name)"'
 ```
 
-Full flag reference + full type table: [`references/flags.md`](references/flags.md).
+Unknown or missing required fields fail before anything is triggered, so nothing is billed; the error lists the valid fields.
+
+Full flag reference: [`references/flags.md`](references/flags.md).
 
 ## Verification gate
 
 1. **JSON parses cleanly:** `jq . <output>` returns 0 (or for `--format ndjson`, each line parses).
-2. **Record count matches expected.** One URL usually = one record, *but* reviews/posts/comments pipelines return arrays sized by what the platform shows. Always check:
+2. **Record count matches expected.** `collect_by_url` usually returns one record per URL, *but* review, post and comment scrapers and `discover_by_*` methods return arrays sized by what the site shows (capped by `--limit-per-input`). Always check:
    ```bash
    jq 'length' out.json                       # top-level array count
    # OR
@@ -131,27 +110,23 @@ Full flag reference + full type table: [`references/flags.md`](references/flags.
        || echo "WARN: one or more records have error fields"
    ```
    Partial failures are silent — this check is non-optional.
-5. **Core fields present** for the pipeline type (examples):
-   - `amazon_product` → `.title` + `.price` (or `.final_price`)
-   - `linkedin_person_profile` → `.name` + `.headline` (or `.position`)
-   - `instagram_posts` → `.caption` or `.description` + `.url` or `.post_id`
-   - `youtube_videos` → `.title` + `.video_id` or `.url`
-
-   Spot-check with `jq keys` on the first record to learn the exact schema.
-6. **On failure:** double `--timeout` and retry once. If still failing, `bdata pipelines list` to confirm the type name hasn't changed.
+5. **Core fields present.** Fields differ per scraper; spot-check with `jq '.[0] | keys'` on the first record and compare with what the user asked for.
+6. **On failure:** read any record `error` field (often a URL of the wrong type for the method), re-check `bdata pipelines info <dataset_id> <method>`, then double `--timeout` (or use `--async`) and retry once. If it still fails, `bdata scrape <url>` returns the page as Markdown as a fallback.
 
 ## Red flags
 
-- Using `bdata scrape` on Amazon/LinkedIn/TikTok/etc. when `bdata pipelines <type>` returns structured fields in one call. Loses structure and costs more time.
-- Looping `bdata pipelines` for large jobs without rate-limiting — each call can trigger a long-running pipeline on the server. Cap parallelism at 2–3.
+- Guessing a `dataset_id`, method or field name instead of running `search` and `info` first.
+- Using removed commands: `bdata pipelines <type> <url>`, `bdata pipelines list`, `bdata status`. They exit with a hint; use `search` + `info` + `run` and `bdata pipelines status <snapshot_id>`.
+- Using `bdata scrape` on a site that has a pre-built scraper. Loses structure and costs more time.
+- Looping `bdata pipelines run` once per URL when one `run` accepts many URLs. If you must loop, cap parallelism at 2 to 3.
+- Large `--limit-per-input` on `discover_by_*` methods. Every record is billed; start with one input and a small limit.
 - Claiming success without the record-count + per-record error check. Partial failures are silent in pipeline output.
-- Hardcoding pipeline type names (`amazon_products` with an `s`, `linkedin_profile` without `_person_`, etc.) — they're inconsistent across platforms. Always copy from `bdata pipelines list`.
-- Using a tight `--timeout` on pipelines that legitimately take 5–15 minutes (reviews, company employees, big post feeds). Default 600s is a floor for small inputs; raise for long ones.
-- Calling a keyword- or multi-arg pipeline (`amazon_product_search`, `linkedin_people_search`, `google_maps_reviews`, `facebook_company_reviews`, `youtube_comments`) with URL-only args — will fail with `"Usage: ..."`. Always check `bdata pipelines <type>` error output when in doubt.
-- Passing a `pages_to_search` third arg to `amazon_product_search` — it's hardcoded to `1` by the CLI and extra args are ignored.
+- "Fixing" a misspelled method name. Use it exactly as `info` lists it.
+- Using a tight `--timeout` on runs that legitimately take 5 to 15 minutes. Default 600s suits small inputs; raise it or use `--async` for long ones.
 
 ## References
 
-- [`references/flags.md`](references/flags.md) — full `pipelines` flags + complete table of all 43 types with input shapes.
-- [`references/patterns.md`](references/patterns.md) — sync timeout tuning, shell-loop batching with parallelism cap, partial-failure detection, keyword-shaped pipeline cheatsheet, legacy `curl` fallback, shared verification checklist.
-- [`references/examples.md`](references/examples.md) — (1) single Amazon product, (2) batch LinkedIn companies, (3) long reviews job with raised timeout, (4) mixed-platform workflow calling `pipelines list` first, (5) keyword-shaped `amazon_product_search`.
+- [`../brightdata-cli/references/pipelines.md`](../brightdata-cli/references/pipelines.md): canonical `bdata pipelines` reference.
+- [`references/flags.md`](references/flags.md): `search`, `info`, `run`, `status`, `results` flags and timeout guidance.
+- [`references/patterns.md`](references/patterns.md): scraper resolution workflow, input patterns, async runs, batching, partial-failure detection, legacy `curl` fallback, shared verification checklist.
+- [`references/examples.md`](references/examples.md): (1) single URL, (2) many URLs in one run, (3) long job with `--async`, (4) discover by keyword, (5) per-record JSON input.

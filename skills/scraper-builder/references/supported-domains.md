@@ -74,32 +74,33 @@ This file lists all available documentation pages. Use it to discover scraper-sp
 
 | Domain | Has Pre-Built Scraper? | Approach |
 |--------|----------------------|----------|
-| Amazon | Yes | SDK: `client.scrape.amazon.*` or Shell: `datasets.sh amazon_*` |
-| LinkedIn | Yes | SDK: `client.scrape.linkedin.*` or Shell: `datasets.sh linkedin_*` |
-| Instagram | Yes | SDK: `client.scrape.instagram.*` or Shell: `datasets.sh instagram_*` |
-| Facebook | Yes | SDK: `client.scrape.facebook.*` or Shell: `datasets.sh facebook_*` |
-| TikTok | Yes | SDK: `client.scrape.tiktok.*` or Shell: `datasets.sh tiktok_*` |
-| YouTube | Yes | SDK: `client.scrape.youtube.*` or Shell: `datasets.sh youtube_*` |
-| Twitter/X | Yes | Shell: `datasets.sh x_posts` |
-| Reddit | Yes | SDK: `client.scrape.reddit.*` or Shell: `datasets.sh reddit_posts` |
-| Walmart | Yes | Shell: `datasets.sh walmart_*` |
-| eBay | Yes | Shell: `datasets.sh ebay_product` |
-| Best Buy | Yes | Shell: `datasets.sh bestbuy_products` |
-| Home Depot | Yes | Shell: `datasets.sh homedepot_products` |
-| Etsy | Yes | Shell: `datasets.sh etsy_products` |
-| Zara | Yes | Shell: `datasets.sh zara_products` |
-| Google Maps | Yes | Shell: `datasets.sh google_maps_reviews` |
-| Google Shopping | Yes | Shell: `datasets.sh google_shopping` |
-| Google Play Store | Yes | Shell: `datasets.sh google_play_store` |
-| Apple App Store | Yes | Shell: `datasets.sh apple_app_store` |
-| Crunchbase | Yes | Shell: `datasets.sh crunchbase_company` |
-| ZoomInfo | Yes | Shell: `datasets.sh zoominfo_company_profile` |
-| Zillow | Yes | Shell: `datasets.sh zillow_properties_listing` |
-| Booking.com | Yes | Shell: `datasets.sh booking_hotel_listings` |
-| Yahoo Finance | Yes | Shell: `datasets.sh yahoo_finance_business` |
-| Reuters | Yes | Shell: `datasets.sh reuter_news` |
-| GitHub | Yes | Shell: `datasets.sh github_repository_file` |
+| Amazon | Yes | SDK: `client.scrape.amazon.*` or CLI: `bdata pipelines search "amazon"` |
+| LinkedIn | Yes | SDK: `client.scrape.linkedin.*` or CLI: `bdata pipelines search "linkedin"` |
+| Instagram | Yes | SDK: `client.scrape.instagram.*` or CLI: `bdata pipelines search "instagram"` |
+| Facebook | Yes | SDK: `client.scrape.facebook.*` or CLI: `bdata pipelines search "facebook"` |
+| TikTok | Yes | SDK: `client.scrape.tiktok.*` or CLI: `bdata pipelines search "tiktok"` |
+| YouTube | Yes | SDK: `client.scrape.youtube.*` or CLI: `bdata pipelines search "youtube"` |
+| Twitter/X | Yes | CLI: `bdata pipelines search "x posts"` |
+| Reddit | Yes | SDK: `client.scrape.reddit.*` or CLI: `bdata pipelines search "reddit posts"` |
+| Walmart | Yes | CLI: `bdata pipelines search "walmart"` |
+| eBay | Yes | CLI: `bdata pipelines search "ebay"` |
+| Best Buy | Yes | CLI: `bdata pipelines search "best buy products"` |
+| Home Depot | Yes | CLI: `bdata pipelines search "home depot us"` |
+| Etsy | Yes | CLI: `bdata pipelines search "etsy"` |
+| Zara | Yes | CLI: `bdata pipelines search "zara products"` |
+| Google Maps | Yes | CLI: `bdata pipelines search "google maps reviews"` |
+| Google Shopping | Yes | CLI: `bdata pipelines search "google shopping"` |
+| Google Play Store | Yes | CLI: `bdata pipelines search "google play store"` |
+| Apple App Store | Yes | CLI: `bdata pipelines search "apple app store"` |
+| Crunchbase | Yes | CLI: `bdata pipelines search "crunchbase company"` |
+| ZoomInfo | Yes | CLI: `bdata pipelines search "zoominfo"` |
+| Zillow | Yes | CLI: `bdata pipelines search "zillow properties listing"` |
+| Booking.com | Yes | CLI: `bdata pipelines search "booking hotel listings"` |
+| Yahoo Finance | Yes | CLI: `bdata pipelines search "yahoo finance business"` |
+| GitHub | Yes | CLI: `bdata pipelines search "github repository file"` |
 | Any other site | No | Use Web Unlocker or Browser API (custom scraper) |
+
+CLI cells are search queries, not fixed scrapers. Pick a `dataset_id` from the results, check its inputs with `bdata pipelines info <dataset_id> <method>`, then `bdata pipelines run`. See the `brightdata-cli` skill, [pipelines reference](../../brightdata-cli/references/pipelines.md).
 
 ---
 
@@ -107,12 +108,12 @@ This file lists all available documentation pages. Use it to discover scraper-sp
 
 ### Amazon
 
-| Data Type | Shell Command | Python SDK | Dataset ID |
+| Data Type | CLI lookup | Python SDK | Dataset ID |
 |-----------|--------------|------------|------------|
-| Product details | `datasets.sh amazon_product <url>` | `client.scrape.amazon.products(url=...)` | `gd_l7q7dkf244hwjntr0` |
-| Product reviews | `datasets.sh amazon_product_reviews <url>` | `client.scrape.amazon.reviews(url=...)` | — |
+| Product details | `bdata pipelines search "amazon product"` | `client.scrape.amazon.products(url=...)` | `gd_l7q7dkf244hwjntr0` |
+| Product reviews | `bdata pipelines search "amazon product reviews"` | `client.scrape.amazon.reviews(url=...)` | — |
 | Seller info | — | `client.scrape.amazon.sellers(url=...)` | — |
-| Product search | `datasets.sh amazon_product_search <keyword> <domain>` | `client.scrape.amazon.products_search(keyword=...)` | — |
+| Product search | `bdata pipelines search "amazon product search"` | `client.scrape.amazon.products_search(keyword=...)` | — |
 
 **Amazon-specific tips:**
 - Use `x-unblock-zipcode` header with Web Unlocker to get location-specific pricing
@@ -121,26 +122,26 @@ This file lists all available documentation pages. Use it to discover scraper-sp
 
 ### Walmart
 
-| Data Type | Shell Command | Dataset ID |
+| Data Type | CLI lookup | Dataset ID |
 |-----------|--------------|------------|
-| Product details | `datasets.sh walmart_product <url>` | — |
-| Seller info | `datasets.sh walmart_seller <url>` | — |
+| Product details | `bdata pipelines search "walmart product"` | — |
+| Seller info | `bdata pipelines search "walmart seller"` | — |
 
 ### eBay
 
-| Data Type | Shell Command | Dataset ID |
+| Data Type | CLI lookup | Dataset ID |
 |-----------|--------------|------------|
-| Listing details | `datasets.sh ebay_product <url>` | — |
+| Listing details | `bdata pipelines search "ebay"` | — |
 
 ### Other E-Commerce
 
-| Platform | Shell Command |
+| Platform | CLI lookup |
 |----------|--------------|
-| Best Buy | `datasets.sh bestbuy_products <url>` |
-| Home Depot | `datasets.sh homedepot_products <url>` |
-| Etsy | `datasets.sh etsy_products <url>` |
-| Zara | `datasets.sh zara_products <url>` |
-| Google Shopping | `datasets.sh google_shopping <url>` |
+| Best Buy | `bdata pipelines search "best buy products"` |
+| Home Depot | `bdata pipelines search "home depot us"` |
+| Etsy | `bdata pipelines search "etsy"` |
+| Zara | `bdata pipelines search "zara products"` |
+| Google Shopping | `bdata pipelines search "google shopping"` |
 
 ---
 
@@ -148,56 +149,56 @@ This file lists all available documentation pages. Use it to discover scraper-sp
 
 ### Instagram
 
-| Data Type | Shell Command | Python SDK |
+| Data Type | CLI lookup | Python SDK |
 |-----------|--------------|------------|
-| Profile | `datasets.sh instagram_profiles <url>` | `client.scrape.instagram.profiles(url=...)` |
-| Posts | `datasets.sh instagram_posts <url>` | `client.scrape.instagram.posts(url=...)` |
-| Reels | `datasets.sh instagram_reels <url>` | `client.scrape.instagram.reels(url=...)` |
-| Comments | `datasets.sh instagram_comments <url>` | `client.scrape.instagram.comments(url=...)` |
+| Profile | `bdata pipelines search "instagram profiles"` | `client.scrape.instagram.profiles(url=...)` |
+| Posts | `bdata pipelines search "instagram posts"` | `client.scrape.instagram.posts(url=...)` |
+| Reels | `bdata pipelines search "instagram reels"` | `client.scrape.instagram.reels(url=...)` |
+| Comments | `bdata pipelines search "instagram comments"` | `client.scrape.instagram.comments(url=...)` |
 | Profile search | — | `client.scrape.instagram.profiles_search(user_name=...)` |
 | Posts by user | — | `client.scrape.instagram.posts_search(url=..., num_of_posts=20)` |
 
 ### Facebook
 
-| Data Type | Shell Command | Python SDK |
+| Data Type | CLI lookup | Python SDK |
 |-----------|--------------|------------|
-| Posts | `datasets.sh facebook_posts <url>` | `client.scrape.facebook.posts_by_profile(url=..., num_of_posts=10)` |
+| Posts | `bdata pipelines search "facebook posts"` | `client.scrape.facebook.posts_by_profile(url=..., num_of_posts=10)` |
 | Group posts | — | `client.scrape.facebook.posts_by_group(url=..., num_of_posts=10)` |
-| Marketplace | `datasets.sh facebook_marketplace_listings <url>` | — |
-| Reviews | `datasets.sh facebook_company_reviews <url> [num]` | — |
-| Events | `datasets.sh facebook_events <url>` | — |
+| Marketplace | `bdata pipelines search "facebook marketplace listings"` | — |
+| Reviews | `bdata pipelines search "facebook company reviews"` | — |
+| Events | `bdata pipelines search "facebook events"` | — |
 | Reels | — | `client.scrape.facebook.reels(url=...)` |
 | Comments | — | `client.scrape.facebook.comments(url=..., num_of_comments=20)` |
 
 ### TikTok
 
-| Data Type | Shell Command | Python SDK |
+| Data Type | CLI lookup | Python SDK |
 |-----------|--------------|------------|
-| Profile | `datasets.sh tiktok_profiles <url>` | `client.scrape.tiktok.profiles(url=...)` |
-| Posts/Videos | `datasets.sh tiktok_posts <url>` | — |
-| Shop products | `datasets.sh tiktok_shop <url>` | — |
-| Comments | `datasets.sh tiktok_comments <url>` | — |
+| Profile | `bdata pipelines search "tiktok profiles"` | `client.scrape.tiktok.profiles(url=...)` |
+| Posts/Videos | `bdata pipelines search "tiktok posts"` | — |
+| Shop products | `bdata pipelines search "tiktok shop"` | — |
+| Comments | `bdata pipelines search "tiktok comments"` | — |
 
 ### YouTube
 
-| Data Type | Shell Command | Python SDK |
+| Data Type | CLI lookup | Python SDK |
 |-----------|--------------|------------|
-| Channel | `datasets.sh youtube_profiles <url>` | `client.scrape.youtube.profiles(url=...)` |
-| Videos | `datasets.sh youtube_videos <url>` | `client.scrape.youtube.videos(url=...)` |
-| Comments | `datasets.sh youtube_comments <url> [num]` | `client.scrape.youtube.comments(url=...)` |
+| Channel | `bdata pipelines search "youtube channel"` | `client.scrape.youtube.profiles(url=...)` |
+| Videos | `bdata pipelines search "youtube videos"` | `client.scrape.youtube.videos(url=...)` |
+| Comments | `bdata pipelines search "youtube comments"` | `client.scrape.youtube.comments(url=...)` |
 | Video search | — | `client.scrape.youtube.videos_search(keyword=..., num_of_videos=10)` |
 
 ### Twitter/X
 
-| Data Type | Shell Command |
+| Data Type | CLI lookup |
 |-----------|--------------|
-| Posts/Tweets | `datasets.sh x_posts <url>` |
+| Posts/Tweets | `bdata pipelines search "x posts"` |
 
 ### Reddit
 
-| Data Type | Shell Command | Python SDK |
+| Data Type | CLI lookup | Python SDK |
 |-----------|--------------|------------|
-| Posts | `datasets.sh reddit_posts <url>` | `client.scrape.reddit.posts(url=...)` |
+| Posts | `bdata pipelines search "reddit posts"` | `client.scrape.reddit.posts(url=...)` |
 
 ---
 
@@ -205,37 +206,36 @@ This file lists all available documentation pages. Use it to discover scraper-sp
 
 ### LinkedIn
 
-| Data Type | Shell Command | Python SDK |
+| Data Type | CLI lookup | Python SDK |
 |-----------|--------------|------------|
-| Person profile | `datasets.sh linkedin_person_profile <url>` | `client.scrape.linkedin.profiles(url=...)` |
-| Company profile | `datasets.sh linkedin_company_profile <url>` | `client.scrape.linkedin.companies(url=...)` |
-| Job listings | `datasets.sh linkedin_job_listings <url>` | — |
-| Posts | `datasets.sh linkedin_posts <url>` | `client.scrape.linkedin.posts(url=...)` |
-| People search | `datasets.sh linkedin_people_search <url> <first> <last>` | `client.scrape.linkedin.profiles_search(keyword=..., location=...)` |
+| Person profile | `bdata pipelines search "linkedin person profile"` | `client.scrape.linkedin.profiles(url=...)` |
+| Company profile | `bdata pipelines search "linkedin company profile"` | `client.scrape.linkedin.companies(url=...)` |
+| Job listings | `bdata pipelines search "linkedin job listings"` | — |
+| Posts | `bdata pipelines search "linkedin posts"` | `client.scrape.linkedin.posts(url=...)` |
+| People search | `bdata pipelines search "linkedin people search"` | `client.scrape.linkedin.profiles_search(keyword=..., location=...)` |
 | Job search | — | `client.scrape.linkedin.jobs_search(keyword=..., location=...)` |
 | Company search | — | `client.scrape.linkedin.companies_search(keyword=...)` |
 
 ### Other Business
 
-| Platform | Shell Command |
+| Platform | CLI lookup |
 |----------|--------------|
-| Crunchbase | `datasets.sh crunchbase_company <url>` |
-| ZoomInfo | `datasets.sh zoominfo_company_profile <url>` |
+| Crunchbase | `bdata pipelines search "crunchbase company"` |
+| ZoomInfo | `bdata pipelines search "zoominfo"` |
 
 ---
 
 ## Other Scrapers
 
-| Platform | Data Type | Shell Command |
+| Platform | Data Type | CLI lookup |
 |----------|-----------|--------------|
-| Zillow | Property listings | `datasets.sh zillow_properties_listing <url>` |
-| Booking.com | Hotel listings | `datasets.sh booking_hotel_listings <url>` |
-| Yahoo Finance | Company/stock data | `datasets.sh yahoo_finance_business <url>` |
-| Reuters | News articles | `datasets.sh reuter_news <url>` |
-| GitHub | Repository files | `datasets.sh github_repository_file <url>` |
-| Google Maps | Business reviews | `datasets.sh google_maps_reviews <url> [days]` |
-| Google Play | App details | `datasets.sh google_play_store <url>` |
-| Apple App Store | App details | `datasets.sh apple_app_store <url>` |
+| Zillow | Property listings | `bdata pipelines search "zillow properties listing"` |
+| Booking.com | Hotel listings | `bdata pipelines search "booking hotel listings"` |
+| Yahoo Finance | Company/stock data | `bdata pipelines search "yahoo finance business"` |
+| GitHub | Repository files | `bdata pipelines search "github repository file"` |
+| Google Maps | Business reviews | `bdata pipelines search "google maps reviews"` |
+| Google Play | App details | `bdata pipelines search "google play store"` |
+| Apple App Store | App details | `bdata pipelines search "apple app store"` |
 
 ---
 

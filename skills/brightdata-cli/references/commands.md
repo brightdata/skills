@@ -122,48 +122,42 @@ bdata search "bright data pricing" --engine bing
 
 ---
 
-## `bdata pipelines <type> [params...] [options]`
+## `bdata pipelines <command>`
 
-Extract structured data from 40+ platforms. Triggers an async collection job, polls until ready, returns results.
+Run any pre-built Scraper API scraper. Requires CLI 0.4.0+.
+
+| Command | Purpose |
+|---------|---------|
+| `bdata pipelines search <query...>` | Find a scraper by site or data type (`--limit <n>`, default 10) |
+| `bdata pipelines info <dataset_id> [method]` | List methods, or one method's input fields and example input |
+| `bdata pipelines run <dataset_id> <method> [urls...] [--<field> <value>...]` | Run a scraper |
+| `bdata pipelines status <snapshot_id>` | Run progress (`--wait`, `--timeout`) |
+| `bdata pipelines results <snapshot_id>` | Records of a finished run (`--format`) |
+| `bdata pipelines refresh` | Reload the scraper list |
+
+`run` flags:
 
 | Flag | Description |
 |------|-------------|
+| `--<field> <value>` | An input field of the method, as listed by `info` |
+| `--input <json\|@file>` | Input records as JSON, or `@path` to a JSON file |
+| `--limit-per-input <n>` | `discover_by_*` only: max records per input (default: `10`) |
+| `--async` | Print the snapshot ID instead of waiting |
 | `--format <fmt>` | `json` (default), `csv`, `ndjson`, `jsonl` |
-| `--timeout <seconds>` | Polling timeout (default: `600`) |
-| `-o, --output <path>` | Write output to file |
-| `--json` | Force JSON output |
-| `--pretty` | Pretty-print JSON output |
-
-```bash
-bdata pipelines list                                           # List all types
-bdata pipelines linkedin_person_profile "https://linkedin.com/in/username"
-bdata pipelines amazon_product "https://amazon.com/dp/B09V3KXJPB" --format csv -o product.csv
-bdata pipelines instagram_profiles "https://instagram.com/username"
-bdata pipelines amazon_product_search "laptop" "https://amazon.com"
-bdata pipelines google_maps_reviews "https://maps.google.com/..." 7
-bdata pipelines youtube_comments "https://youtube.com/watch?v=..." 50
-```
-
-See [pipelines.md](pipelines.md) for the full list of types and their parameters.
-
----
-
-## `bdata status <job-id>`
-
-Check status of an async snapshot job.
-
-| Flag | Description |
-|------|-------------|
-| `--wait` | Poll until the job completes |
-| `--timeout <seconds>` | Polling timeout (default: `600`) |
+| `--timeout <seconds>` | How long to wait (default: `600`) |
 | `-o, --output <path>` | Write output to file |
 | `--json` / `--pretty` | JSON output |
 
 ```bash
-bdata status s_abc123xyz
-bdata status s_abc123xyz --wait --pretty
-bdata status s_abc123xyz --wait --timeout 300
+bdata pipelines search "<site or data type>"
+bdata pipelines info <dataset_id> <method>
+bdata pipelines run <dataset_id> collect_by_url "<url>" --format csv -o out.csv
+bdata pipelines run <dataset_id> <method> --input @records.json --async
+bdata pipelines status <snapshot_id> --wait
+bdata pipelines results <snapshot_id> --pretty
 ```
+
+See [pipelines.md](pipelines.md) for the full workflow.
 
 ---
 

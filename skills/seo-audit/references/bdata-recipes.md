@@ -20,7 +20,7 @@ Concrete `bdata` commands for each audit step. Each recipe has the same four par
 - **Default page budget**: 10–15 pages for site-wide audits. The user can ask for a larger budget in natural language (e.g., "audit 30 pages") — there is no `bdata` CLI flag for this; it's an audit-level parameter the skill applies when sampling URLs in R-03.
 - **Always parallelize** the sampled-page fetches: single Bash message, multiple `bdata scrape` tool calls. Do not loop sequentially.
 - **Always pass `--json`** when piping to `jq`.
-- **For arbitrary websites, `bdata scrape` is correct** — there is no `bdata pipelines` type for generic-website SEO. Pipelines exist for platforms (Amazon, LinkedIn, etc.); skip them here.
+- **For arbitrary websites, `bdata scrape` is correct** — there is no `bdata pipelines` scraper for generic-website SEO. Pre-built scrapers target specific platforms (Amazon, LinkedIn, etc.); skip them here.
 - **Never re-fetch** the same URL twice in one audit.
 
 ## Failure Handling

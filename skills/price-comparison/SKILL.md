@@ -54,10 +54,10 @@ Halt and route to setup if either check fails.
    (default: Amazon + Google Shopping)? *Which* country/region (default: US —
    it changes price, currency, availability, and which retailers apply)? What
    matters beyond price (reviews, shipping/Prime, new vs refurbished)?
-2. **Resolve, then collect** — If you only have a product name, use
-   `amazon_product_search` and `bdata search --type shopping` to resolve it to
-   concrete product URLs/offers, *then* pull each retailer's structured data.
-   Parallelize independent calls.
+2. **Resolve, then collect** — If you only have a product name, use a
+   retailer's `discover_by_*` scraper and `bdata search --type shopping` to
+   resolve it to concrete product URLs/offers, *then* pull each retailer's
+   structured data. Parallelize independent calls.
 3. **Normalize** — Collapse every result into the single offer schema in
    [references/output-and-pricing.md](references/output-and-pricing.md) before
    comparing. Convert all prices to one currency and note the rate + date used.
@@ -71,13 +71,18 @@ Halt and route to setup if either check fails.
 ## Data Collection Rules
 
 - **Resolve names to URLs first.** You rarely have clean URLs up front. Use
-  `amazon_product_search "<query>" "https://www.amazon.com"` and
+  a retailer's keyword discovery scraper and
   `bdata search "<product>" --type shopping --json` to find the exact items,
   *then* feed those URLs to product pipelines.
 - **Prefer pipelines over scraping for supported retailers.** Amazon, Walmart,
-  eBay, Best Buy, Google Shopping all have structured pipelines that return
+  eBay, Best Buy, Google Shopping all have pre-built scrapers that return
   clean price/availability/rating JSON. Never `bdata scrape amazon.com` — Amazon
   blocks scrapers; the pipeline bypasses that reliably.
+- **Look up scrapers, never guess them.** `bdata pipelines search`, then
+  `bdata pipelines info <dataset_id> <method>`, then `bdata pipelines run`.
+  Never guess a `dataset_id` or field names. Full workflow: the
+  `brightdata-cli` skill,
+  [pipelines reference](../brightdata-cli/references/pipelines.md).
 - **Always pass `--json`** when you need to parse or compare output.
 - **Be cost-efficient** — a standard comparison is ~3–8 `bdata` calls, not 50.
   Pull the offers the user asked about, not every seller on the page.
@@ -94,30 +99,29 @@ Pick the retailers that fit the product and region. US electronics → Amazon +
 Best Buy + Walmart + Google Shopping; marketplace/used → eBay; non-US → confirm
 the local Amazon domain and add region-relevant retailers.
 
-### Amazon — by URL or ASIN
+### Supported retailer: by product URL
 ```bash
-bdata pipelines amazon_product "https://www.amazon.com/dp/<ASIN>" --json -o amazon.json
+bdata pipelines search "<retailer> product"        # pick the dataset_id for the right domain
+bdata pipelines info <dataset_id> collect_by_url   # check required fields
+bdata pipelines run <dataset_id> collect_by_url "<product-url>" -o <retailer>.json
 ```
-Returns price, `final_price`, title, availability, rating, review count, ASIN,
-seller, images. Use the right domain for the region (`amazon.com`, `amazon.de`,
-`amazon.co.uk`, …).
+One record per URL, with price, title, availability, rating and seller. Pass
+several URLs from the same retailer in one `run`. Use the right retailer
+domain for the region (for Amazon: `amazon.com`, `amazon.de`, `amazon.co.uk`, …).
 
-### Amazon — discover by keyword (when you only have a name)
+### Discover by keyword (when you only have a name)
 ```bash
-bdata pipelines amazon_product_search "iPhone 17 Pro 256GB" "https://www.amazon.com" --json -o amzn_search.json
+bdata pipelines info <dataset_id>                  # look for a discover_by_* method
+bdata pipelines info <dataset_id> <method>         # see its input fields
+bdata pipelines run <dataset_id> <method> --<field> "<product name>" --limit-per-input 5
 ```
-Resolve the right ASIN/URL from the results, then call `amazon_product` on it.
-
-### Walmart / eBay / Best Buy — by product URL
-```bash
-bdata pipelines walmart_product "https://www.walmart.com/ip/<ID>" --json -o walmart.json
-bdata pipelines ebay_product     "https://www.ebay.com/itm/<ID>"   --json -o ebay.json
-bdata pipelines bestbuy_products "https://www.bestbuy.com/site/<ID>.p" --json -o bestbuy.json
-```
+Resolve the right product URL from the results, then run `collect_by_url` on
+it. Every returned record is billed, so keep `--limit-per-input` small.
 
 ### Google Shopping — cross-retailer overview
 ```bash
-bdata pipelines google_shopping "<google-shopping-product-url>" --json -o gshopping.json
+bdata pipelines search "google shopping"
+bdata pipelines run <dataset_id> collect_by_url "<google-shopping-product-url>" -o gshopping.json
 ```
 Best for a fast multi-seller view once you have a Shopping product URL. To
 *find* that URL (and a quick price spread) from a name, use SERP shopping:
@@ -132,11 +136,10 @@ bdata scrape "https://retailer.example/product-page"
 Then extract price, currency, and stock from the markdown. Use this for local
 retailers without a dedicated pipeline (e.g. regional electronics chains).
 
-> **Pipeline names are inconsistent** (`amazon_product` singular,
-> `bestbuy_products` plural, `walmart_product`). Confirm with the type list
-> before hardcoding — the `data-feeds` skill has the verified list, and
-> keyword/multi-arg pipelines (`amazon_product_search`) take
-> `<keyword> <domain_url>`, not a single URL.
+> **Never hardcode a scraper.** Pick the `dataset_id` from
+> `bdata pipelines search` and the input fields from `bdata pipelines info`.
+> Two scrapers can share a name, so check the domain. Missing or unknown
+> fields fail before anything is billed.
 
 ## Region Handling
 

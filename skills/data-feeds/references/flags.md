@@ -1,87 +1,59 @@
 # `bdata pipelines` — flag reference
 
-Verified against `@brightdata/cli` v0.1.8 on 2026-04-19.
+For `@brightdata/cli` 0.4.0 and later. Canonical reference:
+[`../../brightdata-cli/references/pipelines.md`](../../brightdata-cli/references/pipelines.md).
 
-Usage: `bdata pipelines [options] <type> [params...]`
+## Subcommands
 
-## Flags
+| Command | What it does |
+|---|---|
+| `bdata pipelines search <query...> [--limit n]` | Find scrapers by site or data type. Returns `dataset_id`, name, domain, `collection_methods`. |
+| `bdata pipelines info <dataset_id>` | List the scraper's collection methods. |
+| `bdata pipelines info <dataset_id> <method>` | Input fields, example input and a ready-to-run command for one method. |
+| `bdata pipelines run <dataset_id> <method> [urls...] [--<field> <value>...]` | Trigger the scraper and wait for records. |
+| `bdata pipelines status <snapshot_id> [--wait] [--timeout s]` | Check a run: starting, running, ready, failed. |
+| `bdata pipelines results <snapshot_id> [--format ...]` | Download the records of a finished run. |
+| `bdata pipelines refresh` | Reload the scraper list (cached for 24 hours). |
+
+Removed in 0.4.0: the fixed types (`bdata pipelines <type> <url>`), `bdata pipelines list` and top-level `bdata status`. Replace them with `search` + `info` + `run` and `bdata pipelines status`.
+
+Always run `search` and `info` before `run`. Never guess a `dataset_id`, method or field name. Use method names exactly as listed, including misspelled ones.
+
+## `run` flags
 
 | Flag | Values | Default | When to use |
 |---|---|---|---|
-| `--format <fmt>` | `json`, `csv`, `ndjson`, `jsonl` | `json` | `json` for most; `ndjson` or `jsonl` for big result sets you'll stream-process line-by-line. `csv` for spreadsheet consumers. |
-| `--timeout <seconds>` | integer | `600` (or `$BRIGHTDATA_POLLING_TIMEOUT`) | Max seconds to poll for completion. Raise to `1200`–`1800` for reviews, company employees, or long post feeds. |
+| `[urls...]` | URLs | none | Each URL is one record. Only for methods with a `url` field. |
+| `--<field> <value>` | per field type | none | One flag per input field from `info`. Applies to every record. Numbers, `true`/`false` (bare flag = true), arrays as comma-separated values. |
+| `--input <json\|@file>` | JSON array of records | none | Different values per record, nested data, or odd field names. |
+| `--limit-per-input <n>` | integer | `10` | `discover_by_*` only. Max records per input. Every record is billed, so start small. |
+| `--async` | (flag) | off | Return a `snapshot_id` right away; fetch later with `status` and `results`. |
+| `--format <fmt>` | `json`, `csv`, `ndjson`, `jsonl` | `json` | `json` for most; `ndjson` or `jsonl` for big result sets you'll stream-process line-by-line. `csv` for spreadsheet consumers. Also on `results`. |
+| `--timeout <seconds>` | integer | `600` (or `$BRIGHTDATA_POLLING_TIMEOUT`) | Max seconds to wait for records. Raise to `1200`–`1800` for reviews, long feeds and discover methods. Also on `status --wait`. |
 | `-o, --output <path>` | file path | stdout | Write to file. Recommended for any result > 1KB. |
-| `--json` | (flag) | off | Force JSON envelope. |
+| `--json` | (flag) | off | Force JSON output. `search` and `info` print tables in a terminal and JSON when piped or with `--json`. |
 | `--pretty` | (flag) | off | Pretty-print JSON. |
 | `--timing` | (flag) | off | Stderr timing breakdown. Debug only. |
 | `-k, --api-key <key>` | API key | saved / env | Per-command override. |
 
-## Pipeline types — input shape (verified 2026-04-19)
+Unknown fields and missing required fields fail before anything is triggered, so nothing is billed. The error lists the valid fields.
 
-Always cross-check with `bdata pipelines list` before hardcoding names. All 43 types:
+## Collection methods
 
-### URL-input pipelines (single `<url>`)
-
-| Pipeline | Typical URL shape |
-|---|---|
-| `amazon_product` | `https://www.amazon.<tld>/dp/<ASIN>` |
-| `amazon_product_reviews` | `https://www.amazon.<tld>/dp/<ASIN>` |
-| `apple_app_store` | app page URL |
-| `bestbuy_products` | product page URL |
-| `booking_hotel_listings` | listing URL |
-| `crunchbase_company` | company page URL |
-| `ebay_product` | product URL |
-| `etsy_products` | product URL |
-| `facebook_events` | event URL |
-| `facebook_marketplace_listings` | listing URL |
-| `facebook_posts` | page or post URL |
-| `github_repository_file` | file URL |
-| `google_play_store` | app URL |
-| `google_shopping` | product URL |
-| `homedepot_products` | product URL |
-| `instagram_comments` | post URL |
-| `instagram_posts` | profile or post URL |
-| `instagram_profiles` | profile URL |
-| `instagram_reels` | profile or reel URL |
-| `linkedin_company_profile` | `https://www.linkedin.com/company/<slug>` |
-| `linkedin_job_listings` | job URL |
-| `linkedin_person_profile` | `https://www.linkedin.com/in/<slug>` |
-| `linkedin_posts` | profile URL |
-| `reddit_posts` | subreddit or post URL |
-| `reuter_news` | article URL |
-| `tiktok_comments` | video URL |
-| `tiktok_posts` | profile or post URL |
-| `tiktok_profiles` | `https://www.tiktok.com/@<handle>` |
-| `tiktok_shop` | product URL |
-| `walmart_product` | product URL |
-| `walmart_seller` | seller URL |
-| `x_posts` | profile or post URL |
-| `yahoo_finance_business` | company page URL |
-| `youtube_profiles` | channel URL |
-| `youtube_videos` | video URL |
-| `zara_products` | product URL |
-| `zillow_properties_listing` | listing URL |
-| `zoominfo_company_profile` | company URL |
-
-### Keyword / multi-arg pipelines (NOT a single URL)
-
-| Pipeline | Args | Notes |
+| Method | Input | Output |
 |---|---|---|
-| `amazon_product_search` | `<keyword> <domain_url>` | Two positional args. `pages_to_search` is hardcoded to `1` by the CLI; extra args are ignored. |
-| `linkedin_people_search` | `<url> <first_name> <last_name>` | Three positional args — search the given company/school/URL for a named person. |
-| `facebook_company_reviews` | `<url> [num_reviews]` | Optional second arg; defaults to `10`. |
-| `google_maps_reviews` | `<url> [days_limit]` | Optional second arg; defaults to `3`. |
-| `youtube_comments` | `<url> [num_comments]` | Optional second arg; defaults to `10`. |
+| `collect_by_url` | item URLs | one record per URL |
+| `discover_by_*` (keyword, category URL, ...) | a seed per record | up to `--limit-per-input` records per input |
 
-When in doubt about a pipeline's args, invoke it with no params — the CLI prints the expected usage line.
+`info <dataset_id> <method>` is the source of truth for each method's fields.
 
 ## Timeout guidance
 
-| Pipeline category | Suggested `--timeout` |
+| Run type | Suggested `--timeout` |
 |---|---|
 | Single-item products / profiles | `600` (default) |
 | Post / video feeds | `900`–`1200` |
-| Reviews, comments, large employee lists | `1200`–`1800` |
-| Company crawls (Crunchbase, ZoomInfo) | `1200`+ |
+| Reviews, comments, discover methods | `1200`–`1800` |
+| Anything longer | `--async`, then `status --wait` |
 
-`BRIGHTDATA_POLLING_TIMEOUT=1800 bdata pipelines …` also works as an env-var default.
+`BRIGHTDATA_POLLING_TIMEOUT=1800 bdata pipelines run …` also works as an env-var default.

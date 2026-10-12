@@ -1,6 +1,6 @@
 ---
 name: brightdata-cli
-description: Guide for using the Bright Data CLI (`brightdata` / `bdata`) to scrape websites, search the web, extract structured data from 40+ platforms, manage proxy zones, and check account budget. Use this skill whenever the user wants to scrape a URL, search Google/Bing/Yandex, extract data from Amazon/LinkedIn/Instagram/TikTok/YouTube/Reddit or any other platform, check their Bright Data balance or zones, or do anything involving web data collection from the terminal. Also trigger when the user mentions brightdata, bdata, web scraping CLI, SERP API, or wants to install Bright Data skills into their coding agent.
+description: Guide for using the Bright Data CLI (`brightdata` / `bdata`) to scrape websites, search the web, run thousands of pre-built scrapers for structured data, manage proxy zones, and check account budget. Use this skill whenever the user wants to scrape a URL, search Google/Bing/Yandex, extract data from Amazon/LinkedIn/Instagram/TikTok/YouTube/Reddit or any other platform, check their Bright Data balance or zones, or do anything involving web data collection from the terminal. Also trigger when the user mentions brightdata, bdata, web scraping CLI, SERP API, or wants to install Bright Data skills into their coding agent.
 ---
 
 # Bright Data CLI
@@ -64,7 +64,7 @@ bdata config
 
 Read [references/commands.md](references/commands.md) for the full command reference with all flags, options, and examples for every command.
 
-Read [references/pipelines.md](references/pipelines.md) for the complete list of 40+ pipeline types (Amazon, LinkedIn, Instagram, TikTok, YouTube, Reddit, and more) with their specific parameters.
+Read [references/pipelines.md](references/pipelines.md) for the pipelines workflow: find a scraper, read its input fields, run it.
 
 ## Quick Command Overview
 
@@ -74,9 +74,10 @@ Read [references/pipelines.md](references/pipelines.md) for the complete list of
 |---------|---------|
 | `bdata scrape <url>` | Scrape any URL as markdown, HTML, JSON, or screenshot |
 | `bdata search "<query>"` | Search Google/Bing/Yandex with structured results |
-| `bdata pipelines <type> [params]` | Extract structured data from 40+ platforms |
-| `bdata pipelines list` | List all 40+ available pipeline types |
-| `bdata status <job-id>` | Check async job status |
+| `bdata pipelines search <query>` | Find a pre-built scraper for a site or data type |
+| `bdata pipelines info <id> [method]` | Show a scraper's methods and input fields |
+| `bdata pipelines run <id> <method> ...` | Run a scraper and get structured records |
+| `bdata pipelines status <snapshot_id>` | Check a run's progress |
 | `bdata zones` | List proxy zones |
 | `bdata budget` | View account balance and costs |
 | `bdata skill add` | Install AI agent skills |
@@ -140,47 +141,36 @@ bdata search "open source tools" --json | jq -r '.organic[].link'
 
 ### Pipelines (Structured Data Extraction)
 
-Extract structured data from 40+ platforms. These trigger async jobs that poll until results are ready:
+Run any of thousands of pre-built scrapers. Always look the scraper up
+first; never guess a `dataset_id` or field names:
 
 ```bash
-# LinkedIn profile
-bdata pipelines linkedin_person_profile "https://linkedin.com/in/username"
+# 1. Find a scraper
+bdata pipelines search <site or data type>
 
-# Amazon product
-bdata pipelines amazon_product "https://amazon.com/dp/B09V3KXJPB"
+# 2. Its methods, then one method's input fields and a ready-to-run command
+bdata pipelines info <dataset_id>
+bdata pipelines info <dataset_id> <method>
 
-# Instagram profile
-bdata pipelines instagram_profiles "https://instagram.com/username"
-
-# Amazon search
-bdata pipelines amazon_product_search "laptop" "https://amazon.com"
-
-# YouTube comments (top 50)
-bdata pipelines youtube_comments "https://youtube.com/watch?v=..." 50
-
-# Google Maps reviews (last 7 days)
-bdata pipelines google_maps_reviews "https://maps.google.com/..." 7
+# 3. Run it: URLs as arguments, other input fields as --<field> flags
+bdata pipelines run <dataset_id> collect_by_url "<url>"
+bdata pipelines run <dataset_id> <discover_method> --<field> <value> --limit-per-input 5
 
 # Output as CSV
-bdata pipelines amazon_product "https://amazon.com/dp/..." --format csv -o product.csv
-
-# List all available pipeline types
-bdata pipelines list
+bdata pipelines run <dataset_id> <method> "<url>" --format csv -o out.csv
 ```
+
+Every record is billed: start with one input. Unknown or missing
+required fields fail before the run starts.
 
 ### Checking Status
 
-For async jobs (from `--async` scrapes or pipelines):
+For long runs started with `--async`:
 
 ```bash
-# Quick status check
-bdata status <job-id>
-
-# Wait until complete
-bdata status <job-id> --wait
-
-# With custom timeout
-bdata status <job-id> --wait --timeout 300
+bdata pipelines status <snapshot_id>
+bdata pipelines status <snapshot_id> --wait --timeout 300
+bdata pipelines results <snapshot_id>
 ```
 
 ### Budget & Zones
@@ -258,8 +248,8 @@ bdata search "top open source projects" --json \
 # Scrape and view with markdown reader
 bdata scrape https://docs.github.com | glow -
 
-# Amazon product data to CSV
-bdata pipelines amazon_product "https://amazon.com/dp/xxx" --format csv > product.csv
+# Scraper records to CSV
+bdata pipelines run <dataset_id> collect_by_url "<url>" --format csv > out.csv
 ```
 
 ## Environment Variables
@@ -290,5 +280,5 @@ These override stored configuration:
 - **Zones auto-created**: Login creates `cli_unlocker` and `cli_browser` zones automatically.
 - **Smart defaults**: Markdown output, auto-detected formats from file extensions, colors only in TTY.
 - **Pipe-friendly**: JSON output + jq for automation. Colors/spinners disabled in pipes.
-- **Async support**: Heavy jobs can run in background with `--async` + `status --wait`.
+- **Async support**: Heavy jobs can run in background with `--async` + `pipelines status --wait`.
 - **npm package**: `@brightdata/cli` — install globally or use via `npx`.
