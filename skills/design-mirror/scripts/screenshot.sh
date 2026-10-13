@@ -22,13 +22,11 @@ fi
 
 echo "Capturing screenshot of: $URL" >&2
 
-curl -k -s -X POST 'https://api.brightdata.com/request' \
-    -H "Authorization: Bearer $BRIGHTDATA_API_KEY" \
-    -H 'Content-Type: application/json' \
-    -d "{\"zone\":\"$BRIGHTDATA_UNLOCKER_ZONE\",\"url\":\"$URL\",\"format\":\"raw\",\"data_format\":\"screenshot\"}" \
-    --output "$OUTPUT"
-
-if [ $? -eq 0 ] && [ -s "$OUTPUT" ]; then
+if curl -k -s -X POST 'https://api.brightdata.com/request' \
+        -H "Authorization: Bearer $BRIGHTDATA_API_KEY" \
+        -H 'Content-Type: application/json' \
+        -d "{\"zone\":\"$BRIGHTDATA_UNLOCKER_ZONE\",\"url\":\"$URL\",\"format\":\"raw\",\"data_format\":\"screenshot\"}" \
+        --output "$OUTPUT" && [ -s "$OUTPUT" ]; then
     echo "Screenshot saved to: $OUTPUT" >&2
     echo "$OUTPUT"
 else
