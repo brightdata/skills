@@ -11,7 +11,7 @@ description: |
 license: MIT
 metadata:
   author: brightdata
-  version: "1.2.0"
+  version: "1.3.0"
 ---
 
 # Bright Data — Agent Onboarding
@@ -280,16 +280,11 @@ Connect with:
 https://mcp.brightdata.com/mcp?token=YOUR_BRIGHTDATA_API_TOKEN
 ```
 
-Optional URL parameters:
+All tools are on by default. Add `&groups=` (`scrapers`, `browser`,
+`advanced_scraping`, `geo`) or `&tools=` to limit them.
 
-| Parameter | Effect |
-|---|---|
-| `pro=1` | Enable all Pro tools |
-| `groups=<name>` | Enable a tool group (`scrapers`, `browser`, `advanced_scraping`, `geo`) |
-| `tools=<names>` | Enable a specific tool list, comma-separated |
-
-Hand off to the `bright-data-mcp` skill for tool selection, tool-group
-auto-enabling, and workflow patterns. That skill explicitly replaces
+Hand off to the `bright-data-mcp` skill for tool selection and workflow
+patterns. That skill explicitly replaces
 WebFetch / WebSearch with Bright Data MCP equivalents.
 
 MCP requests run on the Unlocker API and draw from the **same monthly
