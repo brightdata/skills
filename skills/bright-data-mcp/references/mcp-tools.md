@@ -1,10 +1,8 @@
 # Bright Data MCP Tools Reference
 
-Complete reference for all Bright Data MCP server tools, organized by mode and category.
+Complete reference for all Bright Data MCP server tools, organized by category.
 
-## Rapid (Free) Tools
-
-Available by default, no special configuration needed.
+## Search and Scraping
 
 ### search_engine
 Scrape search results from Google, Bing, or Yandex. Returns SERP results in JSON for Google and Markdown for Bing/Yandex. Supports pagination with the `cursor` parameter.
@@ -13,16 +11,12 @@ Scrape search results from Google, Bing, or Yandex. Returns SERP results in JSON
 Scrape a single webpage with advanced extraction and return Markdown. Uses Bright Data's unlocker to handle bot protection and CAPTCHA.
 
 ### search_engine_batch
-Run up to 10 search queries in parallel. Returns JSON for Google results and Markdown for Bing/Yandex. Requires `advanced_scraping` group or Pro mode.
+Run up to 10 search queries in parallel. Returns JSON for Google results and Markdown for Bing/Yandex.
 
 ### scrape_batch
-Scrape up to 10 webpages in one request and return an array of URL/content pairs in Markdown format. Requires `advanced_scraping` group or Pro mode.
+Scrape up to 10 webpages in one request and return an array of URL/content pairs in Markdown format.
 
----
-
-## Pro Tools by Group
-
-### Advanced Scraping Group (`advanced_scraping`)
+### Advanced Scraping
 
 | Tool | Description |
 |------|-------------|
@@ -32,7 +26,7 @@ Scrape up to 10 webpages in one request and return an array of URL/content pairs
 | `search_engine_batch` | Run up to 10 search queries in parallel. |
 | `scrape_batch` | Scrape up to 10 webpages in one request. |
 
-### Scraper Tools (`scrapers`, on by default)
+### Scraper Tools
 
 Structured JSON from 1,200+ pre-built scrapers (Amazon, Walmart, LinkedIn, Instagram, TikTok, YouTube, Facebook, X, Reddit, Crunchbase, Zillow, Booking.com, Google Play, npm, PyPI, and more). The scraper list is refreshed daily.
 
@@ -50,14 +44,14 @@ Typical flow: `search_scrapers` → `get_scraper_details` → `run_scraper`.
 - Records with an `error` field explain inputs that failed, e.g. a URL of the wrong type.
 - Call `search_scrapers` once per site and reuse the `dataset_id`.
 
-### GEO Group (`geo`)
+### GEO
 
 | Tool | Input | Description |
 |------|-------|-------------|
 | `chatgpt_ai_insights` | Prompt | ChatGPT's answer as Markdown |
 | `perplexity_ai_insights` | Prompt | Perplexity's answer as Markdown |
 
-### Browser Automation Group (`browser`)
+### Browser Automation
 
 Use these tools in sequence for interactive web automation.
 
@@ -87,16 +81,3 @@ Use these tools in sequence for interactive web automation.
 5. Use `scraping_browser_screenshot` to visually verify state when debugging
 6. Use `scraping_browser_wait_for_ref` before interacting with elements that load dynamically
 7. Extract final content with `scraping_browser_get_text` or `scraping_browser_get_html`
-
----
-
-## Available Groups Summary
-
-| Group | Description | Key Tools |
-|-------|-------------|-----------|
-| `scrapers` | Pre-built scrapers for 1,200+ sites (on by default) | `search_scrapers`, `get_scraper_details`, `run_scraper` |
-| `browser` | Browser automation | Navigate, click, type, screenshot, extract |
-| `advanced_scraping` | Advanced extraction | HTML scraping, AI extraction, batch operations |
-| `geo` | LLM answer collection | `chatgpt_ai_insights`, `perplexity_ai_insights` |
-
-Older group names (`ecommerce`, `social`, `business`, `finance`, `research`, `app_stores`, `travel`, `code`) still work and enable the scraper tools.

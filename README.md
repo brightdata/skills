@@ -179,25 +179,7 @@ Connect the Bright Data MCP server using the remote URL:
 https://mcp.brightdata.com/mcp?token=YOUR_BRIGHTDATA_API_TOKEN
 ```
 
-**Optional parameters:**
-
-| Parameter | Description | Example |
-|-----------|-------------|---------|
-| `pro=1` | Enable all Pro tools | `...&pro=1` |
-| `groups=<name>` | Enable specific tool groups | `...&groups=scrapers,browser` |
-| `tools=<names>` | Enable specific tools only | `...&tools=search_engine,scrape_as_markdown` |
-
-### Available Tool Groups
-
-| Group | Tools | Platforms |
-|-------|-------|-----------|
-| **Rapid (Free)** | `search_engine`, `scrape_as_markdown` and batch variants | Google/Bing/Yandex search, any webpage |
-| **scrapers** (on by default) | 6 tools | 1,200+ pre-built scrapers: Amazon, Walmart, LinkedIn, Instagram, TikTok, YouTube, Crunchbase, Zillow, ... |
-| **browser** | 14 tools | Full browser automation (navigate, click, type, screenshot) |
-| **advanced_scraping** | 5 tools | HTML scraping, AI extraction, batch operations |
-| **geo** | 2 tools | ChatGPT and Perplexity answer collection |
-
-Older group names (`ecommerce`, `social`, `business`, ...) still work and enable the scraper tools.
+All tools are enabled by default. Add `&groups=` (`scrapers`, `browser`, `advanced_scraping`, `geo`) or `&tools=` to limit them.
 
 ### Claude Code Setup
 
@@ -207,7 +189,7 @@ Add to your MCP settings:
 {
   "mcpServers": {
     "brightdata": {
-      "url": "https://mcp.brightdata.com/mcp?token=YOUR_TOKEN&pro=1"
+      "url": "https://mcp.brightdata.com/mcp?token=YOUR_TOKEN"
     }
   }
 }

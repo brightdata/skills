@@ -15,35 +15,7 @@ The remote MCP server requires no local installation. Connect directly via URL.
 https://mcp.brightdata.com/mcp?token=<YOUR_BRIGHTDATA_API_TOKEN>
 ```
 
-### Optional Parameters
-
-| Parameter | Values | Description |
-|-----------|--------|-------------|
-| `pro` | `1` | Enable all Pro tools (browser automation, AI extraction, raw HTML) |
-| `groups` | Group name(s) | Enable specific tool groups without full Pro mode |
-| `tools` | Tool name(s) | Enable only specific individual tools |
-
-### URL Examples
-
-**Rapid (Free) mode** - search, scrape and pre-built scrapers:
-```
-https://mcp.brightdata.com/mcp?token=YOUR_TOKEN
-```
-
-**Full Pro mode** - all tools:
-```
-https://mcp.brightdata.com/mcp?token=YOUR_TOKEN&pro=1
-```
-
-**Specific groups** - e.g., pre-built scrapers + browser automation:
-```
-https://mcp.brightdata.com/mcp?token=YOUR_TOKEN&groups=scrapers,browser
-```
-
-**Specific tools** - e.g., only AI extraction and search:
-```
-https://mcp.brightdata.com/mcp?token=YOUR_TOKEN&tools=extract,search_engine
-```
+All tools are enabled by default. To limit the server, add `&groups=` (e.g. `scrapers`, `browser`, `advanced_scraping`, `geo`) or `&tools=` (comma-separated tool names).
 
 ### Setup in Claude.ai
 
@@ -56,17 +28,6 @@ https://mcp.brightdata.com/mcp?token=YOUR_TOKEN&tools=extract,search_engine
 
 Add to your Claude Code MCP settings (typically `~/.claude/settings.json` or project-level `.claude/settings.json`):
 
-```json
-{
-  "mcpServers": {
-    "brightdata": {
-      "url": "https://mcp.brightdata.com/mcp?token=YOUR_TOKEN&pro=1"
-    }
-  }
-}
-```
-
-For Rapid (free) mode only:
 ```json
 {
   "mcpServers": {
@@ -93,37 +54,14 @@ npm install -g @brightdata/mcp
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `API_TOKEN` | Yes | Your Bright Data API token |
-| `PRO_MODE` | No | Set to `true` to enable Pro tools |
-| `GROUPS` | No | Comma-separated group names |
+| `GROUPS` | No | Limit to these tool groups (default: all tools) |
+| `TOOLS` | No | Limit to these tools (default: all tools) |
 
 ### Running Locally
 
 ```bash
-API_TOKEN=your_token PRO_MODE=true npx @brightdata/mcp
+API_TOKEN=your_token npx @brightdata/mcp
 ```
-
-## Choosing Your Mode
-
-All modes are **free for up to 5,000 requests per month** — including Pro tools.
-
-### Rapid (Free) - Default
-- `search_engine` and `scrape_as_markdown` available (plus batch variants)
-- Scraper tools: structured data from 1,200+ sites (Amazon, LinkedIn, Instagram, TikTok, YouTube, etc.)
-- Best for: everyday browsing, reading web pages, search queries, data extraction
-
-### Pro Mode (`pro=1`)
-- All tools enabled
-- Browser automation tools, AI extraction, raw HTML
-- Best for: interactive sites, automation, social media analysis, e-commerce monitoring
-
-### Groups (Selective Pro)
-Enable only the tool groups you need:
-- `scrapers` - Pre-built scrapers for 1,200+ sites (on by default)
-- `browser` - Full browser automation
-- `advanced_scraping` - HTML scraping, AI extraction, batch operations
-- `geo` - ChatGPT and Perplexity answer collection
-
-Older group names (`ecommerce`, `social`, `business`, ...) still work and enable the scraper tools.
 
 ## Verifying Your Setup
 
