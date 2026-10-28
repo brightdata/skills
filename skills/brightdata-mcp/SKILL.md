@@ -23,8 +23,8 @@ Bright Data ships two, and the vendor calls them Remote (the hosted service at
 |---|---|---|
 | Endpoint | `https://mcp.brightdata.com/mcp` (Streamable HTTP) or `/sse` | `npx @brightdata/mcp` over stdio |
 | Auth | `?token=` on the URL for a client you control, or OAuth 2.1 (Bearer header, browser sign-in) when someone else runs the client | `API_TOKEN` env var |
-| Tool config | URL query params such as `pro=1` and `groups=` | env vars `PRO_MODE`, `GROUPS`, `TOOLS` |
-| Filter precedence | `groups=` or `tools=` overrides `pro=1` | `PRO_MODE` wins, the allowlist is skipped |
+| Tool config | URL query params `groups=` and `tools=` | env vars `GROUPS` and `TOOLS` |
+| Default tool list | every tool on, 31 of them; `groups=` or `tools=` narrows it | every tool on, 32 of them; `GROUPS` or `TOOLS` narrows it |
 
 The published package is `@brightdata/mcp`. Remote tracks its
 own release line. Do not assume a tool name present in one is present in the
@@ -48,8 +48,9 @@ output, e.g. `K=$(...)` then `| sed "s/$K/****/g"`. Neither exists: hand off to
 
 ## The routing default
 
-Records from a platform the agent can name go to a `web_data_*` scraper. Page
-content goes to `scrape_as_markdown`. Raw unlocked HTML through `scrape_as_html`
+Records from a site the agent can name go to a pre-built scraper:
+`search_scrapers` to find it, `get_scraper_details` to see its inputs, then
+`run_scraper`. Page content goes to `scrape_as_markdown`. Raw unlocked HTML through `scrape_as_html`
 is the last resort, not the opening move. This is the misroute that costs the
 most credits and returns the worst data, so read the rule before writing prompts
 or tool descriptions.

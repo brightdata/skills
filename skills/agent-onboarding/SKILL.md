@@ -46,21 +46,13 @@ If `npm install -g` is blocked on the machine, skip installing: `npx -y @brightd
 
 ## Add the skills
 
-These are the skills the agent will route to. Run each line (semicolon chaining breaks in cmd, separate lines work in every shell):
+These are the skills the agent will route to. One command installs all of them:
 
 ```
-bdata skill add scrape
-bdata skill add datasets
-bdata skill add fetch
-bdata skill add search
-bdata skill add browser
-bdata skill add brightdata-cli
-bdata skill add brightdata-mcp
-bdata skill add brightdata-sdk
-bdata skill add billing
+npx -y skills add brightdata/skills -y
 ```
 
-Always pass the skill name - a bare `bdata skill add` needs a person. Run it from the project root, because it installs into the current directory's agent folders. A name the registry does not carry yet fails with "Unknown skill" and prints the list it does carry: skip that name and continue, the rest still install.
+Run it from the project root, because it installs into the current directory's agent folders. Keep both `-y` flags: the first lets npx fetch the installer, the second skips its prompts, so no person is needed.
 
 Prefer `bdata login` over `bdata init` for agent setups: `init` is the interactive wizard for humans, and it also writes a `default_zone_serp` config value that login flows never need. If a machine has run `init` and `bdata search` later answers `zone "<name>" not found`, pick a real zone from `bdata zones` and pass `--zone`, or point the key at it with `bdata config set default_zone_serp <name>`.
 

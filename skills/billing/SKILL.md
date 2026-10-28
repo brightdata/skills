@@ -58,7 +58,7 @@ The proxy networks are not covered. New accounts instead get a one-time $2 trial
 
 ## What an MCP tool call bills as
 
-For "what did my agent's tool call cost". Pro mode changes which tools are exposed, never what anything costs. `search_engine` and its batch variant bill as one request per query, `scrape_as_markdown`, `scrape_as_html` and `scrape_batch` as one Web Unlocker request per URL, `web_data_*` as Web Scraper API records delivered, and `scraping_browser_*` as Browser API bandwidth. The credential makes no difference: a Remote client on `?token=` and one on OAuth 2.1 reach the same tools and draw on the same account credits, so an OAuth client spends the credits of whichever Bright Data account its user signed in to, which may not be this one.
+For "what did my agent's tool call cost". Which tools are turned on (`groups=`, `tools=`) never changes what anything costs. `search_engine` and its batch variant bill as one request per query, `scrape_as_markdown`, `scrape_as_html` and `scrape_batch` as one Web Unlocker request per URL, `run_scraper` as Web Scraper API records delivered, and `scraping_browser_*` as Browser API bandwidth. The credential makes no difference: a Remote client on `?token=` and one on OAuth 2.1 reach the same tools and draw on the same account credits, so an OAuth client spends the credits of whichever Bright Data account its user signed in to, which may not be this one.
 
 ## Read next
 
