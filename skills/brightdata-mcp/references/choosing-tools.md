@@ -39,7 +39,7 @@ Raw unlocked HTML through `scrape_as_html` is the last resort.
 ## Why raw unlock is last
 
 `scrape_as_html` and `scrape_as_markdown` both fetch the page through Bright
-Data's Fetch API. They are excellent at getting a blocked page open and bad at handing
+Data's unblocking. They are excellent at getting a blocked page open and bad at handing
 you records. Reaching for them first on a known site means the agent pays to
 unlock the page, burns context on a wall of markup, then parses a layout the
 site changes without notice. A pre-built scraper for that site already returns

@@ -80,15 +80,9 @@ Search takes those plus three of its own, all from `schemas/request.mjs`: `numRe
 // Fetch a page and a SERP. The token comes from the environment, never from source.
 import { bdclient } from '@brightdata/sdk';
 
-// The client reads BRIGHTDATA_API_TOKEN on its own. Check it here so a missing
-// key fails with a clear line instead of deep inside a request.
-if (!process.env.BRIGHTDATA_API_TOKEN) {
-  throw new Error(
-    'BRIGHTDATA_API_TOKEN is not set. Export it, or log in with the ' +
-      'Bright Data CLI. See the agent-onboarding skill.'
-  );
-}
-
+// The client finds the key on its own: BRIGHTDATA_API_TOKEN,
+// BRIGHTDATA_API_KEY, or the Bright Data CLI's login. If none is there it
+// throws an AuthenticationError; see the agent-onboarding skill.
 const client = new bdclient();
 
 try {

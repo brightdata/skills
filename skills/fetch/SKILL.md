@@ -11,10 +11,10 @@ Every request is unblocked: IP rotation, browser fingerprints, cookies, CAPTCHA 
 
 ## The call
 
-**CLI.** The command is `bdata fetch`, an alias of `bdata scrape`. If an older install does not recognize `fetch`, the same command works spelled `bdata scrape`. Both run Web Unlocker.
+**CLI.** The command is `bdata scrape`, which runs Web Unlocker.
 
 ```
-bdata fetch https://example.com/article
+bdata scrape https://example.com/article
 ```
 
 Markdown is the default. A first `bdata login` creates `cli_unlocker` and stores it as the zone default, so a fresh login needs no `--zone`. It never overwrites a default you already set. An account set up any other way carries its unlocker zone under another name (`agent_unlocker` from agent registration, `mcp_unlocker` from the MCP server, any name at all when a person made it by hand): find it by the entry whose `"type"` is `"unblocker"` in `bdata zones --json`, and pass that name. Override with `--zone <name>`, or `BRIGHTDATA_UNLOCKER_ZONE`, or `bdata config set default_zone_unlocker <name>`.
@@ -36,7 +36,7 @@ POST https://api.brightdata.com/request
 
 `format` is the envelope and `data_format` is the page. `"format":"raw"` returns the body itself, `"format":"json"` wraps it with status and headers.
 
-For code the user keeps, the SDK wraps this same call in one line: `const html = await client.scrapeUrl('https://example.com/article')`. The `brightdata-sdk` skill owns that surface. The `scrape` skill's web-unlocker reference covers the same one-POST shape and the KYC error codes. The full parameter list, including `render`, `country` and `method`, is in Bright Data's Web Unlocker API docs.
+For code the user keeps, the SDK wraps this same call in one line: `const html = await client.scrapeUrl('https://example.com/article')`. The `brightdata-sdk` skill owns that surface. The `scrape` skill's `references/web-unlocker.md` covers the same one-POST shape and the KYC error codes. The full parameter list, including `render`, `country` and `method`, is in Bright Data's Web Unlocker API docs.
 
 ## Formats
 
@@ -60,7 +60,7 @@ The ask: *"my script gets a 403 on this URL, I just need the article text"*
 3. Text for a human or a model, so markdown, which is already the default.
 
 ```
-bdata fetch https://www.example-news.com/2026/08/some-article
+bdata scrape https://www.example-news.com/2026/08/some-article
 ```
 
 Then state the choice in one line the user can override with one word:

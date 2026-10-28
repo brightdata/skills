@@ -30,13 +30,14 @@ A poll timeout only stops the waiting. The job keeps running on Bright Data's si
 
 For a large batch job, do not sit blocking in one poll call - hand the user the snapshot id, say it is running, and check it again later.
 
-One CLI call does the whole thing:
+From the CLI, wait for the job, then read the records:
 
 ```
-bdata status <snapshot_id> --wait
+bdata pipelines status <snapshot_id> --wait
+bdata pipelines results <snapshot_id>
 ```
 
-`--wait` polls until complete, `--timeout <seconds>` defaults to 600 or `BRIGHTDATA_POLLING_TIMEOUT`, and `-o <path>` writes the result to a file.
+`--timeout <seconds>` defaults to 600 or `BRIGHTDATA_POLLING_TIMEOUT`, and `-o <path>` writes the records to a file.
 
 ## Scraper Studio jobs
 

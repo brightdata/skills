@@ -24,7 +24,7 @@ Never run a real job to find out what the account can do or what something costs
 | What scraping cost | no CLI command, call it directly | `POST /costs/export/json` with `dimension` `web_apis` for Web Scraper API, `collectors` for Scraper Studio |
 | Which zones exist, including deleted ones | no CLI command, call it directly | `GET /zone/get_all_zones` |
 | Which website ate the budget | no CLI command, call it directly | `GET /domains/req` and `GET /domains/bw`, dates required |
-| How many records a snapshot delivered | no CLI command, call it directly | `GET /datasets/v3/snapshots`, read `dataset_size` |
+| How many records a snapshot delivered | no CLI command, call it directly | `GET /datasets/v3/snapshots?dataset_id=<id>`, read `dataset_size` |
 
 Base host is `https://api.brightdata.com` and auth is the header `Authorization: Bearer <key>`. Read the key from the environment or the CLI's own store. The exact file path for each OS, and the safe way to read it without printing it, live in the `agent-onboarding` skill's auth reference. That reference also has the thing that trips agents here: after a CLI login, `BRIGHTDATA_API_KEY` is unset, and that is normal rather than a sign the machine is logged out, because login writes the key to the CLI's store and never to the environment. Never ask the user to paste a key into the conversation, and never print one: to check that a key exists, run `node scripts/check-auth.mjs` from the `agent-onboarding` skill, never `cat`, `echo` or `jq` the credentials file or the variable.
 
@@ -77,5 +77,5 @@ For "what did my agent's tool call cost". Which tools are turned on (`groups=`, 
 - Quoting public list prices as though they were this account's rate
 - Asking the user which plan or zone they use when `/zone/get_all_zones` and `/zone?zone=` answer it
 - Presenting an estimate as if it were a quote from the API, which has no estimate endpoint
-- Echoing a raw `/zone?zone=` response, which contains the zone password
+- Echoing a raw `/zone?zone=` response, or `bdata budget zone <name> --json`, which prints that response: both contain the zone password. Use `budget zone` without `--json`, or `/zone/cost`, for cost
 - Printing an API key, or asking the user to paste one into the chat

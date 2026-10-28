@@ -56,7 +56,7 @@ Match the zone by its type, not its name: it is `cli_browser` after `bdata login
 
 ## Failures that are not connect failures
 
-Every code in the table below arrives after a successful connect, so it means the swap worked and something else ended the session. `client_timeout` is not one of them, for the reason just above. Do not go back and edit the endpoint for any of these.
+Every code in the table below means the endpoint was right: the swap worked and something else stopped the session. `no_free_workers` arrives before a browser is connected, the rest after. `client_timeout` is not one of them, for the reason just above. Do not go back and edit the endpoint for any of these.
 
 | Code | Meaning |
 |---|---|
@@ -64,7 +64,7 @@ Every code in the table below arrives after a successful connect, so it means th
 | `network_inactivity_timeout` | Five minutes with no traffic through the session. Disconnect when finished instead of idling. |
 | `inactivity_timeout` | Five minutes with no CDP command. Same remedy. |
 | `navigate_domains_limit` | A session is scoped to one domain. Open a new session per domain. |
-| `no_free_workers` | No browser was available. This one is genuinely worth a retry. |
+| `no_free_workers` | No browser was free to connect to, so no session started. Temporary: retry after a short wait. |
 | `browser_disconnected`, `worker_disconnect`, `job_killed` | Infrastructure fault on the far side. Retry or open a new session. |
 
 ## The retry rule

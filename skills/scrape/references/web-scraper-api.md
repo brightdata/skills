@@ -18,7 +18,7 @@ The table below is bundled so the common cases cost zero discovery calls. It is 
 
 | Looking for | Call |
 |---|---|
-| The pipelines the CLI ships | `bdata pipelines list` |
+| Scrapers for a site or data type, from the CLI | `bdata pipelines search "<site or data type>"` |
 | One scraper by id, schema included | `curl -H "Authorization: Bearer $BRIGHTDATA_API_KEY" "https://api.brightdata.com/datasets/v3/scrapers?dataset_id=<gd_ id>"` |
 | Every scraper for one site | `curl -H "Authorization: Bearer $BRIGHTDATA_API_KEY" "https://api.brightdata.com/datasets/v3/scrapers?domain=<domain>"` |
 | Everything in one call, schema included | `node ../scripts/find-scraper.mjs <gd_ id>`, or `node ../scripts/find-scraper.mjs <name or domain> --schema` |
@@ -58,80 +58,79 @@ Two catalogue cautions, both verified 2026-09-06. First, `GET /datasets/list` ca
 
 ## 25 ready scrapers, grouped by platform
 
-Twenty-five ready scrapers, grouped by platform so one look answers "what can I get from this site". Every cell but the label and the pipeline name is the catalogue's own `collect_by_url` schema, `discovery_input` included, rendered by `skill-audit/tools/scraper-table.mjs`. Input types are in brackets. The Discovery column lists the scraper's other doors as the suffix after `discover_by_`.
+Twenty-five ready scrapers, grouped by platform so one look answers "what can I get from this site". Every cell but the label is the catalogue's own `collect_by_url` schema, `discovery_input` included, rendered by `skill-audit/tools/scraper-table.mjs`. Input types are in brackets. The Discovery column lists the scraper's other doors as the suffix after `discover_by_`.
 
 <!-- generated: skill-audit/tools/scraper-table.mjs, source GET /datasets/v3/scrapers, 2026-09-06, regenerate, do not edit by hand -->
 
 ### YouTube
 
-| Scraper | CLI pipeline | dataset_id | Required | Optional | Discovery |
-|---|---|---|---|---|---|
-| Videos | `youtube_videos` | `gd_lk56epmy2i5g7lzu0k` | `url` (url) | `discovery_input` (object), `subscribers` (number), `country` (text), `transcription_language` (text) | keyword, url, search_filters, hashtag, explore, podcast_url |
-| Comments | `youtube_comments` | `gd_lk9q0ew71spt1mxywf` | `url` (url) | `load_replies` (number), `num_of_comments` (number), `sort_by` (text) | none |
-| Channels | `youtube_profiles` | `gd_lk538t2k2p1k3oos71` | `url` (url) | `discovery_input` (object) | keyword |
+| Scraper | dataset_id | Required | Optional | Discovery |
+|---|---|---|---|---|
+| Videos | `gd_lk56epmy2i5g7lzu0k` | `url` (url) | `discovery_input` (object), `subscribers` (number), `country` (text), `transcription_language` (text) | keyword, url, search_filters, hashtag, explore, podcast_url |
+| Comments | `gd_lk9q0ew71spt1mxywf` | `url` (url) | `load_replies` (number), `num_of_comments` (number), `sort_by` (text) | none |
+| Channels | `gd_lk538t2k2p1k3oos71` | `url` (url) | `discovery_input` (object) | keyword |
 
 ### Facebook
 
-| Scraper | CLI pipeline | dataset_id | Required | Optional | Discovery |
-|---|---|---|---|---|---|
-| Pages posts by profile URL | none | `gd_lkaxegm826bjpoo9m5` | `url` (url) | `num_of_posts` (number), `posts_to_not_include` (array), `start_date` (text), `end_date` (text), `include_profile_data` (boolean), `country` (text) | none |
-| Posts by group URL | none | `gd_lz11l67o2cb3r0lkj3` | `url` (url) | `num_of_posts` (number), `posts_to_not_include` (array), `start_date` (text), `end_date` (text), `user_to_not_include` (array) | none |
-| Comments | none | `gd_lkay758p1eanlolqw8` | `url` (url) | `get_all_replies` (boolean), `limit_records` (number), `comments_sort` (text) | none |
+| Scraper | dataset_id | Required | Optional | Discovery |
+|---|---|---|---|---|
+| Pages posts by profile URL | `gd_lkaxegm826bjpoo9m5` | `url` (url) | `num_of_posts` (number), `posts_to_not_include` (array), `start_date` (text), `end_date` (text), `include_profile_data` (boolean), `country` (text) | none |
+| Posts by group URL | `gd_lz11l67o2cb3r0lkj3` | `url` (url) | `num_of_posts` (number), `posts_to_not_include` (array), `start_date` (text), `end_date` (text), `user_to_not_include` (array) | none |
+| Comments | `gd_lkay758p1eanlolqw8` | `url` (url) | `get_all_replies` (boolean), `limit_records` (number), `comments_sort` (text) | none |
 
 ### TikTok
 
-| Scraper | CLI pipeline | dataset_id | Required | Optional | Discovery |
-|---|---|---|---|---|---|
-| Posts | `tiktok_posts` | `gd_lu702nij2f790tmv9h` | `url` (url) | `discovery_input` (object), `country` (text) | profile_url, keyword, url |
-| Profiles | `tiktok_profiles` | `gd_l1villgoiiidt09ci` | `url` (url) | `discovery_input` (object), `country` (text) | search_url |
+| Scraper | dataset_id | Required | Optional | Discovery |
+|---|---|---|---|---|
+| Posts | `gd_lu702nij2f790tmv9h` | `url` (url) | `discovery_input` (object), `country` (text) | profile_url, keyword, url |
+| Profiles | `gd_l1villgoiiidt09ci` | `url` (url) | `discovery_input` (object), `country` (text) | search_url |
 
 ### Instagram
 
-| Scraper | CLI pipeline | dataset_id | Required | Optional | Discovery |
-|---|---|---|---|---|---|
-| Posts | `instagram_posts` | `gd_lk5ns7kz21pck8jpis` | `url` (url) | `discovery_input` (object), `country` (text) | url |
-| Profiles | `instagram_profiles` | `gd_l1vikfch901nx3by4` | `url` (url) | none | user_name |
-| Reels | `instagram_reels` | `gd_lyclm20il4r5helnj` | `url` (url) | `posts_count` (number), `followers` (number), `following` (number), `country_code` (country), `views` (number), `video_play_count` (number) | url, url_all_reels |
+| Scraper | dataset_id | Required | Optional | Discovery |
+|---|---|---|---|---|
+| Posts | `gd_lk5ns7kz21pck8jpis` | `url` (url) | `discovery_input` (object), `country` (text) | url |
+| Profiles | `gd_l1vikfch901nx3by4` | `url` (url) | none | user_name |
+| Reels | `gd_lyclm20il4r5helnj` | `url` (url) | `posts_count` (number), `followers` (number), `following` (number), `country_code` (country), `views` (number), `video_play_count` (number) | url, url_all_reels |
 
 ### LinkedIn
 
-| Scraper | CLI pipeline | dataset_id | Required | Optional | Discovery |
-|---|---|---|---|---|---|
-| Person profile | `linkedin_person_profile` | `gd_l1viktl72bvl7bjuj0` | `url` (url) | none | none |
-| Posts | `linkedin_posts` | `gd_lyy3tktm25m4avu764` | `url` (url) | `num_connections` (number) | url, profile_url, company_url |
-| Job listings | `linkedin_job_listings` | `gd_lpfll7v5hcqtkxl6l` | `url` (url) | `discovery_input` (object) | keyword, url |
-| Company info | `linkedin_company_profile` | `gd_l1vikfnt1wgvvqz95w` | `url` (url) | none | none |
+| Scraper | dataset_id | Required | Optional | Discovery |
+|---|---|---|---|---|
+| Person profile | `gd_l1viktl72bvl7bjuj0` | `url` (url) | none | none |
+| Posts | `gd_lyy3tktm25m4avu764` | `url` (url) | `num_connections` (number) | url, profile_url, company_url |
+| Job listings | `gd_lpfll7v5hcqtkxl6l` | `url` (url) | `discovery_input` (object) | keyword, url |
+| Company info | `gd_l1vikfnt1wgvvqz95w` | `url` (url) | none | none |
 
 ### Amazon
 
-| Scraper | CLI pipeline | dataset_id | Required | Optional | Discovery |
-|---|---|---|---|---|---|
-| Products | `amazon_product` | `gd_l7q7dkf244hwjntr0` | `url` (url) | `asin` (text), `origin_url` (url), `zipcode` (text), `language` (text), `all_variations` (boolean) | keyword, category_url, best_sellers_url, upc |
-| Reviews | `amazon_product_reviews` | `gd_le8e811kzy4ggddlq` | `url` (url) | `reviews_to_not_include` (array), `max_reviews` (number), `variation_specific` (boolean) | none |
+| Scraper | dataset_id | Required | Optional | Discovery |
+|---|---|---|---|---|
+| Products | `gd_l7q7dkf244hwjntr0` | `url` (url) | `asin` (text), `origin_url` (url), `zipcode` (text), `language` (text), `all_variations` (boolean) | keyword, category_url, best_sellers_url, upc |
+| Reviews | `gd_le8e811kzy4ggddlq` | `url` (url) | `reviews_to_not_include` (array), `max_reviews` (number), `variation_specific` (boolean) | none |
 
 ### Reddit
 
-| Scraper | CLI pipeline | dataset_id | Required | Optional | Discovery |
-|---|---|---|---|---|---|
-| Posts | `reddit_posts` | `gd_lvz8ah06191smkebj4` | `url` (url) | none | subreddit_url, keyword, author_url |
-| Comments | none | `gd_lvzdpsdlw09j6t702` | `url` (url) | `days_back` (number), `load_all_replies` (boolean), `comment_limit` (number), `sort_by` (text) | none |
+| Scraper | dataset_id | Required | Optional | Discovery |
+|---|---|---|---|---|
+| Posts | `gd_lvz8ah06191smkebj4` | `url` (url) | none | subreddit_url, keyword, author_url |
+| Comments | `gd_lvzdpsdlw09j6t702` | `url` (url) | `days_back` (number), `load_all_replies` (boolean), `comment_limit` (number), `sort_by` (text) | none |
 
 ### Other retail and listings
 
-| Scraper | CLI pipeline | dataset_id | Required | Optional | Discovery |
-|---|---|---|---|---|---|
-| Walmart - products | `walmart_product` | `gd_l95fol7l1ru6rlo116` | `url` (url) | `all_variations` (boolean), `zipcode` (text), `store_id` (number) | category_url, keyword, sku |
-| Free People - products | none | `gd_mm1zqyo61zzvsb9ux` | `url` (url) | `all_variations` (boolean) | sitemap |
-| Zillow - property listings | `zillow_properties_listing` | `gd_lfqkr8wm13ixtbd8f5` | `url` (url) | none | url, input_filters |
-| Google Maps - reviews | `google_maps_reviews` | `gd_luzfs1dn2oa0teb81` | `url` (url) | `days_limit` (number), `sort_by` (text) | none |
-| X - posts | `x_posts` | `gd_lwxkxvnf1cynvib9co` | `url` (url) | `country` (text) | profile_url, profiles_array |
-| X - profiles | none | `gd_lwxmeb2u1cniijd7t4` | `url` (url) | `max_number_of_posts` (number) | user_name |
+| Scraper | dataset_id | Required | Optional | Discovery |
+|---|---|---|---|---|
+| Walmart - products | `gd_l95fol7l1ru6rlo116` | `url` (url) | `all_variations` (boolean), `zipcode` (text), `store_id` (number) | category_url, keyword, sku |
+| Free People - products | `gd_mm1zqyo61zzvsb9ux` | `url` (url) | `all_variations` (boolean) | sitemap |
+| Zillow - property listings | `gd_lfqkr8wm13ixtbd8f5` | `url` (url) | none | url, input_filters |
+| Google Maps - reviews | `gd_luzfs1dn2oa0teb81` | `url` (url) | `days_limit` (number), `sort_by` (text) | none |
+| X - posts | `gd_lwxkxvnf1cynvib9co` | `url` (url) | `country` (text) | profile_url, profiles_array |
+| X - profiles | `gd_lwxmeb2u1cniijd7t4` | `url` (url) | `max_number_of_posts` (number) | user_name |
 
-Six of the 25 rows have no CLI pipeline. For those the `dataset_id` is the only way to call them.
 
 <!-- end generated: skill-audit/tools/scraper-table.mjs, regenerate, do not edit by hand -->
 
-**The name trap lives in the Facebook table.** The CLI's `facebook_posts` pipeline is a FOURTH Facebook scraper, "Facebook - Posts by post URL" (`gd_lyclm1571iy3mv57zw`) - one post's data from its direct link. It is NOT "Pages posts by profile URL". Similar names, different scrapers. Use the ids above, never guess from names.
+**The name trap lives in the Facebook table.** "Facebook - Posts by post URL" (`gd_lyclm1571iy3mv57zw`) is a fourth Facebook scraper: one post's data from its direct link. It is not "Pages posts by profile URL". Similar names, different scrapers. Use the ids above, never guess from names.
 
 TikTok has a second posts-by-profile scraper, "TikTok - Posts by Profile Fast API" (`gd_m7n5v2gq296pex2f5m`), with a full typed schema in the catalogue: `url` required, `start_date`, `end_date` and `num_of_posts` optional. Its metadata endpoint returns 404, which is normal for a scraper the catalogue carries and `/datasets/list` does not. Whether it is enabled on every account is not verified, so prefer the `discover_by_profile_url` door of the TikTok Posts row above. The older "Tiktok - posts by profile" id `gd_lj71gn6l68bz7y9hc` is absent from the catalogue, its metadata answers 404, and a trigger answers "This dataset does not support collection", the answer a download for sale gives, so it is not a scraper to run.
 
@@ -139,27 +138,19 @@ Reddit is a robots.txt-disallowed target, so calls can be refused until the acco
 
 X - profiles is in the table as the reminder that a platform's presence here does not mean all its scrapers are listed. When the row's object (posts, profiles, comments) does not match the ask, search the live catalogue instead of forcing the listed row.
 
-Three pipelines take a second positional argument on the CLI:
-
-```
-bdata pipelines amazon_product_reviews <url> [max_reviews]
-bdata pipelines google_maps_reviews <url> [days_limit]
-bdata pipelines youtube_comments <url> [num_comments]
-```
-
-Each is one of the catalogue's optional inputs on that scraper, `max_reviews`, `days_limit` and `num_of_comments`, so the REST and CLI surfaces agree. Run any pipeline with no arguments to see its own usage line.
+Optional inputs go on the CLI as one `--<field> <value>` flag each, named exactly as in the table, for example `--max_reviews 50` on Amazon reviews. `bdata pipelines info <dataset_id> <method>` prints a method's fields and an example input.
 
 ## How to call a scraper
 
 Every REST call needs the header `Authorization: Bearer $BRIGHTDATA_API_KEY`.
 
-**With a pipeline.** The CLI triggers the job, polls it, and prints the records.
+**With the CLI.** Any scraper in the catalogue runs by its `dataset_id` and method. The CLI triggers the job, polls it, and prints the records.
 
 ```
-bdata pipelines linkedin_company_profile https://www.linkedin.com/company/stripe
+bdata pipelines run gd_l1vikfnt1wgvvqz95w collect_by_url https://www.linkedin.com/company/stripe
 ```
 
-**Without a pipeline.** Three REST calls, because the API is asynchronous. A trigger returns an id, not data.
+**Without the CLI.** Three REST calls, because the API is asynchronous. A trigger returns an id, not data.
 
 ```
 POST https://api.brightdata.com/datasets/v3/trigger?dataset_id=gd_lkaxegm826bjpoo9m5
@@ -173,13 +164,13 @@ GET  https://api.brightdata.com/datasets/v3/snapshot/sd_...    the records
 
 The body is always a JSON array. One object per input.
 
-After a REST trigger, one CLI call polls to completion: `bdata status <snapshot_id> --wait`. The job id is the `snapshot_id` the trigger returned.
+After a REST trigger, one CLI call polls to completion: `bdata pipelines status <snapshot_id> --wait`, then `bdata pipelines results <snapshot_id>`. The job id is the `snapshot_id` the trigger returned.
 
 ## Learning inputs and outputs without spending credits
 
 | Question | Free move |
 |---|---|
-| What arguments does this pipeline take? | Run the pipeline with no parameters. The CLI prints its usage line. |
+| What arguments does this scraper take on the CLI? | `bdata pipelines info <dataset_id> <method>` prints its fields and an example input. |
 | What does this scraper take, and what comes back? | `node ../scripts/find-scraper.mjs <gd_ id>`, one GET on the catalogue, schema printed without any flag. Per variant: required and optional inputs with types, output fields, most with a description, the sample input, the trigger line and the control-panel link. `--variant <door>` narrows it to one door and `--sample` prints the sample input as a paste-ready trigger body. |
 | The catalogue does not carry the id | The empty-body probe: `POST https://api.brightdata.com/datasets/v3/trigger?dataset_id=<id>` with body `[{}]`. Required fields come back in the `errors` array, some optional fields, the text-typed ones, come back inside the `line` key as an empty-valued JSON object, and a download answers "This dataset does not support collection". Required fields certain, outputs unlisted. The script sends this probe itself, once, and only after the catalogue answered empty. |
 

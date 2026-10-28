@@ -137,7 +137,7 @@ Docs only, not verified live: the export is rate limited to 1,000 requests a min
 
 **GET /domains/req** and **GET /domains/bw** break usage down per target website. `from` and `to` are required, and omitting them returns **400** (live). The response nests zone, then day as an ISO timestamp, then domain, mapping to a request count or bytes (live). Synthetic `v__` keys from the zones dimension appear here too as pseudo-zones. This is the read for "which site ate the budget", and it reports usage, never dollars.
 
-**GET /datasets/v3/snapshots** lists Web Scraper API snapshots, each carrying `dataset_size`, the number of records delivered (live). One input URL can produce many records, so this is the count that explains a per-record charge. Pair it with the cost export's `ws_api_snaps` dimension for the dollars.
+**GET /datasets/v3/snapshots?dataset_id=<id>** lists one scraper's snapshots (`dataset_id` is required), each carrying `dataset_size`, the number of records delivered (live). One input URL can produce many records, so this is the count that explains a per-record charge. Pair it with the cost export's `ws_api_snaps` dimension for the dollars.
 
 **GET /customer/bw** and **GET /zone/bw** return bandwidth and request counts rather than money. The response is keyed by customer id, then a wrapper object whose `data` key holds the per-zone objects (aggregates sit under `sums`), then by zone, then by metric, with names such as `bw_sum`, `bw_dn`, `bw_up`, `reqs_unblocker_billable` and `reqs_serp_billable` (live). They answer how much traffic moved, never how much it cost. They accept both `YYYY-MM-DD` and full ISO timestamps (live), and the docs do not say whether their `to` is exclusive.
 

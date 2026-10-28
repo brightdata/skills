@@ -191,9 +191,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: npm install -g @brightdata/cli
-      - run: bdata search "best crm for startups" --zone cli_unlocker --country us --json -o "rank-$(date +%F).json"
+      - run: bdata search "best crm for startups" --country us --json -o "rank-$(date +%F).json"
         env:
           BRIGHTDATA_API_KEY: ${{ secrets.BRIGHTDATA_API_KEY }}
+          BRIGHTDATA_UNLOCKER_ZONE: ${{ vars.BRIGHTDATA_UNLOCKER_ZONE }}
       - uses: actions/upload-artifact@v4
         with:
           name: rank-${{ github.run_id }}

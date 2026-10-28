@@ -28,11 +28,9 @@ Install and login belong to `agent-onboarding`. One free call proves the account
 bdata zones --json
 ```
 
-## Check the config before the first search
+## When a command says a zone is not found
 
-A fresh install carries no `default_zone_serp`, so `bdata search` falls through to the unlocker zone and works. A `default_zone_serp` already set to a zone the account does not have blocks that fall-through, and every search then returns `zone "<name>" not found` with `Status: 400`, no hint and no self-heal. Recover by picking a real zone from `bdata zones` and passing `--zone <name>`, or by `bdata config set default_zone_serp <name>`.
-
-Detection and the repair are in [references/commands.md](references/commands.md#zone-resolution-and-the-stale-serp-zone).
+The CLI uses zone names from its config, and it never checks them against the account. A `zone "<name>" not found` error means the config names a zone this account does not have: a leftover `default_zone_serp`, or an account made by agent registration, whose zones carry other names. The check and the fix are in [references/commands.md](references/commands.md#zone-resolution-and-the-stale-serp-zone).
 
 ## Pick the command
 
@@ -40,17 +38,17 @@ Detection and the repair are in [references/commands.md](references/commands.md#
 |---|---|
 | A page as markdown, HTML, screenshot or JSON | `bdata scrape <url>` |
 | Search results from Google, Bing or Yandex | `bdata search "<query>"` |
-| Records from a supported site (Amazon, LinkedIn, TikTok, ...) | `bdata pipelines <type> [params...]` |
+| Records from a site a pre-built scraper covers (Amazon, LinkedIn, TikTok, ...) | `bdata pipelines search "<site>"`, then `info`, then `run` |
 | Results ranked against a stated intent | `bdata discover "<query>"` |
-| A scraper for a site no pipeline covers | `bdata scraper create`, then `run` |
+| A scraper for a site no pre-built scraper covers | `bdata scraper create`, then `run` |
 | To click through a page step by step | `bdata browser open <url>` |
-| Balance and spend | `bdata budget balance` |
-| Skills or MCP wired into this repo | `bdata skill add <name>`, `bdata add mcp` |
+| Balance and spend | `bdata budget` |
+| Skills or MCP wired into this repo | `npx -y skills add brightdata/skills -y`, `bdata add mcp` |
 
-Every subcommand, its flags, and the credential order live in [references/commands.md](references/commands.md).
+Flags are in `bdata <command> --help`. What the help text leaves out (the key order, pipelines, zones, output) is in [references/commands.md](references/commands.md).
 
 ## Rules
 
-- Pass `--json --pretty` whenever the output gets parsed. `-o <path>` writes a file and the extension picks the format.
+- Pass `--json --pretty` whenever the output gets parsed. `-o <path>` writes a file, and the extension (`.json`, `.md`, `.html`, `.csv`) picks the format.
 - Never print the API key. The CLI owns the file it sits in.
 - There is no schedule command. Recurring runs are set up in the control panel.

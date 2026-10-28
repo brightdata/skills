@@ -15,7 +15,7 @@ The user already wrote the automation. This skill changes the launch line so it 
 |---|---|
 | Their code: Playwright, Puppeteer, or Selenium | Stay here. Point it at our cloud browser, nothing to rewrite. |
 | Their computer-use model, the AI that clicks by itself | Stay here. Same swap, same endpoint. |
-| The agent itself, step by step from a terminal | Stay here and drive `bdata browser`: `open`, `snapshot`, `click <ref>`, `type <ref>`, `close`, one command per action, no code to hold. The `brightdata-cli` skill's reference carries the full subcommand list. |
+| The agent itself, step by step from a terminal | Stay here and drive `bdata browser`: `open`, `snapshot`, `click <ref>`, `type <ref>`, `close`, one command per action, no code to hold. Every subcommand is in `bdata browser --help`, and the `brightdata-cli` skill's `references/commands.md` has the session options. |
 | Us | `scrape`. Scraper Studio does the clicking, and the user gets fields back instead of a driver to maintain. |
 
 Ask it when the request names a framework, a technique, or an agent but leaves who drives the browser unstated. Ask it once, then act. A user holding working Playwright code and a blocked local browser never needs to hear about Scraper Studio.

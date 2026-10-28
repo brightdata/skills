@@ -18,7 +18,7 @@ Run the gates below to pick the product yourself - never ask the user which. Sta
 
 Many pages means many URLs. One page holding many items is still one page, and with no ready scraper and no recurrence it falls through to fetch, which is a normal outcome, not a failure.
 
-**Gate 1 in practice.** Open [references/web-scraper-api.md](references/web-scraper-api.md) and check its bundled top-25 table first, which costs zero API calls. When nothing matches, run `node scripts/find-scraper.mjs <query>` with a `gd_` id, a domain, or part of a scraper name - free reads of the scrapers catalogue (`GET /datasets/v3/scrapers`, filters `?dataset_id=` and `?domain=`), junk rows skipped. An id prints every variant's typed inputs, outputs, sample input and trigger line on its own, a name or domain needs `--schema` for the same, and `--variant <door>` narrows it to one door. Manual fallbacks for the same lookup: `bdata pipelines list` for the pipelines the CLI ships, or `curl -H "Authorization: Bearer $BRIGHTDATA_API_KEY" "https://api.brightdata.com/datasets/v3/scrapers?domain=<site>"`. All are free reads that trigger no job. An id the user or a colleague handed over gets the same treatment - resolve it with the script before triggering, because a handed id can be a marketplace row, stale, or the wrong variant. When the scraper you picked has no CLI pipeline, `node scripts/trigger.mjs <dataset_id> <url>` starts the job and `node scripts/poll.mjs <snapshot_id>` brings back the records. Run the check and pick the scraper yourself, rather than asking the user which one to use. A single URL is not a reason to skip it. Web Scraper API has no built-in scheduler, so "daily" means the agent writes a cron job or a GitHub Actions workflow in the user's project.
+**Gate 1 in practice.** Open [references/web-scraper-api.md](references/web-scraper-api.md) and check its bundled top-25 table first, which costs zero API calls. When nothing matches, run `node scripts/find-scraper.mjs <query>` with a `gd_` id, a domain, or part of a scraper name - free reads of the scrapers catalogue (`GET /datasets/v3/scrapers`, filters `?dataset_id=` and `?domain=`), junk rows skipped. An id prints every variant's typed inputs, outputs, sample input and trigger line on its own, a name or domain needs `--schema` for the same, and `--variant <door>` narrows it to one door. Manual fallbacks for the same lookup: `bdata pipelines search "<site or data type>"`, or `curl -H "Authorization: Bearer $BRIGHTDATA_API_KEY" "https://api.brightdata.com/datasets/v3/scrapers?domain=<site>"`. All are free reads that trigger no job. An id the user or a colleague handed over gets the same treatment - resolve it with the script before triggering, because a handed id can be a marketplace row, stale, or the wrong variant. With the CLI, any scraper runs by id: `bdata pipelines run <dataset_id> <method> "<url>"`. Without the CLI, `node scripts/trigger.mjs <dataset_id> <url>` starts the job and `node scripts/poll.mjs <snapshot_id>` brings back the records. Run the check and pick the scraper yourself, rather than asking the user which one to use. A single URL is not a reason to skip it. Web Scraper API has no built-in scheduler, so "daily" means the agent writes a cron job or a GitHub Actions workflow in the user's project.
 
 **When the user has no URLs.** Many ready scrapers take a discovery input instead: a keyword, a category URL, a best-sellers URL, a location. Read the scraper's catalogue entry, its `input_schema` and discovery doors, before assuming it needs a URL; metadata lists outputs only. Sites with no ready scraper go to Scraper Studio, which covers single-page, search-discovery and multi-page patterns.
 
@@ -37,7 +37,7 @@ Two separate words, because output and schedule are two separate choices.
 
 ## Web Scraper API is asynchronous
 
-Trigger, poll, download. Never promise an instant answer. CLI pipelines do the polling, so the command looks synchronous, but the job underneath still takes its time.
+Trigger, poll, download. Never promise an instant answer. `bdata pipelines run` does the polling, so the command looks synchronous, but the job underneath still takes its time.
 
 ## Example - one Instagram profile
 
@@ -45,10 +45,10 @@ The ask: *"get me the follower count and bio for instagram.com/nasa"*
 
 1. Fields, not the page. Stay in this skill.
 2. One specific input, not a generic corpus. No Marketplace.
-3. The top-25 table has `instagram_profiles`. Gate 1 wins. One URL still gets the library check.
+3. The top-25 table has Instagram profiles (`gd_l1vikfch901nx3by4`). Gate 1 wins. One URL still gets the library check.
 
 ```
-bdata pipelines instagram_profiles https://www.instagram.com/nasa/
+bdata pipelines run gd_l1vikfch901nx3by4 collect_by_url https://www.instagram.com/nasa/
 ```
 
 Then state the choice in one line while the job runs:
@@ -65,7 +65,7 @@ When the records come back, check they describe the entity the user meant before
 - **When every gate has said no and the data job has to fetch raw pages itself:** [references/web-unlocker.md](references/web-unlocker.md) - the one-POST request shape, the four KYC error codes, and the signal that means go back to gate 2.
 - **The moment a trigger hands back an id instead of data:** [references/snapshots-and-jobs.md](references/snapshots-and-jobs.md) - which endpoints match which id, and the delivery settings the agent never configures.
 - **When a bundled id is rejected or the site is not in the table:** [scripts/find-scraper.mjs](scripts/find-scraper.mjs) - free reads of the scrapers catalogue by `gd_` id, domain or name; an id prints every variant's inputs, outputs and trigger line, a name or domain adds `--schema` for them, `--variant` picks one door, one empty-body probe only for an id the catalogue omits (required fields certain, outputs unlisted), junk rows filtered, key never printed.
-- **When the scraper you picked has no CLI pipeline:** [scripts/trigger.mjs](scripts/trigger.mjs) - `node trigger.mjs <dataset_id> <url>` starts the job and prints the snapshot id, key never printed.
+- **When the machine has no CLI:** [scripts/trigger.mjs](scripts/trigger.mjs) - `node trigger.mjs <dataset_id> <url>` starts the job and prints the snapshot id, key never printed.
 - **When a job is running and you need the data without hand-writing a poll loop:** [scripts/poll.mjs](scripts/poll.mjs) - either id in, data out, key never printed.
 - **When a call is refused for auth:** the `agent-onboarding` skill. The REST 401 wording varies ("Credentials are invalid", "Invalid credentials") while the CLI prints a line starting "Error: No API key found." All mean log in. Send 407 and `kyc_required` there too, along with missing zones.
 

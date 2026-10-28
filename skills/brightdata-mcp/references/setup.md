@@ -148,8 +148,8 @@ connection, so a missing token looks like a dead server, not a tool error.
 
 ## First run
 
-Both variants list your active zones and create missing ones: a Fetch API
-zone `mcp_unlocker` and a browser zone `mcp_browser`. Rename them with
+Both variants list your active zones and create missing ones: the zone the page
+tools use, `mcp_unlocker`, and a browser zone `mcp_browser`. Rename them with
 `WEB_UNLOCKER_ZONE` and `BROWSER_ZONE` on Local, or `unlocker=` and `browser=`
 on Remote. Zone creation failures only log, so a server that started
 is not proof the zones exist.
@@ -195,7 +195,7 @@ Local has no `PRO_MODE`. Every tool is already on by default.
 | `API_TOKEN` | none | Required. Server exits without it. |
 | `GROUPS` | none | Comma separated group ids. |
 | `TOOLS` | none | Comma separated tool names, added on top of groups. |
-| `WEB_UNLOCKER_ZONE` | `mcp_unlocker` | Fetch API zone. Point at your own zone to leave the free tier pool. |
+| `WEB_UNLOCKER_ZONE` | `mcp_unlocker` | Zone for the page tools. Point at your own zone to leave the free tier pool. |
 | `BROWSER_ZONE` | `mcp_browser` | Scraping Browser zone. |
 | `RATE_LIMIT` | unlimited | Format `100/1h` or `50/30m`. Bad format throws at startup. |
 | `BASE_TIMEOUT` | no limit | Seconds. Covers search_engine, search_engine_batch, scrape_as_markdown, scrape_batch, list_dataset_fields and search_dataset. Not scrape_as_html, extract, the scraper tools or the browser tools. |
@@ -209,7 +209,7 @@ the tool gives up.
 
 Remote reads these query parameters: `token=`, `groups=<ids>` and
 `tools=<names>` (the same values as the Local env vars), `unlocker=<zone>`
-(the Fetch API zone, default `mcp_unlocker`, the stand-in for
+(the zone for the page tools, default `mcp_unlocker`, the stand-in for
 `WEB_UNLOCKER_ZONE`) and `browser=<zone>` (default `mcp_browser`, the stand-in for `BROWSER_ZONE`).
 Remote has no equivalent of `RATE_LIMIT`, `BASE_TIMEOUT` or
 `BASE_MAX_RETRIES`.

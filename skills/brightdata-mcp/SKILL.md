@@ -42,8 +42,9 @@ the key is only in the file: that is a logged-in machine, not a missing key,
 so read it in code and never print it. To check that it exists, run
 `node scripts/check-auth.mjs` from the `agent-onboarding` skill (it never
 prints the key); never `cat`, `echo` or `jq` the file or the variable. To
-pass it into a config or URL, read it inside the same command and mask the
-output, e.g. `K=$(...)` then `| sed "s/$K/****/g"`. Neither exists: hand off to
+pass it into a config or URL, read it inside the program or command that writes
+the config, and keep it out of anything that prints (the shell-specific reads
+are in that skill's `references/auth.md`). Neither exists: hand off to
 `agent-onboarding`. Never ask the user to paste a key into chat.
 
 ## The routing default

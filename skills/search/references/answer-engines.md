@@ -72,9 +72,9 @@ Then poll and download, or let the CLI wait. The one-line CLI poll is in `google
 
 Useful ChatGPT output fields, all six in the catalogue's `output_fields` on 2026-09-06: `answer_text`, `model`, `web_search_triggered`, `citations` (title, url and position per the docs), `search_sources`, and `prompt_sent_at`.
 
-## No CLI pipeline, two SDK methods
+## CLI, REST and two SDK methods
 
-The CLI ships no pipeline for any answer engine, verified with `bdata pipelines list`, and `pipelines` accepts no arbitrary dataset id. Calling an answer engine means REST with the dataset id, or the scrape skill's `scripts/trigger.mjs`.
+The CLI runs an answer engine like any scraper, by its dataset id: `bdata pipelines run <dataset_id> <method> --<field> <value>`, with the fields from `bdata pipelines info`. Without the CLI, use REST with the dataset id, or the scrape skill's `scripts/trigger.mjs`.
 
 The `@brightdata/sdk` JavaScript client has `client.scrape.chatGPT.search()` and `client.scrape.perplexity.search()`. No SDK method is published for Gemini, Copilot or Google AI Mode, so those are REST for now.
 

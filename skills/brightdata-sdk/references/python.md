@@ -59,7 +59,7 @@ await client.search.yandex(...)  # no device argument, language defaults to "ru"
 
 Yandex is the exception that will bite you. Google and Bing parse into `.data`, but Bright Data ships no parsed format for Yandex at all, so `YandexDataNormalizer` returns raw HTML and nothing else. Its docstring records the verification: `brd_json=1` comes back HTTP 400 "JSON output is not supported", and no `parsed_yandex` data format exists. A Yandex result therefore arrives in `.raw_html` with `.data` left empty every time, never populated, so parse the HTML yourself with something like BeautifulSoup rather than looping over `.data`.
 
-Also present: `client.discover()` for AI web search, `client.crawler.trigger()` and `.download()`, `client.datasets.<name>`, `client.scrape.<platform>` for the per-platform scrapers, and `client.browser.get_connect_url()`. Zones default to `sdk_unlocker` and `sdk_serp`, and `auto_create_zones` is `True`, so the SDK creates them on first use.
+Also present: `client.discover()` for AI web search, `client.crawler.trigger()` and `.download()`, `client.datasets.<name>`, `client.scrape.<platform>` for the per-platform scrapers, and `client.browser.get_connect_url()`. Zones default to `sdk_unlocker` and `sdk_serp`, and with `auto_create_zones=True` (the default) the client creates them as soon as it opens, before the first request. A key that cannot create zones, such as one from agent registration, fails right there: pass `auto_create_zones=False` and the account's own zones, for example `BrightDataClient(auto_create_zones=False, web_unlocker_zone="agent_unlocker", serp_zone="agent_serp")`.
 
 ## A runnable example
 
@@ -67,20 +67,14 @@ Also present: `client.discover()` for AI web search, `client.crawler.trigger()` 
 """Fetch a page and a SERP. The token comes from the environment, never from source."""
 
 import asyncio
-import os
 
 from brightdata import BrightDataClient
 
 
 async def main() -> None:
-    # The client reads BRIGHTDATA_API_TOKEN on its own. Check it here so a
-    # missing key fails with a clear line instead of deep inside a request.
-    if not os.getenv("BRIGHTDATA_API_TOKEN"):
-        raise SystemExit(
-            "BRIGHTDATA_API_TOKEN is not set. Export it, or log in with the "
-            "Bright Data CLI. See the agent-onboarding skill."
-        )
-
+    # The client finds the key on its own: BRIGHTDATA_API_TOKEN,
+    # BRIGHTDATA_API_KEY, or the Bright Data CLI's login. If none is there,
+    # creating the client raises; see the agent-onboarding skill.
     # `async with` is required. A bare client has no HTTP session yet.
     async with BrightDataClient() as client:
         page = await client.scrape_url("https://example.com", country="us")
@@ -111,7 +105,7 @@ await client.scraper_studio.run(collector, input, timeout=..., poll_interval=...
 
 ## Gotchas
 
-- `mode="sync"` on `scrape_url` inherits the client default request timeout of 30 seconds (`DEFAULT_TIMEOUT = 30` in `client.py`). A slow page needs an explicit `timeout=`, not a mode change.
+- Requests time out after the client's `timeout`, 30 seconds by default. A slow page needs `BrightDataClient(timeout=120)`. The `timeout=` argument on `scrape_url` is validated but not sent with the request, so it has no effect.
 - `mode="async"` is scoped, not faster. The README lists batches of many URLs first under "when to use async mode", then background processing while the caller gets on with other work. What it recommends sync for is the single URL case, where the default sync mode returns faster. The about 145 seconds in `web_unlocker/service.py` is one async round trip, not a per URL cost, which is exactly why the figure argues against async for one URL and not against async for a batch.
 - The `poll_timeout` trap follows straight from that number. `scrape_url` carries its own default of `poll_timeout=30` and forwards it down to the Web Unlocker service, whose own default is 180. Thirty seconds cannot outlast a roughly 145 second completion, so an async call left on the default times out before the result ever lands. Pass `poll_timeout=180` or more, matching the service level default, whenever you use `mode="async"`.
 - `.data` is `None` on failure, so guard it rather than indexing straight into it.

@@ -45,31 +45,15 @@ With the skills installed, an agent can:
 
 ## Quick Start
 
-Install the CLI, then add the skills to your project:
+Add the skills to your project, for any coding agent (needs Node.js):
 
 ```
-npm install -g @brightdata/cli
-bdata skill add agent-onboarding
-bdata skill add scrape
-bdata skill add datasets
-bdata skill add fetch
-bdata skill add search
-bdata skill add browser
-bdata skill add billing
-bdata skill add brightdata-cli
-bdata skill add brightdata-mcp
-bdata skill add brightdata-sdk
+npx -y skills add brightdata/skills -y
 ```
 
-Add each skill you want by name. A name the CLI does not know yet fails with "Unknown skill" and the rest still install, because the CLI's list catches up to this repo one release behind.
+For one skill, add `--skill <name>`, for example `--skill scrape`. In Windows PowerShell, use `npx.cmd` if scripts are blocked. No Node? Clone this repo and copy the folders under `skills/` into the folder where your agent reads skills (many agents use `.agents/skills`).
 
-Prefer no CLI? Clone this repo and copy the folders you want from `skills/` into your agent's skills directory.
-
-Then log in once. The browser opens, the user approves, and the key never touches the chat:
-
-```
-bdata login
-```
+Then start with `agent-onboarding`: it installs the Bright Data CLI and logs in once. The browser opens, the user approves, and the key never touches the chat.
 
 ## The Skills
 
@@ -100,7 +84,7 @@ Not scraping. When the data is already collected and sold as a download, a huge 
 
 ## Fetch
 
-One URL in, unblocked page out through Web Unlocker: markdown for reading, HTML for parsing, or a screenshot. The command is `bdata fetch` (`bdata scrape` on CLI 0.3.5 and older).
+One URL in, unblocked page out through Web Unlocker: markdown for reading, HTML for parsing, or a screenshot, with `bdata scrape`.
 
 ## Search
 
