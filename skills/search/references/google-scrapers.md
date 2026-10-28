@@ -2,7 +2,7 @@
 
 Answers the question "which Google surface has its own pre-built scraper, and how do I trigger it".
 
-Each entry below is a Web Scraper API dataset, not a SERP mode. SERP returns about 10 results in one call, a couple of seconds end to end. These return the full set as a job. SERP hands back a broad parsed payload you pick fields out of - a dataset job hands back that scraper's fixed schema already assembled. The trigger, poll, download mechanics live in the `scrape` skill's `references/web-scraper-api.md` and are not repeated here.
+Each entry below is a Web Scraper API dataset, not a SERP mode. SERP returns about 10 results in one fast call. These return the full set as a job. SERP hands back a broad parsed payload you pick fields out of - a dataset job hands back that scraper's fixed schema already assembled. The trigger, poll, download mechanics live in the `scrape` skill's `references/web-scraper-api.md` and are not repeated here.
 
 ## Contents
 
@@ -32,12 +32,12 @@ Each entry below is a Web Scraper API dataset, not a SERP mode. SERP returns abo
 
 `GET /datasets/v3/scrapers?domain=google.com` returns ten scrapers on 2026-09-06: the eight above plus Google Maps full information and Google Maps Images. Google News, `gd_lnsxoxzi1omrwnka5r`, is absent from the catalogue yet triggers, one of the 56 such scrapers the 2026-09-06 census of `GET /datasets/list` found, and it is out of scope here. Run the domain query before telling a user that a Google surface has no dataset at all.
 
-The whole family is documented at docs.brightdata.com/datasets/scrapers/google/introduction. That page gives two endpoints for all of them, and they cover the answer engines in `answer-engines.md` as well:
+The whole family is documented at docs.brightdata.com/products/scrapers/google/introduction. Two endpoints serve all of them, and they cover the answer engines in `answer-engines.md` as well:
 
 | Endpoint | Shape | Limit |
 |---|---|---|
-| `POST https://api.brightdata.com/datasets/v3/scrape` | synchronous, result in the response | up to 20 inputs |
-| `POST https://api.brightdata.com/datasets/v3/trigger` | asynchronous, returns a `snapshot_id` | up to 5,000 inputs |
+| `POST https://api.brightdata.com/datasets/v3/scrape` | synchronous, records in the response; after one minute it returns 202 with a `snapshot_id` to poll | one input recommended |
+| `POST https://api.brightdata.com/datasets/v3/trigger` | asynchronous, returns a `snapshot_id` | up to 1 GB of input per job |
 
 Only the asynchronous path is verified live here. Use `/scrape` for a couple of inputs when latency matters and `/trigger` for bulk, and say the sync path is unverified from here rather than promising it.
 
@@ -58,7 +58,7 @@ Absent from the catalogue is a signature, not a verdict. Fifty-six scrapers that
 
 Dataset id `gd_mfz5x93lmsjjjylob`. Google removed the `num=100` parameter, so no single request returns 100 rows any more - this job walks the pages instead and hands back one result set. About 10 results per page, so pages 1 to 10 is the top 100.
 
-This exact id does not appear in `GET /datasets/list` and its metadata endpoint returns 404, verified, yet the scrapers catalogue carries it with a full schema: `?dataset_id=gd_mfz5x93lmsjjjylob` returns the row, `url` the only required input and fourteen optional ones, 2026-09-06. That pairing is normal for a scraper the catalogue carries and the list does not, and it is not a retirement signal. The scraper is documented at docs.brightdata.com/scraping-automation/serp-api/get-top-100-google-results, and it works on trigger.
+This exact id does not appear in `GET /datasets/list` and its metadata endpoint returns 404, verified, yet the scrapers catalogue carries it with a full schema: `?dataset_id=gd_mfz5x93lmsjjjylob` returns the row, `url` the only required input and fourteen optional ones, 2026-09-06. That pairing is normal for a scraper the catalogue carries and the list does not, and it is not a retirement signal. The scraper is documented at docs.brightdata.com/products/serp-api/get-top-100-google-results, and it works on trigger.
 
 This runs as a Web Scraper API job. Three REST calls: a trigger that returns a `snapshot_id`, a progress poll, then a snapshot download.
 
@@ -79,7 +79,7 @@ GET  https://api.brightdata.com/datasets/v3/snapshot/<snapshot_id>?format=json
 | `language` | no | ISO 639-1, e.g. `en`, `de` |
 | `country` | no | ISO 3166-1, e.g. `US`, `DE` |
 | `start_page`, `end_page` | no | first and last page. `1` to `10` is the top 100 |
-| `collapse_aio` | no | hide or show the AI Overview |
+| `collapse_aio` | no | `true` collapses the AI Overview so organic positions stay stable; `false`, the default, leaves it expanded |
 | `brd_mobile` | no | mobile results |
 | `udm_web` | no | Web tab results. Cannot be combined with `tbm` |
 | `include_paginated_html` | no | include the raw HTML |
@@ -99,13 +99,13 @@ Anything about cost belongs to the `billing` skill.
 
 ## Shopping
 
-Google Shopping (`gd_ltppk50q18kdw67omz`) takes a product URL, not a keyword:
+Google Shopping (`gd_ltppk50q18kdw67omz`) has two doors: `collect_by_url` takes a product URL, and `discover_by_keyword` finds products from a plain query. `bdata pipelines info gd_ltppk50q18kdw67omz discover_by_keyword` prints that door's fields. The URL door:
 
 ```
 bdata pipelines run gd_ltppk50q18kdw67omz collect_by_url "<url>" --pretty
 ```
 
-Google Shopping products search US (`gd_m31f2k0d2m1bah4f3b`) also takes `url` only, so neither Shopping scraper accepts a bare keyword. For a keyword ask, use SERP with `udm=28`.
+Google Shopping products search US (`gd_m31f2k0d2m1bah4f3b`) takes `url` only: a Google Shopping search URL (`https://www.google.com/search?q=<query>&udm=28`), which can be built from a keyword. For one fast page of shopping results, use SERP with `udm=28`.
 
 ## Maps - find places here, records in the scrape skill
 
@@ -123,12 +123,12 @@ Both are in the scrapers catalogue with full schemas, 2026-09-06. Neither appear
 
 Each has two kinds of door. `collect_by_url` takes a Google URL the user already holds, and that URL cannot be built from a plain ask. A discovery door takes plain inputs and runs the search itself, so a plain ask is possible after all.
 
-| Scraper | dataset_id | Discovery door |
+| Scraper | dataset_id | URL door | Discovery door |
 |---|---|---|---|
 | Google Flights | `gd_mhng7wen1rw0a3gvpf` | `url` (url), which carries a base64 `tfs` blob | `discover_by_input_filters`. Required: `origin` (text), `destination` (text), `trip_type` (text), `adults` (number). Optional: `departure` (date), `return` (date), `children` (number), `infants_in_seat` (number), `infants_on_lap` (number), `cabin` (text), `currency` (text), `language` (text), `country` (text) |
 | Google Hotels | `gd_mg3gjfmg12tc2n5d4d` | `url` (url), which carries an opaque entity id, plus optional `country` (text) | `discover_by_search`. Required: `search_term` (text), `check_in_date` (date), `check_out_date` (date), `guest_number` (number). Optional: `country` (text), `currency` (text), `sort_by` (text), `accommodation_type` (text), `property_type` (array). A second door, `discover_by_filter_url`, takes a `google.com/travel/search` URL with optional `country` and `currency` |
 
-A discovery door triggers with `&type=discover_new&discover_by=input_filters` (Flights) or `&discover_by=search` (Hotels) appended to the trigger URL. `node ../../scrape/scripts/find-scraper.mjs <gd_ id> --variant input_filters` prints the exact line, and `--sample` the catalogue's sample body.
+A discovery door triggers with `&type=discover_new&discover_by=input_filters` (Flights) or `&type=discover_new&discover_by=search` (Hotels) appended to the trigger URL. `node ../../scrape/scripts/find-scraper.mjs <gd_ id> --variant input_filters` prints the exact line, and `--sample` the catalogue's sample body.
 
 ## Images - a scraper exists, SERP stays the fast path
 

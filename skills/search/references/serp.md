@@ -2,10 +2,10 @@
 
 Answers the question "how do I get live search results in one synchronous call, and why did the zone fail".
 
-SERP returns about 10 results per request in one synchronous call, a couple of seconds end to end. Anything that needs more depth, a Google vertical with its own dataset, or an answer engine is a job instead. Those live in two sibling files:
+SERP returns about 10 results per request in one synchronous call. Anything that needs more depth, a Google vertical with its own dataset, or an answer engine is a job instead. Those live in two sibling files:
 
 - `google-scrapers.md` for the top 100, Shopping, Maps, Hotels and Flights
-- `answer-engines.md` for ChatGPT, Perplexity, Gemini, Copilot and Google AI Mode
+- `answer-engines.md` for ChatGPT, Perplexity, Gemini and Google AI Mode
 
 ## Contents
 
@@ -35,7 +35,7 @@ Every flag is optional, `--zone` included. The rule is not that you have to pass
 | `--page` | Results page, **0-indexed** |
 | `--device` | `desktop`, `mobile` |
 | `--zone` | Zone name. The first step of the resolution order below |
-| `--timing` | Add request timing to the output |
+| `--timing` | Print request timing on stderr (not in the JSON or the `-o` file) |
 | `-o` | Write the result to a file |
 | `--json` | Force JSON output |
 | `--pretty` | Pretty-print the output |
@@ -44,6 +44,8 @@ What two of those flags really send:
 
 - `--country` and `--language` become `gl` and `hl` on google, `cc` and `setLang` on bing, and are silently ignored on yandex.
 - `--device mobile` sets a parameter. `--device desktop` sets none, so it does the same thing as leaving the flag off.
+- `--type` adds Google's own parameter (`tbm=nws`, `tbm=isch`, `udm=28`) whatever the engine, so on bing and yandex it is not a real vertical switch.
+- `--page` becomes `start` on google and `first` on bing, and is ignored on yandex.
 
 The CLI's own usage text prints `brightdata`, which is the same binary as `bdata`.
 
@@ -72,9 +74,9 @@ The CLI resolves the zone in this order:
 4. The `BRIGHTDATA_UNLOCKER_ZONE` environment variable
 5. The config key `default_zone_unlocker`
 
-With none of the five it stops with a failure line containing `No zone specified.` It never auto-discovers a zone and it never creates one. Note: none of these environment variables appear in `bdata search --help` - the runtime error message is the only place the CLI names them.
+With none of the five it stops with a failure line containing `No zone specified.` It never auto-discovers a zone and it never creates one. None of these environment variables appear in `bdata search --help`. The CLI names them in its `No zone specified.` error and in its README.
 
-A fresh install is not the problem. Source-verified: the shipped `DEFAULTS` carry only `default_format` and `api_url`, so there is no `default_zone_serp` out of the box, and `login` writes only `default_zone_unlocker` next to the `cli_unlocker` and `cli_browser` zones it creates. On a truly fresh machine step 3 finds nothing, the order falls through to the unlocker zone, and `bdata search` works.
+A fresh install is not the problem: the shipped defaults carry no zone, and `login` writes only `default_zone_unlocker`, so on a machine that only ran `login` step 3 finds nothing and the order falls through to the unlocker zone. `bdata init` is different: it also writes `default_zone_serp`, by default the same zone as the unlocker one.
 
 The break is a stale config value. The CLI never validates the zone it reads: it does not check that the name still exists before sending the request. So one leftover `default_zone_serp` naming a zone that was never created, or one that was deleted, ends the resolution order at step 3 because the value is truthy. The unlocker fallback in steps 4 and 5 never runs, and every `bdata search` comes back `Status: 400` with `zone "<name>" not found`. The usual leftover is `cli_serp` from an earlier experiment.
 
@@ -114,12 +116,12 @@ POST https://api.brightdata.com/request
 
 The body needs a zone. Use a serp-type zone, or the `unblocker`-type zone the CLI falls back to, which serves SERP as well. The section above has both.
 
-`format` stays `"raw"` on every SERP call. It describes the transport, not the shape of the payload, and `brd_json=1` in the search URL is the only lever that turns the result into parsed JSON.
+`format` stays `"raw"` on these calls, which is how the CLI and the MCP server send it. Parsed JSON comes from `brd_json=1` in the search URL, from `data_format` in the body (rows below), or from the zone's default response format.
 
 | Output wanted | How |
 |---|---|
 | Parsed JSON | keep `"format": "raw"` in the body and add `brd_json=1` to the search URL |
-| Raw HTML | keep `"format": "raw"` in the body and leave `brd_json` off the URL |
+| Raw HTML | keep `"format": "raw"` and leave `brd_json` off the URL. That returns the zone's default response format, which is HTML unless the zone was set to a parsed format in the control panel |
 
 Rows below are docs only.
 
@@ -131,6 +133,8 @@ Rows below are docs only.
 ## Engines
 
 The CLI's `--engine` flag covers google (the default), bing and yandex. For anything else, use the REST call and put that engine's own search URL in `url`.
+
+Only Google comes back parsed by default. `--engine bing` returns the raw results page unless you add `--json` or `--pretty`, which ask for parsed JSON; pass `--country` too, or Bing may answer in another locale. Yandex has no parser, so its page comes back raw. The MCP `search_engine` tool returns Bing and Yandex as the whole page in markdown and applies `geo_location` to Google only.
 
 Rows below are docs only.
 
@@ -201,9 +205,9 @@ jobs:
           path: rank-*.json
 ```
 
-`--zone cli_unlocker` is on that line because a fresh runner has no config, so the zone must be passed explicitly. The upload step is there because the runner disk is discarded when the job ends, so a file left behind is lost.
+The zone comes from `BRIGHTDATA_UNLOCKER_ZONE`, a repository variable naming an unlocker zone on the account, because a fresh runner has no config and `bdata search` stops with `No zone specified.` without one. The upload step is there because the runner disk is discarded when the job ends, so a file left behind is lost.
 
-A plain `crontab` line calling the same `bdata search` command does the same job on a machine that is always on, and the same `--zone` applies there. Store the key as a secret or an environment variable, never in the committed file.
+A plain `crontab` line calling the same `bdata search` command does the same job on a machine that is always on; give it `--zone <your unlocker zone>` or the same environment variable. Store the key as a secret or an environment variable, never in the committed file.
 
 ## Free moves, no credits
 

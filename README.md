@@ -88,7 +88,7 @@ One URL in, unblocked page out through Web Unlocker: markdown for reading, HTML 
 
 ## Search
 
-Anything that starts from a query. SERP API for structured results, the Google verticals (Maps, Shopping, News, and more), the top-100 job for deep rank tracking in one request, and the AI answer engines (ChatGPT, Perplexity, Gemini, Copilot, Google AI Mode) with their verified dataset ids.
+Anything that starts from a query. SERP API for structured results, the Google verticals (Maps, Shopping, News, and more), the top-100 job for deep rank tracking in one request, and the AI answer engines (ChatGPT, Perplexity, Gemini, Google AI Mode) with their verified dataset ids.
 
 ## Browser
 
