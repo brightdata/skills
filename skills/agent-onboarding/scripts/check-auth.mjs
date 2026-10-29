@@ -83,6 +83,7 @@ const SKILLS = {
   search: ['unblocker', 'serp'],
   browser: ['browser_api'],
   scrape: [],
+  instagram: [],
   datasets: [],
   billing: [],
   'brightdata-cli': [],

@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://brightdata.com"><img src="https://img.shields.io/badge/Powered%20by-Bright%20Data-3D7FFC?style=for-the-badge" alt="Powered by Bright Data"></a>
   <a href="#license"><img src="https://img.shields.io/badge/License-MIT-10b981?style=for-the-badge" alt="MIT License"></a>
-  <a href="#the-skills"><img src="https://img.shields.io/badge/Skills-10-9D97F4?style=for-the-badge" alt="10 Skills"></a>
+  <a href="#the-skills"><img src="https://img.shields.io/badge/Skills-11-9D97F4?style=for-the-badge" alt="11 Skills"></a>
 </p>
 
 <p align="center">
@@ -61,6 +61,7 @@ Then start with `agent-onboarding`: it installs the Bright Data CLI (needs Node.
 |-------|-------------|
 | [`agent-onboarding`](skills/agent-onboarding/SKILL.md) | Start here. Installs the CLI and the skills, logs in once, and routes every ask to the right skill |
 | [`scrape`](skills/scrape/SKILL.md) | Structured data from any site: ready scrapers, Scraper Studio, and scripts that look scrapers up in the catalogue |
+| [`instagram`](skills/instagram/SKILL.md) | Instagram profiles, posts, reels and comments as JSON, by URL or for an account's recent posts |
 | [`datasets`](skills/datasets/SKILL.md) | Check whether the Dataset Marketplace already sells the data, and route the purchase to a person |
 | [`fetch`](skills/fetch/SKILL.md) | One URL in, unblocked page out: markdown, HTML, or a screenshot |
 | [`search`](skills/search/SKILL.md) | Anything that starts from a query: SERP API, Google verticals, the top-100 job, answer engines |
@@ -72,7 +73,7 @@ Then start with `agent-onboarding`: it installs the Bright Data CLI (needs Node.
 
 ## Agent Onboarding
 
-The entry point. It installs everything, handles the one-time login without ever pasting a key into chat, registers an account by email when the user has none, fixes the common Windows and PATH problems, and routes the task to the right skill. The other nine assume it ran once.
+The entry point. It installs everything, handles the one-time login without ever pasting a key into chat, registers an account by email when the user has none, fixes the common Windows and PATH problems, and routes the task to the right skill. The other ten assume it ran once.
 
 ## Scrape
 

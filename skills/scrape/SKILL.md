@@ -26,7 +26,7 @@ Many pages means many URLs. One page holding many items is still one page, and w
 
 ## The boundaries
 
-Pages themselves belong to `fetch`: markdown, HTML, a screenshot, "for my RAG", or an explicit hurry word ("now", "quick", "ASAP") on a one-off pull. A single URL is not a hurry word, and a live chat is not a hurry word. Anything starting from a search query belongs to `search`. A user who already drives a browser with Playwright, Puppeteer, Selenium or a computer-use model belongs to the `browser` skill. A user with no such setup stays here, and Studio does the browser work.
+Instagram profiles, posts, reels and comments belong to the `instagram` skill, which carries their dataset ids and quirks. Pages themselves belong to `fetch`: markdown, HTML, a screenshot, "for my RAG", or an explicit hurry word ("now", "quick", "ASAP") on a one-off pull. A single URL is not a hurry word, and a live chat is not a hurry word. Anything starting from a search query belongs to `search`. A user who already drives a browser with Playwright, Puppeteer, Selenium or a computer-use model belongs to the `browser` skill. A user with no such setup stays here, and Studio does the browser work.
 
 ## The two override words
 
@@ -39,21 +39,21 @@ Two separate words, because output and schedule are two separate choices.
 
 Trigger, poll, download. A synchronous `POST /datasets/v3/scrape` exists for small jobs, but past one minute it also hands back a `snapshot_id`, so never promise an instant answer. `bdata pipelines run` does the polling, so the command looks synchronous, but the job underneath still takes its time.
 
-## Example - one Instagram profile
+## Example - one TikTok profile
 
-The ask: *"get me the follower count and bio for instagram.com/nasa"*
+The ask: *"get me the follower count and bio for tiktok.com/@nasa"*
 
 1. Fields, not the page. Stay in this skill.
 2. One specific input, not a generic corpus. No Marketplace.
-3. The top-25 table has Instagram profiles (`gd_l1vikfch901nx3by4`). Gate 1 wins. One URL still gets the library check.
+3. The top-25 table has TikTok profiles (`gd_l1villgoiiidt09ci`). Gate 1 wins. One URL still gets the library check.
 
 ```
-bdata pipelines run gd_l1vikfch901nx3by4 collect_by_url https://www.instagram.com/nasa/
+bdata pipelines run gd_l1villgoiiidt09ci collect_by_url https://www.tiktok.com/@nasa
 ```
 
 Then state the choice in one line while the job runs:
 
-> Using the maintained Instagram profiles scraper. It runs as a job, so this is not instant. Say `recurring` to put it on a schedule.
+> Using the maintained TikTok profiles scraper. It runs as a job, so this is not instant. Say `recurring` to put it on a schedule.
 
 When the records come back, check they describe the entity the user meant before reporting them. Vanity URLs collide, and `linkedin.com/company/anthropic` returns a venture fund rather than the AI lab.
 

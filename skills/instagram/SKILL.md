@@ -1,57 +1,65 @@
 ---
 name: instagram
-description: Scrape Instagram profiles, posts, reels and comments as JSON through the Bright Data Scraper API. Use when the user asks for any Instagram data - an account's followers or bio, a post's likes and comments, the recent posts or reels of an account, the comments on a post - or says "instagram scraper", "instagram api", "instagram data". Routes between the CLI (`bdata pipelines instagram_*`, one URL each), the Python SDK (`client.search.instagram.posts`, the only route for recent posts by profile), and the MCP tools. Carries the credit costs, the reels timeout, the `post_type` values that work, and the error-row cases the API returns as success.
+description: Scrape Instagram profiles, posts, reels and comments as JSON through the Bright Data Scraper API. Use when the user asks for any Instagram data - an account's followers or bio, a post's likes and comments, the recent posts or reels of an account, the comments on a post - or says "instagram scraper", "instagram api", "instagram data". Routes between the CLI (`bdata pipelines run` with the Instagram dataset ids), the Python SDK (`client.search.instagram.*` and `client.scrape.instagram.*`), and the MCP scraper tools. Carries the credit costs, the reels timeout, the `post_type` values that work, and the error-row cases the API returns as success.
 ---
 
-# Bright Data — Instagram
+# Bright Data - Instagram
 
 Four datasets: profiles, posts, reels, comments. Three routes into them. Pick by
-what the user has and wants. Every line here was verified on 2026-09-11 against
-`brightdata-sdk` 2.5.2 and `@brightdata/cli` 0.3.4.
+what the user has and wants. The SDK lines were verified on 2026-09-11 against
+`brightdata-sdk` 2.5.2; the CLI and MCP lines follow `@brightdata/cli` 0.4.1 and
+`@brightdata/mcp` 4.1.0.
+
+| Dataset | dataset_id | Methods |
+|---|---|---|
+| Profiles | `gd_l1vikfch901nx3by4` | `collect_by_url`, `discover_by_user_name` |
+| Posts | `gd_lk5ns7kz21pck8jpis` | `collect_by_url`, `discover_by_url` (a profile URL: its recent posts) |
+| Reels | `gd_lyclm20il4r5helnj` | `collect_by_url`, `discover_by_url`, `discover_by_url_all_reels` |
+| Comments | `gd_ltppn085pokosxh13` | `collect_by_url` |
 
 ## Pick your route
 
 | You have | You want | Route |
 |---|---|---|
-| a profile URL or username | the account's recent posts | **Python SDK** `client.search.instagram.posts(url, num_of_posts=N)`. The CLI has no route: `instagram_posts` with a profile URL returns `It is not a post URL` |
-| a profile URL | the account's recent reels | **Python SDK** `client.search.instagram.reels(url, num_of_posts=N, timeout=420)` |
-| a profile URL | the profile | CLI `bdata pipelines instagram_profiles <url>` or SDK `client.scrape.instagram.profiles(url)` |
-| a username, no URL | the profile | SDK `client.search.instagram.profiles("nasa")` |
-| a post URL | that post | CLI `bdata pipelines instagram_posts <url>` or SDK `client.scrape.instagram.posts(url)` |
-| a reel URL | that reel | CLI `bdata pipelines instagram_reels <url>` or SDK `client.scrape.instagram.reels(url)` |
-| a post or reel URL | its comments | CLI `bdata pipelines instagram_comments <url>` or SDK `client.scrape.instagram.comments(url)`. One credit per comment |
-| no terminal (hosted assistant) | any of the four, by URL | MCP tools `web_data_instagram_profiles`, `_posts`, `_reels`, `_comments` in the `social` group |
+| a profile URL | the account's recent posts | CLI `bdata pipelines run gd_lk5ns7kz21pck8jpis discover_by_url <url> --num_of_posts N` or SDK `client.search.instagram.posts(url, num_of_posts=N)`. `collect_by_url` with a profile URL returns `It is not a post URL` |
+| a profile URL | the account's recent reels | CLI `bdata pipelines run gd_lyclm20il4r5helnj discover_by_url <url> --num_of_posts N` or SDK `client.search.instagram.reels(url, num_of_posts=N, timeout=420)` |
+| a profile URL | the profile | CLI `bdata pipelines run gd_l1vikfch901nx3by4 collect_by_url <url>` or SDK `client.scrape.instagram.profiles(url)` |
+| a username, no URL | the profile | CLI `bdata pipelines run gd_l1vikfch901nx3by4 discover_by_user_name --user_name nasa` or SDK `client.search.instagram.profiles("nasa")` |
+| a post URL | that post | CLI `bdata pipelines run gd_lk5ns7kz21pck8jpis collect_by_url <url>` or SDK `client.scrape.instagram.posts(url)` |
+| a reel URL | that reel | CLI `bdata pipelines run gd_lyclm20il4r5helnj collect_by_url <url>` or SDK `client.scrape.instagram.reels(url)` |
+| a post or reel URL | its comments | CLI `bdata pipelines run gd_ltppn085pokosxh13 collect_by_url <url>` or SDK `client.scrape.instagram.comments(url)`. One credit per comment |
+| no terminal (hosted assistant) | any of the above | MCP `run_scraper` with the dataset id and method above (see MCP below) |
 
 Every route is an asynchronous job on the API: trigger, poll, return. Expect
 one to three minutes per call. One credit per record; 5,000 credits are free
-each month.
+each month. Always pass `num_of_posts` on a discovery call: without it the
+number of posts collected, and billed, has no limit.
 
 ## Setup gate (run first)
 
-```bash
-if ! command -v bdata >/dev/null 2>&1; then
-    echo "bdata CLI not installed — see bright-data-best-practices/references/cli-setup.md"
-elif ! bdata zones >/dev/null 2>&1; then
-    echo "bdata not authenticated — run: bdata login  (or: bdata login --device for SSH)"
-fi
-```
+Run `node <agent-onboarding skill folder>/scripts/check-auth.mjs --for instagram`.
+Exit `0` means ready. Any other exit, a missing CLI, or a missing login is the
+`agent-onboarding` skill's job. These datasets need no zone, only the key.
 
 For the SDK route: `pip install brightdata-sdk`. The SDK reads the token from
-`BRIGHTDATA_API_TOKEN`, then from a `.env` file found by searching upward from
+`BRIGHTDATA_API_TOKEN` or `BRIGHTDATA_API_KEY`, then from a `.env` file found by searching upward from
 its own install folder, then from the CLI's stored login. After `bdata login`
 nothing else is needed.
 
-## CLI: one URL in, one record out
+## CLI: run a dataset by id
 
 ```bash
-bdata pipelines instagram_profiles "https://www.instagram.com/nasa/" --pretty
-bdata pipelines instagram_posts "https://www.instagram.com/p/Dc1W1uFj-CW/" --format csv -o posts.csv
-bdata pipelines instagram_reels "https://www.instagram.com/reel/DcMXl1IPNtB/" --pretty
-bdata pipelines instagram_comments "https://www.instagram.com/p/Dc1W1uFj-CW/" --pretty
+bdata pipelines run gd_l1vikfch901nx3by4 collect_by_url "https://www.instagram.com/nasa/" --pretty
+bdata pipelines run gd_lk5ns7kz21pck8jpis collect_by_url "https://www.instagram.com/p/Dc1W1uFj-CW/" --format csv -o posts.csv
+bdata pipelines run gd_lyclm20il4r5helnj collect_by_url "https://www.instagram.com/reel/DcMXl1IPNtB/" --pretty
+bdata pipelines run gd_ltppn085pokosxh13 collect_by_url "https://www.instagram.com/p/Dc1W1uFj-CW/" --pretty
+bdata pipelines run gd_lk5ns7kz21pck8jpis discover_by_url "https://www.instagram.com/nasa/" --num_of_posts 5 --pretty
 ```
 
-`--format json|csv|ndjson|jsonl`, `-o FILE`, `--timeout SECONDS` (default 600).
-Typical times: profile 50s, post 40s, reel 25s, comments 10s.
+`bdata pipelines info <dataset_id> <method>` lists a method's input fields; each
+one is a `--<field> <value>` flag. `--format json|csv|ndjson|jsonl`, `-o FILE`,
+`--timeout SECONDS` (default 600). Typical times: profile 50s, post 40s, reel
+25s, comments 10s.
 
 ## SDK: recent posts of an account
 
@@ -101,20 +109,19 @@ The other seven SDK calls, each with a complete snippet, are in
 
 ## MCP: no terminal
 
-The Bright Data MCP server has the same four datasets as tools, one URL each,
-in the `social` group, which is off unless requested:
-
-```text
-https://mcp.brightdata.com/mcp?token=YOUR_API_TOKEN&groups=social
-```
-
-There is no MCP tool for recent posts by profile. For that, the SDK.
+The Bright Data MCP server reaches the same datasets through its scraper tools,
+which are on by default: `run_scraper` with a dataset id and method from the
+table at the top, and an input such as `[{"url": "https://www.instagram.com/nasa/"}]`.
+`discover_by_url` on the posts dataset gives an account's recent posts; pass
+`num_of_posts` in the input and `limit_per_input`. `search_scrapers` and
+`get_scraper_details` look the ids and fields up. The `brightdata-mcp` skill
+covers setup.
 
 ## Hand-offs
 
 - Unsupported URL, or an Instagram page these datasets do not cover: `scrape`.
 - Need to find the profile or post URL first: `search`.
-- Other platforms: `data-feeds`.
+- Other platforms: `scrape`.
 
 ## Docs
 
