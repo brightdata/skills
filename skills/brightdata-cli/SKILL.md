@@ -1,284 +1,54 @@
 ---
 name: brightdata-cli
-description: Guide for using the Bright Data CLI (`brightdata` / `bdata`) to scrape websites, search the web, run thousands of pre-built scrapers for structured data, manage proxy zones, and check account budget. Use this skill whenever the user wants to scrape a URL, search Google/Bing/Yandex, extract data from Amazon/LinkedIn/Instagram/TikTok/YouTube/Reddit or any other platform, check their Bright Data balance or zones, or do anything involving web data collection from the terminal. Also trigger when the user mentions brightdata, bdata, web scraping CLI, SERP API, or wants to install Bright Data skills into their coding agent.
+description: Runs Bright Data jobs from a terminal with the bdata CLI, the published npm package @brightdata/cli. Use when the agent itself needs to run a Bright Data job from a shell right now, when it is building or testing a scraper, when a quick one-off check of a page, a search, a zone or a bill is enough, or when the user names bdata, brightdata, or the Bright Data CLI. Not for deterministic code that repeats the same job on a schedule, which belongs to brightdata-sdk. Not for an AI app that picks its tools at run time, which belongs to brightdata-mcp. Not for a first-time install or a login that will not go through, which belongs to agent-onboarding.
 ---
 
 # Bright Data CLI
 
-The Bright Data CLI (`brightdata` or `bdata`) gives you full access to Bright Data's web data platform from the terminal. It handles authentication, proxy zones, anti-bot bypass, CAPTCHA solving, and JavaScript rendering automatically — the user just needs to log in once.
+`bdata` runs a Bright Data job straight from a shell. Reach for it when the agent does the work itself, right now.
 
-## Installation
+## Is this the right skill
 
-If the CLI is not installed yet, guide the user:
+| The job | Skill |
+|---|---|
+| Setup, building or testing a scraper, a quick one-off check, run it now from a shell | this skill |
+| The same job repeated on a schedule, inside app code | `brightdata-sdk` |
+| An AI app that chooses its own tool at run time | `brightdata-mcp` |
+| First-time setup only: nothing installed yet, or login will not go through | `agent-onboarding` |
 
-**macOS / Linux:**
-```bash
-curl -fsSL https://cli.brightdata.com/install.sh | bash
+Project setup the agent does for itself stays here. Only the first-time install and a login that will not go through bounce to `agent-onboarding`.
+
+Package `@brightdata/cli`.
+
+## Before the first command
+
+Install and login belong to `agent-onboarding`. One free call proves the account works:
+
+```
+bdata zones --json
 ```
 
-**Windows or manual install (any platform):**
-```bash
-npm install -g @brightdata/cli
-```
+## When a command says a zone is not found
 
-**Without installing (one-off usage):**
-```bash
-npx --yes --package @brightdata/cli brightdata <command>
-```
+The CLI uses zone names from its config, and it never checks them against the account. A `zone "<name>" not found` error means the config names a zone this account does not have: a leftover `default_zone_serp`, or an account made by agent registration, whose zones carry other names. The check and the fix are in [references/commands.md](references/commands.md#zone-resolution-and-the-stale-serp-zone).
 
-Requires Node.js >= 20. After install, both `brightdata` and `bdata` (shorthand) are available.
+## Pick the command
 
-## First-Time Setup
+| Want | Start with |
+|---|---|
+| A page as markdown, HTML, screenshot or JSON | `bdata scrape <url>` |
+| Search results from Google, Bing or Yandex | `bdata search "<query>"` |
+| Records from a site a pre-built scraper covers (Amazon, LinkedIn, TikTok, ...) | `bdata pipelines search "<site>"`, then `info`, then `run` |
+| Results ranked against a stated intent | `bdata discover "<query>"` |
+| A scraper for a site no pre-built scraper covers | `bdata scraper create`, then `run` |
+| To click through a page step by step | `bdata browser open <url>` |
+| Balance and spend | `bdata budget` |
+| Skills or MCP wired into this repo | `npx -y skills add brightdata/skills -y`; for MCP, `bdata add mcp --agent <agent>` with `--project` or `--global` (limits in [references/commands.md](references/commands.md#wire-up-a-repo)) |
 
-Before anything else, check if the user is authenticated. If they haven't logged in yet, guide them through the one-time setup:
+Flags are in `bdata <command> --help`. What the help text leaves out (the key order, pipelines, zones, output) is in [references/commands.md](references/commands.md).
 
-```bash
-# One-time login — opens the browser for OAuth, then everything is automatic
-bdata login
-```
+## Rules
 
-This single command:
-1. Opens the browser for secure OAuth authentication
-2. Saves the API key locally (never needs to be entered again)
-3. Auto-creates required proxy zones (`cli_unlocker`, `cli_browser`)
-4. Sets default configuration
-
-After login, every subsequent command works without any manual intervention.
-
-For headless/SSH environments where no browser is available:
-```bash
-bdata login --device
-```
-
-For direct API key authentication (non-interactive):
-```bash
-bdata login --api-key <key>
-```
-
-To verify setup is complete, run:
-```bash
-bdata config
-```
-
-## Command Reference
-
-Read [references/commands.md](references/commands.md) for the full command reference with all flags, options, and examples for every command.
-
-Read [references/pipelines.md](references/pipelines.md) for the pipelines workflow: find a scraper, read its input fields, run it.
-
-## Quick Command Overview
-
-`bdata` is the shorthand for `brightdata`. Both work identically.
-
-| Command | Purpose |
-|---------|---------|
-| `bdata scrape <url>` | Scrape any URL as markdown, HTML, JSON, or screenshot |
-| `bdata search "<query>"` | Search Google/Bing/Yandex with structured results |
-| `bdata pipelines search <query>` | Find a pre-built scraper for a site or data type |
-| `bdata pipelines info <id> [method]` | Show a scraper's methods and input fields |
-| `bdata pipelines run <id> <method> ...` | Run a scraper and get structured records |
-| `bdata pipelines status <snapshot_id>` | Check a run's progress |
-| `bdata zones` | List proxy zones |
-| `bdata budget` | View account balance and costs |
-| `bdata skill add` | Install AI agent skills |
-| `bdata skill list` | List available skills |
-| `bdata config` | View/set configuration |
-| `bdata login` | Authenticate with Bright Data |
-| `bdata version` | Show CLI version and system info |
-
-## How to Use Each Command
-
-### Scraping
-
-Scrape any URL with automatic bot bypass, CAPTCHA handling, and JS rendering:
-
-```bash
-# Default: returns clean markdown
-bdata scrape https://example.com
-
-# Get raw HTML
-bdata scrape https://example.com -f html
-
-# Get structured JSON
-bdata scrape https://example.com -f json
-
-# Take a screenshot
-bdata scrape https://example.com -f screenshot -o page.png
-
-# Geo-targeted scrape from the US
-bdata scrape https://amazon.com --country us
-
-# Save to file
-bdata scrape https://example.com -o page.md
-
-# Async mode for heavy pages
-bdata scrape https://example.com --async
-```
-
-### Searching
-
-Search engines with structured JSON output (Google returns parsed organic results, ads, People Also Ask, and related searches):
-
-```bash
-# Google search with formatted table
-bdata search "web scraping best practices"
-
-# Get raw JSON for piping
-bdata search "typescript tutorials" --json
-
-# Search Bing
-bdata search "bright data pricing" --engine bing
-
-# Localized search
-bdata search "restaurants berlin" --country de --language de
-
-# News search
-bdata search "AI regulation" --type news
-
-# Extract just URLs
-bdata search "open source tools" --json | jq -r '.organic[].link'
-```
-
-### Pipelines (Structured Data Extraction)
-
-Run any of thousands of pre-built scrapers. Always look the scraper up
-first; never guess a `dataset_id` or field names:
-
-```bash
-# 1. Find a scraper
-bdata pipelines search <site or data type>
-
-# 2. Its methods, then one method's input fields and a ready-to-run command
-bdata pipelines info <dataset_id>
-bdata pipelines info <dataset_id> <method>
-
-# 3. Run it: URLs as arguments, other input fields as --<field> flags
-bdata pipelines run <dataset_id> collect_by_url "<url>"
-bdata pipelines run <dataset_id> <discover_method> --<field> <value> --limit-per-input 5
-
-# Output as CSV
-bdata pipelines run <dataset_id> <method> "<url>" --format csv -o out.csv
-```
-
-Every record is billed: start with one input. Unknown or missing
-required fields fail before the run starts.
-
-### Checking Status
-
-For long runs started with `--async`:
-
-```bash
-bdata pipelines status <snapshot_id>
-bdata pipelines status <snapshot_id> --wait --timeout 300
-bdata pipelines results <snapshot_id>
-```
-
-### Budget & Zones
-
-```bash
-# Quick account balance
-bdata budget
-
-# Detailed balance with pending charges
-bdata budget balance
-
-# All zones cost/bandwidth
-bdata budget zones
-
-# Specific zone costs
-bdata budget zone my_zone
-
-# Date range filter
-bdata budget zones --from 2024-01-01T00:00:00 --to 2024-02-01T00:00:00
-
-# List all zones
-bdata zones
-
-# Zone details
-bdata zones info cli_unlocker
-```
-
-### Configuration
-
-```bash
-# View all config
-bdata config
-
-# Set defaults
-bdata config set default_zone_unlocker my_zone
-bdata config set default_format json
-```
-
-### Installing AI Agent Skills
-
-```bash
-# Interactive picker — choose skills and target agents
-bdata skill add
-
-# Install a specific skill
-bdata skill add scrape
-
-# List available skills
-bdata skill list
-```
-
-## Output Modes
-
-Every command supports multiple output formats:
-
-| Flag | Effect |
-|------|--------|
-| *(none)* | Human-readable formatted output with colors |
-| `--json` | Compact JSON to stdout |
-| `--pretty` | Indented JSON to stdout |
-| `-o <path>` | Write to file (format auto-detected from extension) |
-
-When piped (stdout is not a TTY), colors and spinners are automatically disabled.
-
-## Chaining Commands
-
-The CLI is pipe-friendly:
-
-```bash
-# Search → extract first URL → scrape it
-bdata search "top open source projects" --json \
-  | jq -r '.organic[0].link' \
-  | xargs bdata scrape
-
-# Scrape and view with markdown reader
-bdata scrape https://docs.github.com | glow -
-
-# Scraper records to CSV
-bdata pipelines run <dataset_id> collect_by_url "<url>" --format csv > out.csv
-```
-
-## Environment Variables
-
-These override stored configuration:
-
-| Variable | Purpose |
-|----------|---------|
-| `BRIGHTDATA_API_KEY` | API key (skips login entirely) |
-| `BRIGHTDATA_UNLOCKER_ZONE` | Default Web Unlocker zone |
-| `BRIGHTDATA_SERP_ZONE` | Default SERP zone |
-| `BRIGHTDATA_POLLING_TIMEOUT` | Polling timeout in seconds |
-
-## Troubleshooting
-
-| Error | Fix |
-|-------|-----|
-| CLI not found | Install with `npm i -g @brightdata/cli` or `curl -fsSL https://cli.brightdata.com/install.sh \| bash` |
-| "No Web Unlocker zone specified" | `bdata config set default_zone_unlocker <zone>` or re-run `bdata login` |
-| "Invalid or expired API key" | `bdata login` |
-| "Access denied" | Check zone permissions in the Bright Data control panel |
-| "Rate limit exceeded" | Wait and retry, or use `--async` for large jobs |
-| Async job timeout | Increase with `--timeout 1200` or `BRIGHTDATA_POLLING_TIMEOUT=1200` |
-
-## Key Design Principles
-
-- **One-time auth**: After `bdata login`, everything is automatic. No tokens to manage, no keys to pass.
-- **Zones auto-created**: Login creates `cli_unlocker` and `cli_browser` zones automatically.
-- **Smart defaults**: Markdown output, auto-detected formats from file extensions, colors only in TTY.
-- **Pipe-friendly**: JSON output + jq for automation. Colors/spinners disabled in pipes.
-- **Async support**: Heavy jobs can run in background with `--async` + `pipelines status --wait`.
-- **npm package**: `@brightdata/cli` — install globally or use via `npx`.
+- Pass `--json --pretty` whenever the output gets parsed. For billing use bare `bdata budget --json`; in CLI 0.4.1 `budget balance`, `budget zones` and `budget zone` print text. `-o <path>` writes a file: for structured results the extension (`.json`, `.md`, `.html`, `.csv`) picks the format, while `scrape` keeps the format `-f` chose, so `-o page.html` needs `-f html`.
+- Never print the API key. The CLI owns the file it sits in.
+- There is no schedule command. Recurring runs are set up in the control panel.

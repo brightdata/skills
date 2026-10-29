@@ -4,6 +4,7 @@ set -u
 fail=0
 while IFS= read -r f; do
     err=$(awk '
+        { sub(/\r$/, "") }
         NR == 1 { if ($0 != "---") { print "missing opening ---"; exit } next }
         $0 == "---" { closed = 1; exit }
         pending { if ($0 ~ /^[ \t]+[^ \t]/) ok[pending] = 1; pending = "" }

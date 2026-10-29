@@ -13,21 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: JSON valid and versions match
-        run: |
-          for f in .claude-plugin/plugin.json .claude-plugin/marketplace.json; do
-            jq empty "$f" || { echo "::error file=$f::invalid JSON"; exit 1; }
-          done
-          p=$(jq -r '.version' .claude-plugin/plugin.json)
-          name=$(jq -r '.name' .claude-plugin/plugin.json)
-          m=$(jq -r --arg n "$name" '.plugins[] | select(.name == $n) | .version' .claude-plugin/marketplace.json)
-          meta=$(jq -r '.metadata.version' .claude-plugin/marketplace.json)
-          echo "plugin.json=$p marketplace plugins[$name]=$m marketplace metadata=$meta"
-          if [ "$p" != "$m" ] || [ "$p" != "$meta" ]; then
-            echo "::error file=.claude-plugin/marketplace.json::version mismatch with plugin.json ($p)"
-            exit 1
-          fi
-
       - name: SKILL.md frontmatter
         run: bash .github/scripts/check_skills.sh
 

@@ -1,0 +1,111 @@
+# Bright Data Python SDK
+
+Answers the question "how do I call Bright Data from Python code the user keeps?"
+
+## Contents
+
+- [The package](#the-package)
+- [The client](#the-client)
+- [The key](#the-key)
+- [Core methods](#core-methods)
+- [A runnable example](#a-runnable-example)
+- [Scraper Studio](#scraper-studio)
+- [Gotchas](#gotchas)
+
+## The package
+
+`brightdata-sdk` on PyPI. Source at github.com/brightdata/sdk-python. Docs at https://docs.brightdata.com/api-reference/SDK. The distribution name is `brightdata-sdk` but the import name is `brightdata`, and installing `brightdata` instead gets a different package, an unofficial wrapper whose PyPI page says "This is an unofficial SDK", which is a worse trap than an unrelated package because the wrong install still looks plausible.
+
+On the Python floor, the two sources disagree. The vendor's own `pyproject.toml` sets `requires-python = ">=3.10"`, while the published metadata that pip actually enforces (`Requires-Python`, fed by `setup.py`) says `>=3.9`.
+
+```bash
+pip install brightdata-sdk
+```
+
+## The client
+
+Async is the primary client and the one to reach for. A synchronous wrapper ships alongside it for scripts that have no event loop.
+
+```python
+from brightdata import BrightDataClient      # async
+from brightdata import SyncBrightDataClient  # sync
+```
+
+Both are context managers and both must be entered (`async with BrightDataClient() as c:`, or `with SyncBrightDataClient() as c:`). The HTTP session is opened on entry, so a bare client fails: the flat methods such as `scrape_url` raise `RuntimeError: BrightDataClient not initialized`, and the platform scrapers such as `scrape.amazon.products` raise `RuntimeError: Engine must be used as async context manager`.
+
+## The key
+
+Credentials belong to `agent-onboarding`. See its `references/auth.md` for paths and refused calls. The constructor argument is `token`. Leave it out and let the environment supply the key. Resolution order, from `client.py`:
+
+1. the explicit `token=` argument
+2. `BRIGHTDATA_API_TOKEN`, then `BRIGHTDATA_API_KEY`
+3. the credentials stored by the Bright Data CLI at login
+
+`python-dotenv` is a hard dependency of the package, and `load_dotenv()` runs at import time in `client.py`. It searches for `.env` upward from the installed `brightdata` package folder, not from the working directory, so a project `.env` is found only when the virtualenv lives inside the project (for example `./.venv`). Otherwise call `load_dotenv()` in your own entry file before creating the client. Never pass a literal key in source.
+
+## Core methods
+
+```python
+await client.scrape_url(url, zone=None, country="", response_format="raw",
+                        method="GET", timeout=None, mode="sync",
+                        poll_interval=2, poll_timeout=30)
+await client.search.google(query, location=None, language="en", device="desktop",
+                           num_results=10, zone=None, **kwargs)
+await client.search.bing(...)    # same shape, no device argument
+await client.search.yandex(...)  # no device argument, language defaults to "ru"
+```
+
+`url` and `query` each accept a single string or a list. The two result objects do not carry the same fields. `ScrapeResult` carries `.success`, `.status`, `.data`, `.cost`, `.error` and timing fields. `SearchResult` carries `.success`, `.data`, `.cost`, `.error`, `.raw_html` plus query and paging fields such as `.query`, `.total_found`, `.page` and `.results_per_page`, and it has no `.status` at all, so reading `.status` off a search result raises `AttributeError`. Check `.success` before touching `.data` on either one.
+
+Yandex works differently. Google and Bing parse into `.data`, while Yandex has no parsed format, so `YandexDataNormalizer` returns raw HTML and nothing else. Its docstring records the verification: `brd_json=1` comes back HTTP 400 "JSON output is not supported", and no `parsed_yandex` data format exists. A Yandex result therefore arrives in `.raw_html` with `.data` left empty every time, never populated, so parse the HTML yourself with something like BeautifulSoup rather than looping over `.data`.
+
+Also present: `client.discover()` for AI web search, `client.crawler.trigger()` and `.download()`, `client.datasets.<name>`, `client.scrape.<platform>` for the per-platform scrapers, and `client.browser.get_connect_url()`. Zones default to `sdk_unlocker` and `sdk_serp`, and with `auto_create_zones=True` (the default) the client creates them as soon as it opens, before the first request. A key that cannot create zones, such as one from agent registration, fails right there: pass `auto_create_zones=False` and the account's own zones, for example `BrightDataClient(auto_create_zones=False, web_unlocker_zone="agent_unlocker", serp_zone="agent_serp")`.
+
+## A runnable example
+
+```python
+"""Fetch a page and a SERP. The key comes from the environment or the Bright Data CLI login, never from source."""
+
+import asyncio
+
+from brightdata import BrightDataClient
+
+
+async def main() -> None:
+    # The client finds the key on its own: BRIGHTDATA_API_TOKEN,
+    # BRIGHTDATA_API_KEY, or the Bright Data CLI's login. If none is there,
+    # creating the client raises; see the agent-onboarding skill.
+    # `async with` is required. A bare client has no HTTP session yet.
+    async with BrightDataClient() as client:
+        page = await client.scrape_url("https://example.com", country="us")
+        if not page.success:
+            raise RuntimeError(f"scrape failed: {page.error}")
+        print(page.status, page.cost, len(page.data or ""))
+
+        serp = await client.search.google("bright data python sdk", num_results=10)
+        for row in serp.data or []:
+            print(row)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+For a plain script with no event loop, swap in `SyncBrightDataClient`, drop every `await`, turn `async with` into `with`, and turn `async def main()` into `def main()`. Then finish the swap at the bottom of the file: drop `import asyncio` and call `main()` directly. Left as `asyncio.run(main())`, the sync `main()` runs to completion first and `asyncio.run` then raises `ValueError: a coroutine was expected, got None`.
+
+## Scraper Studio
+
+The package ships `client.scraper_studio` with `run`, `trigger`, `status` and `fetch` for running custom collectors built in Scraper Studio. The signature, from `scraper_studio/service.py`:
+
+```python
+await client.scraper_studio.run(collector, input, timeout=..., poll_interval=...)
+```
+
+`collector` is a collector id such as `"c_abc123"`, and `input` is one dict or a list of dicts. A list is triggered one entry at a time and the records are concatenated. `trigger()` returns a `ScraperStudioJob` for manual polling. Worth flagging to the user: the Scraper Studio quickstart shows only REST (cURL, `requests`, `fetch`); the SDK path is documented on the Python SDK page (https://docs.brightdata.com/api-reference/SDK, "Run your custom Scraper Studio scrapers").
+
+## Gotchas
+
+- Requests time out after the client's `timeout`, 30 seconds by default. A slow page needs `BrightDataClient(timeout=120)`: set the timeout on the client, because the `timeout=` argument on `scrape_url` does not change the request timeout in this version.
+- `mode="async"` is scoped, not faster. The README lists batches of many URLs first under "when to use async mode", then background processing while the caller gets on with other work. What it recommends sync for is the single URL case, where the default sync mode returns faster. The about 145 seconds in `web_unlocker/service.py` is one async round trip, not a per URL cost, which is exactly why the figure argues against async for one URL and not against async for a batch.
+- The `poll_timeout` trap follows straight from that number. `scrape_url` carries its own default of `poll_timeout=30` and forwards it down to the Web Unlocker service, whose own default is 180. Thirty seconds cannot outlast a roughly 145 second completion, so an async call left on the default times out before the result ever lands. Pass `poll_timeout=180` or more, matching the service level default, whenever you use `mode="async"`.
+- `.data` is `None` on failure, so guard it rather than indexing straight into it.
