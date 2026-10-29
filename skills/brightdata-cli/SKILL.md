@@ -43,12 +43,12 @@ The CLI uses zone names from its config, and it never checks them against the ac
 | A scraper for a site no pre-built scraper covers | `bdata scraper create`, then `run` |
 | To click through a page step by step | `bdata browser open <url>` |
 | Balance and spend | `bdata budget` |
-| Skills or MCP wired into this repo | `npx -y skills add brightdata/skills -y`, `bdata add mcp` |
+| Skills or MCP wired into this repo | `npx -y skills add brightdata/skills -y`; for MCP, `bdata add mcp --agent <agent>` with `--project` or `--global` (limits in [references/commands.md](references/commands.md#wire-up-a-repo)) |
 
 Flags are in `bdata <command> --help`. What the help text leaves out (the key order, pipelines, zones, output) is in [references/commands.md](references/commands.md).
 
 ## Rules
 
-- Pass `--json --pretty` whenever the output gets parsed. `-o <path>` writes a file, and the extension (`.json`, `.md`, `.html`, `.csv`) picks the format.
+- Pass `--json --pretty` whenever the output gets parsed. For billing use bare `bdata budget --json`; in CLI 0.4.1 `budget balance`, `budget zones` and `budget zone` ignore both flags and print text. `-o <path>` writes a file: for structured results the extension (`.json`, `.md`, `.html`, `.csv`) picks the format, while `scrape` keeps the format `-f` chose, so `-o page.html` needs `-f html`.
 - Never print the API key. The CLI owns the file it sits in.
 - There is no schedule command. Recurring runs are set up in the control panel.

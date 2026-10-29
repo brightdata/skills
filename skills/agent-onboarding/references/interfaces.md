@@ -13,7 +13,7 @@ Read the situation, not the wish. Four situations, one interface each:
 | An AI app that decides at run time | MCP |
 | Nothing can be installed and Node.js is absent (otherwise npx carries the CLI) | REST directly |
 
-Same platform behind all four. Moving between interfaces never changes which product runs, only how the call is made.
+Same platform behind all four. Moving between interfaces changes how the call is made and sometimes which zone serves it: by default search runs on an Unlocker zone in the CLI and the Local MCP, and on a SERP zone (`sdk_serp`) in the Python SDK.
 
 ## What each one looks like
 

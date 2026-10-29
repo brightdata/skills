@@ -20,7 +20,7 @@ A SERP page asked for as raw HTML with no URL is still this skill - that is the 
 | "daily", "weekly", "track this keyword" | **SERP or the top-100 job, on a timer** | Recurring and only the top ten matters -> SERP plus a cron the agent writes. Recurring and the user wants all results and their ranks -> the top-100 job on a timer. Answer-engine tracking is a dataset job plus a cron, see [references/answer-engines.md](references/answer-engines.md). |
 | "top 5", "the first 3", any number under ten | **SERP API** | The normal fast path, then truncate the list to what was asked. |
 
-Only Google comes back parsed by default. On the CLI, `--engine bing` returns the raw results page unless you add `--json`, and Yandex has no parser at all, so its page comes back raw; details in [references/serp.md](references/serp.md#engines).
+Only Google comes back parsed by default. On the CLI, `--engine bing` returns the raw results page unless you add `--json`, and Yandex has no parser at all, so its page comes back raw. The MCP `search_engine` tool returns Bing as page markdown whose links are `bing.com/ck/a` redirects; for clean Bing results use REST with `"data_format": "parsed_bing_api"`. Details in [references/serp.md](references/serp.md#engines).
 
 A volume word always means **more** than the default 10, never fewer. "Top 5" is not a smaller or cheaper job, it is this same one call with a shorter answer, so never route it anywhere else and never treat it as a reason to change product.
 

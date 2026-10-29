@@ -20,18 +20,24 @@
  * payload from a local cache that is refreshed once a day.
  *
  * The endpoint omits a few dozen scrapers that trigger fine. A gd_ id it does
- * not know is checked with one empty-body trigger, which the API rejects at
- * validation before any work starts, and the rejection names the inputs (see
- * probeSchema). That probe is the only call here that is not a plain read.
+ * not know is checked with one empty-body trigger. On every scraper seen so far
+ * the API rejects it at validation before any work starts, because the default
+ * door has a required field, and the rejection names the inputs (see
+ * probeSchema); if a job starts anyway, the script says so and names the
+ * snapshot to cancel. That probe is the only call here that is not a plain read.
  *
- * Spends no credits.
+ * Spends no credits, except in one case: the empty-record probe could start a
+ * billed job on a scraper whose default door requires no field. That has not
+ * been seen, and the script reports it with the snapshot id to cancel, in
+ * --json as started_snapshot_id.
  *
  * Usage:  node find-scraper.mjs <query> [--schema] [--variant <name>] [--sample] [--json] [--refresh]
  *         node find-scraper.mjs --help
  *         <query> is a gd_ dataset id, a domain, or part of a scraper name.
  * Auth:   BRIGHTDATA_API_KEY env var, or the CLI's credentials.json.
  *         The key is never printed, not even on failure.
- * Exit:   0 found, 1 nothing usable to return, 2 auth, network or API failure.
+ * Exit:   0 found, 1 nothing usable to return, 2 auth, network or API failure,
+ *         or the probe started a job.
  *
  * Node 18 or newer, no dependencies.
  */
@@ -106,14 +112,16 @@ const USAGE = 'Usage: node find-scraper.mjs <query> [--schema] [--variant <name>
 const USAGE_BLOCK = [
   USAGE,
   '  <query>      a gd_ dataset id, a domain (contains a dot), or part of a scraper name',
-  '  --schema     inputs, outputs, sample input and the trigger line for the one matching scraper',
+  '  --schema     inputs, outputs and the trigger line for the one matching scraper',
+  '               (the sample input with --sample, and always in --json)',
   '  --variant    one door only: collect_by_url, or a discovery suffix such as keyword or user_name',
   '               (default with --schema: print every variant the scraper has)',
   '  --sample     print sample_input as a paste-ready trigger body (with --schema)',
   '  --json       one JSON object on stdout instead of the human listing',
   '               shape: { ok, query, matches[{id,name,domain,category,scraper_type}], skipped_internal,',
   '                        schema{variants{<scraper_type>{required,optional,outputs,sample_input,link,trigger}},',
-  '                               source: "endpoint" | "trigger_probe"}, error }',
+  '                               source: "endpoint" | "trigger_probe"}, started_snapshot_id, error }',
+  '               started_snapshot_id is null unless the probe started a billed job',
   '  --refresh    ignore the local cache and refetch the catalogue (a cached listing does not',
   '               touch the network, so it does not check the key; --refresh does)',
   '  -h, --help   this block',
@@ -124,9 +132,11 @@ const USAGE_BLOCK = [
   '  whether a row can be triggered - that verdict, including "marketplace',
   '  dataset, not a scraper", comes from --schema. A gd_ id is one scraper',
   '  already, so its schema is printed with or without --schema, and an id the',
-  '  catalogue omits is checked with one free trigger probe on the way.',
+  '  catalogue omits is checked with one empty-body trigger probe on the way',
+  '  (free when the scraper\'s default door requires a field, which is every',
+  '  case seen so far).',
   '  exit codes: 0 = listed or ready to trigger, 1 = no result or not a',
-  '  scraper, 2 = auth or network',
+  '  scraper, 2 = auth, network or API failure, or the probe started a job',
   '',
   '  example:  node find-scraper.mjs instagram',
   '  example:  node find-scraper.mjs instagram.com',
@@ -136,9 +146,9 @@ const USAGE_BLOCK = [
   `  a name search reads the bulk catalogue from ${CACHE_PATH}, kept for 24 h;`,
   '  an id is one small filtered read, a domain one or two; neither touches the cache',
   '',
-  '  in Windows PowerShell 5.1, pipe or redirect through cmd /c, or use',
-  '  PowerShell 7: 5.1 adds a UTF-8 BOM and CRLF to redirected native output,',
-  '  and strict JSON parsers reject that',
+  '  in Windows PowerShell 5.1, do not redirect or pipe the output: `>` writes',
+  '  UTF-16 with a BOM and a pipe re-encodes it as ASCII, so JSON parsers reject',
+  '  it. Use cmd /c or PowerShell 7.4+',
 ];
 
 const FIXES = [
@@ -302,7 +312,7 @@ async function call(url, key, init = {}, timeoutMs = REQUEST_TIMEOUT_MS) {
  * Every exit path returns exactly these keys, in this order, so a caller
  * reading --json can branch without checking whether a field exists.
  */
-const blank = query => ({ ok: false, query, matches: [], skipped_internal: 0, schema: null, error: null });
+const blank = query => ({ ok: false, query, matches: [], skipped_internal: 0, schema: null, started_snapshot_id: null, error: null });
 
 /**
  * A call that answered nothing. Always exit 2: the query was never answered, so
@@ -595,15 +605,17 @@ function pickVariant(asked, variants) {
  *
  * - `errors` is an array of [field, message] pairs. A message matching
  *   "required" names a required input field.
- * - `line` is the record the API echoes back, as a JSON string, with every
- *   optional field present and blank. Its keys are the optional inputs. It
- *   says nothing about types, so none is claimed.
+ * - `line` is the record the API echoes back, as a JSON string, with some
+ *   optional fields present and blank (the text-typed ones in every answer
+ *   seen). Its keys are a partial list of the optional inputs. It says nothing
+ *   about types, so none is claimed.
  *
  * Returns exactly one of:
  *   { fail }          the call itself failed, and nothing was learned
  *   { started }       the probe queued a real job
  *   { marketplace }   the row cannot collect at all: a purchasable dataset
- *   { unknown }       the trigger does not know the id either
+ *   { unknown }       the trigger does not know the id either (a 404)
+ *   { other }         any other answer, quoted back with its status
  *   { unrecognized }  a validation rejection whose wording could not be read
  *   { required, optional }   the input contract
  */
@@ -642,12 +654,18 @@ async function probeSchema(id, key) {
   // the raw text also covers the JSON form of the same refusal.
   if (/does not support collection/i.test(res.text)) return { marketplace: true };
 
-  // Anything else is the trigger not knowing the id: today that is a 404 with
-  // the HTML text "dataset does not exist". The body is quoted back, so it goes
-  // through scrub() first: a proxy that echoes request headers into its own
-  // error page would otherwise put the Authorization header on stdout.
+  // The body is quoted back, so it goes through scrub() first: a proxy that
+  // echoes request headers into its own error page would otherwise put the
+  // Authorization header on stdout.
   const errText = typeof body?.error === 'string' ? body.error : '';
-  return { unknown: scrub(errText || res.text, key).slice(0, 120) };
+  const said = scrub(errText || res.text, key).slice(0, 120);
+
+  // Only a 404 means the trigger does not know the id: the API answers an
+  // unknown dataset_id with 404 "dataset does not exist". Any other answer
+  // (a 400 such as "This dataset is not ready yet", a 402, a 2xx with no
+  // snapshot id) says something else, so it is reported in the API's words.
+  if (res.status === 404) return { unknown: said };
+  return { other: { status: res.status, ok: res.ok, said } };
 }
 
 /** One errors[] value as text. String({}) is "[object Object]", which is not. */
@@ -713,10 +731,13 @@ function probeVerdict(query, id, probe) {
   if (probe.fail) return { failure: apiFailure(query, probe.fail, `${API}/datasets/v3/trigger`) };
 
   if (probe.started) {
-    return { failure: { ...blank(query), error: 'probe_started_job', exit: 2, lines: [
+    // The id is in the --json object too, as started_snapshot_id, and these
+    // lines go to stderr under --json, so the one billed job is never hidden.
+    return { failure: { ...blank(query), started_snapshot_id: probe.started, error: 'probe_started_job', exit: 2, lines: [
       head,
-      `${C.bad}x the empty-record probe started a real job instead of being rejected${C.off}`,
-      `  cancel snapshot ${probe.started} so it does not collect and bill`,
+      `${C.bad}x the empty-record probe started a real job instead of being rejected: snapshot ${probe.started}${C.off}`,
+      `  cancel it now so it does not collect and bill: POST ${API}/datasets/v3/snapshot/${encodeURIComponent(probe.started)}/cancel`,
+      '  (Authorization: Bearer header as usual; only a running snapshot can be cancelled)',
       '  report this: the probe is supposed to fail validation before any work starts'] } };
   }
 
@@ -735,6 +756,16 @@ function probeVerdict(query, id, probe) {
       `  ${C.dim}${probe.unknown || '(empty answer)'}${C.off}`,
       '  check the id, or search by name or domain instead:',
       '  node find-scraper.mjs <part of the name>'] } };
+  }
+
+  if (probe.other) {
+    const { status, ok, said } = probe.other;
+    return { failure: { ...blank(query), error: `probe_http_${status}`, exit: 2, lines: [
+      head,
+      `${C.bad}x the trigger probe answered HTTP ${status}, which is neither a validation rejection nor an unknown id${C.off}`,
+      `  ${C.dim}${said || '(empty answer)'}${C.off}`,
+      ...(ok ? ['  A JOB MAY HAVE STARTED: open the scraper\'s Logs tab in the control panel and check for a new snapshot'] : []),
+      '  that is the API\'s own answer; it says nothing certain about the inputs'] } };
   }
 
   // The rejection was a validation rejection and its fields could not be read
@@ -1014,7 +1045,7 @@ async function resolve() {
   }
   if (source === 'trigger_probe') {
     head.push(dim('the catalogue does not list this scraper, so this is read from the trigger\'s rejection of an empty record:'),
-      dim('the required fields are certain; the types and the outputs are not stated'));
+      dim('the required fields are certain; the optional list may be partial, and the types and the outputs are not stated'));
   }
   head.push(...notes.map(dim));
 
@@ -1050,8 +1081,12 @@ const { lines, exit, ...result } = await resolve();
 
 // --help wins over --json: there is no JSON rendering of a usage block, and the
 // blank report would be indistinguishable from a run that found nothing.
-if (JSON_OUT && !ARGS.help) console.log(JSON.stringify(result, null, 2));
-else for (const l of lines) console.log(l);
+// Under --json a failure's lines also go to stderr, so a warning such as the
+// snapshot id of a probe that started a billed job is never dropped.
+if (JSON_OUT && !ARGS.help) {
+  console.log(JSON.stringify(result, null, 2));
+  if (exit !== 0) for (const l of lines) console.error(l);
+} else for (const l of lines) console.log(l);
 
 // process.exitCode, never process.exit(): exiting while a fetch socket is
 // still closing crashes Node on Windows (libuv assertion, exit 0xC0000409).

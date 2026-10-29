@@ -36,7 +36,7 @@ The end product of a Studio build is a private API endpoint for that site. The `
 
 | Call | What comes back |
 |---|---|
-| `POST /dca/crawl?collector=<collector_id>&timeout=50s` body `{"url":"..."}` | The records in one response. Single URL, server cap 25 to 50 seconds. A 202 means the job outran the window - use the async pair below instead. |
+| `POST /dca/crawl?collector=<collector_id>&timeout=50s` body `{"url":"..."}` | The records in one response. Single URL, server cap 25 to 50 seconds. A 202 means the job outran the window. The 202 carries a `response_id`: poll `GET /dca/get_result?response_id=` with it. Do not re-trigger, because that starts a second run. |
 | `POST /dca/trigger_immediate?collector=<collector_id>` body `{"url":"..."}` | 202 with a `response_id`. One URL, async. |
 | `GET /dca/get_result?response_id=<response_id>` | 202 `{"pending":true}` while running, then 200 with the records. |
 | `POST /dca/trigger?collector=<collector_id>` body `[{"url":"..."}, ...]` | `{"collection_id":"j_...","start_eta":...}`. The batch door, one object per input. |
@@ -58,7 +58,7 @@ Only flags the CLI actually prints are listed here. Run any subcommand with `--h
 | `create`, `heal` | `--no-retry` | Fail immediately on the 429 instead of waiting through the cap. |
 | `run` | `--urls <list>` | Comma-separated batch through `/dca/trigger`. |
 | `run` | `--input-file <path>` | One URL per line, or a JSON array of strings, or a JSON array of `{"url": "..."}`. |
-| `run` | `--sync` | The synchronous `/dca/crawl` endpoint. Single URL only, server-side cap of 25 to 50 seconds. |
+| `run` | `--sync` | The synchronous `/dca/crawl` endpoint. Single URL only, server-side cap of 25 to 50 seconds. On a server-side timeout it prints a `response_id` and suggests re-running without `--sync`. Poll `GET /dca/get_result?response_id=` instead, because a re-run starts a second run. |
 | `run` | `--timeout <seconds>` | Async polling timeout. Default 600, batch mode 3600. |
 | `heal` | `--auto-approve` | Approve the heal at the gate and poll through to done. Default is to stop for review. |
 | `heal`, `approve` | `--auto-save` | Save the healed template once the job completes. On `heal` it pairs with `--auto-approve`. |
@@ -112,9 +112,9 @@ This is why gate 2 exists. Studio drives a real headless browser, so the user ne
 | Scrolling and lazy content | `scroll_to`, `scroll_to_all`, `load_more` |
 | Obstacles | `solve_captcha`, `close_popup`, `freeze_page` |
 | Emulation | `emulate_device`, `emulate_geolocation`, `browser_size`, `font_exists` |
-| Capturing network traffic | `tag_response`, `tag_all_responses`, `tag_script`, `tag_window_field`, `tag_image`, `tag_video`, `tag_screenshot`, `tag_download`, `tag_serp`, `capture_graphql` |
+| Capturing page content and network traffic | `tag_html`, `tag_screenshot`, `tag_response`, `tag_all_responses`, `tag_script`, `tag_window_field`, `tag_image`, `tag_video`, `tag_serp`, `capture_graphql` |
 
-"Scraper Studio browser worker" is not an established product term. Do not build user-facing copy on that phrase.
+Studio runs each stage on a Browser worker (a real headless browser) or a Code worker (plain HTTP requests, faster and cheaper). Browser-only functions such as `wait`, `click` and `scroll_to` need a Browser worker.
 
 ## After a run
 

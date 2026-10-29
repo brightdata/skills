@@ -61,8 +61,8 @@ const MAX_TIMEOUT_MS = 600_000;
 
 function envMs(raw, fallback) {
   const n = Number(raw);
-  if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0 || n > MAX_TIMEOUT_MS) return fallback;
-  return n;
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) return fallback;
+  return Math.min(n, MAX_TIMEOUT_MS);
 }
 
 const REQUEST_TIMEOUT_MS = envMs(process.env.BRIGHTDATA_REQUEST_TIMEOUT_MS, 30_000);
@@ -85,8 +85,10 @@ const USAGE = 'Usage: node poll.mjs <snapshot_or_job_id> [--out FILE] [--timeout
 /** What -h and --help print. Its first line is the one every error path shows. */
 const USAGE_BLOCK = [
   USAGE,
-  '  <snapshot_or_job_id>  sd_ or s_ for a Web Scraper API snapshot, anything',
-  '                        else is read as a Scraper Studio job',
+  '  <snapshot_or_job_id>  sd_ or s_ for a Web Scraper API snapshot, a Scraper',
+  '                        Studio batch collection id (j_...) otherwise. Not a',
+  '                        response_id from a single-URL Studio run: read that',
+  '                        with GET /dca/get_result?response_id=',
   '  --out FILE   write the records to FILE instead of stdout',
   '  --timeout S  give up waiting after S seconds (default 600)',
   '  --json       one JSON object on stdout instead of the records, so it needs',
@@ -100,11 +102,11 @@ const USAGE_BLOCK = [
   '',
   '  example:  node poll.mjs sd_abc123',
   '  example:  node poll.mjs sd_abc123 --out records.json --timeout 900',
-  '  no id yet? node trigger.mjs <dataset_id> <url>',
+  '  no id yet? node trigger.mjs <dataset_id> "<url>"',
   '',
-  '  in Windows PowerShell 5.1, pipe or redirect through cmd /c, or use',
-  '  PowerShell 7: 5.1 adds a UTF-8 BOM and CRLF to redirected native output,',
-  '  and strict JSON parsers reject that',
+  '  in Windows PowerShell 5.1, do not redirect or pipe the output: `>` writes',
+  '  UTF-16 with a BOM and a pipe re-encodes it as ASCII, so JSON parsers reject',
+  '  it. Use cmd /c, PowerShell 7.4+, or --out FILE',
 ];
 
 const FIXES = [
@@ -341,17 +343,17 @@ const WRONG_KIND = [
     lines: id => [
       `${C.bad}x ${id} is a collector template, not a job - run it first with bdata scraper run${C.off}`,
       '  a c_ id comes from bdata scraper create and names a template, not a run',
-      '  run:  bdata scraper run ' + id,
-      '  then poll the job id that run hands back',
+      '  run:  bdata scraper run ' + id + ' "<url>"   it polls and prints the records itself',
+      '  for many URLs: bdata scraper run ' + id + ' --urls a,b,c, then poll the collection id it prints (Batch job: ...)',
     ],
   },
   {
     test: /^gd_/i,
     error: 'dataset_id',
     lines: id => [
-      `${C.bad}x ${id} is a dataset id, not a job - trigger it first, node trigger.mjs <id> <url>${C.off}`,
+      `${C.bad}x ${id} is a dataset id, not a job - trigger it first, node trigger.mjs <id> "<url>"${C.off}`,
       '  a gd_ id names a scraper. Running it is what produces something to poll',
-      `  run:  node trigger.mjs ${id} <url>`,
+      `  run:  node trigger.mjs ${id} "<url>"`,
       '  then poll the sd_ snapshot id that prints',
     ],
   },
@@ -373,6 +375,7 @@ function routeFor(id) {
         progress: `${API}/datasets/v3/progress/${encodeURIComponent(id)}`,
         data: `${API}/datasets/v3/snapshot/${encodeURIComponent(id)}?format=json`,
         notFound: 'Wrong id, wrong account, or the job has expired.',
+        retention: 'Web Scraper API snapshots stay downloadable for 30 days after the job completes',
       }
     : {
         dca: true,
@@ -384,6 +387,7 @@ function routeFor(id) {
         // The /dca branch is the fallback, so a 404 here is as likely to mean
         // "this id was routed to the wrong API" as "this id is wrong".
         notFound: 'It was read as a Scraper Studio job. If this id came from a datasets trigger, the endpoints may have changed. Otherwise the id is wrong, the account is wrong, or the job has expired.',
+        retention: 'Scraper Studio batch collections stay downloadable for 16 days',
       };
 }
 
@@ -610,7 +614,7 @@ async function resolve() {
       `${C.bad}x this needs the id a trigger gave back${C.off}`,
       USAGE,
       '  example:  node poll.mjs sd_abc123',
-      '  no id yet? node trigger.mjs <dataset_id> <url>'] };
+      '  no id yet? node trigger.mjs <dataset_id> "<url>"'] };
   }
 
   // --json replaces the records on stdout with a report about them, so on its
@@ -709,7 +713,7 @@ async function poll(id, out, timeoutSec, key) {
   const notFound = () => at({ error: 'not_found', exit: 1, lines: [
     `${C.bad}x HTTP 404 for ${id} - nothing here answers to that id${C.off}`,
     `  ${route.notFound}`,
-    '  batch collections stay downloadable for 16 days, real-time ones for 7'] });
+    `  ${route.retention}`] });
 
   const bodyFailure = res => at({ error: 'body_unreadable', exit: 2, lines: [
     `${C.bad}x the answer started arriving and could not be read to the end${C.off}`,
@@ -748,7 +752,7 @@ async function poll(id, out, timeoutSec, key) {
       return at({ error: `http_${res.status}`, exit: 2, lines: [
         `${C.bad}x the download returned HTTP ${res.status}${C.off}`,
         `  ${excerpt(res.text, key) || '(empty answer)'}`,
-        '  batch collections stay downloadable for 16 days, real-time ones for 7'] });
+        `  ${route.retention}`] });
     }
 
     const verdict = classifyBody(res, key);
@@ -868,12 +872,12 @@ const { lines, exit, ...result } = await resolve();
 
 // The answer goes to stdout and everything else to stderr, which is what keeps
 // `poll.mjs sd_x | jq` working. --help prints to stdout because the help block
-// is the answer.
-if (JSON_OUT) {
+// is the answer, and it wins over --json.
+if (ARGS.help) {
+  for (const l of lines) emit(`${l}\n`);
+} else if (JSON_OUT) {
   emit(`${JSON.stringify(result, null, 2)}\n`);
   for (const l of lines) log(l);
-} else if (ARGS.help) {
-  for (const l of lines) emit(`${l}\n`);
 } else {
   for (const l of lines) log(l);
 }

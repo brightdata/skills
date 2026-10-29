@@ -21,17 +21,19 @@ The table below is bundled so the common cases cost zero discovery calls. It is 
 | Scrapers for a site or data type, from the CLI | `bdata pipelines search "<site or data type>"` |
 | One scraper by id, schema included | `curl -H "Authorization: Bearer $BRIGHTDATA_API_KEY" "https://api.brightdata.com/datasets/v3/scrapers?dataset_id=<gd_ id>"` |
 | Every scraper for one site | `curl -H "Authorization: Bearer $BRIGHTDATA_API_KEY" "https://api.brightdata.com/datasets/v3/scrapers?domain=<domain>"` |
-| Everything in one call, schema included | `node ../scripts/find-scraper.mjs <gd_ id>`, or `node ../scripts/find-scraper.mjs <name or domain> --schema` |
+| Everything in one call, schema included | `node scripts/find-scraper.mjs <gd_ id>`, or `node scripts/find-scraper.mjs <name or domain> --schema` |
+
+Script paths in this file are relative to the scrape skill's folder.
 
 The live catalogue is `GET https://api.brightdata.com/datasets/v3/scrapers`. It lists only real scrapers, 1006 of them on 2026-09-06, each with its variants: typed inputs and a control-panel link on every variant, output descriptions and a sample input on most (every bundled row has one). It needs the API key header. Without it the call returns 401, even though it is a free read. It takes exactly two filters: `?dataset_id=` returns one row and `?domain=` returns every scraper whose domain is exactly that string. The filter is exact and case-sensitive, so `chatgpt.com` returns its row and `Chatgpt.com` returns an empty array, and 274 of the 1006 rows spell their domain with a leading `www.`, so a domain lookup is one or two GETs, bare first, then with `www.`. Any other parameter is a 400.
 
 Unfiltered, the answer is 4.2 to 4.9 MB and takes 5.5 to 17 seconds, so the script caches it locally for 24 hours and `--refresh` refetches it. The cache holds the catalogue only, nothing derived from the key. A warm cache serves a name search hit with no network call, so it does not check the key; a miss refetches once to confirm. `--refresh` refetches and does check the key.
 
-The script takes a `gd_` id, a domain (anything containing a dot), or part of a scraper name. An id is one GET with `?dataset_id=`; a domain one or two GETs with `?domain=`, both spellings, and a domain that matches neither is a no-match with no fall-through to the bulk read; a name is a search of the cached catalogue. An id always prints the schema. A name or domain query lists matches only, and says nothing about whether a row can be triggered, until `--schema` is added; `--variant` and `--sample` imply it. The trigger verdict, including "marketplace dataset, not a scraper", comes with the schema. Exit codes: 0 listed or ready to trigger, 1 no result or not a scraper, 2 auth or network.
+The script takes a `gd_` id, a domain (anything containing a dot), or part of a scraper name. An id is one GET with `?dataset_id=`; a domain one or two GETs with `?domain=`, both spellings, and a domain that matches neither is a no-match with no fall-through to the bulk read; a name is a search of the cached catalogue. An id always prints the schema. A name or domain query lists matches only, and says nothing about whether a row can be triggered, until `--schema` is added; `--variant` and `--sample` imply it. The trigger verdict, including "marketplace dataset, not a scraper", comes with the schema. Exit codes: 0 listed or ready to trigger, 1 no result or not a scraper, 2 auth, network or API failure (including a probe that started a job).
 
 The CLI's own usage messages print `brightdata`, which is the same binary as `bdata`.
 
-If a bundled `dataset_id` is rejected as unknown, do not retry it and do not guess a replacement. Run `node ../scripts/find-scraper.mjs <the rejected id>`. An id the catalogue does not carry gets one empty-body probe, which still finds the scrapers the catalogue omits and still answers "marketplace dataset, not a scraper" for a download, required fields certain, outputs unlisted. Then search by name.
+If a bundled `dataset_id` is rejected as unknown, do not retry it and do not guess a replacement. Run `node scripts/find-scraper.mjs <the rejected id>`. An id the catalogue does not carry gets one empty-body probe, which still finds the scrapers the catalogue omits and still answers "marketplace dataset, not a scraper" for a download, required fields certain, outputs unlisted. Then search by name.
 
 ## The input is not always a URL
 
@@ -47,10 +49,10 @@ A discovery door triggers with `&type=discover_new&discover_by=<suffix>` on the 
 ```
 POST https://api.brightdata.com/datasets/v3/trigger?dataset_id=gd_lu702nij2f790tmv9h&type=discover_new&discover_by=keyword
      Content-Type: application/json
-     [{"search_keyword":"#artist","country":""}]
+     {"input":[{"search_keyword":"#artist","country":""}],"limit_per_input":10}
 ```
 
-That body is a real trigger, billed per record. `node ../scripts/find-scraper.mjs gd_lu702nij2f790tmv9h --variant keyword` prints that door alone, trigger line included, and `--sample` prints the catalogue's sample input as a paste-ready body.
+That body is a real trigger, billed per record. A discovery door's record count is open-ended, so always send `limit_per_input`, which caps the records per input (10 here). `node scripts/find-scraper.mjs gd_lu702nij2f790tmv9h --variant keyword` prints that door alone, trigger line included, and `--sample` prints the catalogue's sample input as a paste-ready body.
 
 Older discovery scrapers that were separate catalogue rows with their own ids still exist. Some still trigger, but the catalogue no longer carries them, and the script's probe fallback is what still finds them. Prefer the door on the current id.
 
@@ -58,16 +60,16 @@ Two catalogue cautions, both verified 2026-09-06. First, `GET /datasets/list` ca
 
 ## 25 ready scrapers, grouped by platform
 
-Twenty-five ready scrapers, grouped by platform so one look answers "what can I get from this site". Every cell but the label is the catalogue's own `collect_by_url` schema, `discovery_input` included, rendered by `skill-audit/tools/scraper-table.mjs`. Input types are in brackets. The Discovery column lists the scraper's other doors as the suffix after `discover_by_`.
+Twenty-five ready scrapers, grouped by platform so one look answers "what can I get from this site". Every cell but the label is the catalogue's own `collect_by_url` schema, `discovery_input` included, rendered from `GET /datasets/v3/scrapers` on 2026-09-06. Input types are in brackets. The Discovery column lists the scraper's other doors as the suffix after `discover_by_`.
 
-<!-- generated: skill-audit/tools/scraper-table.mjs, source GET /datasets/v3/scrapers, 2026-09-06, regenerate, do not edit by hand -->
+<!-- generated from GET /datasets/v3/scrapers on 2026-09-06 by the maintainers' table tool (not in this repo); do not edit by hand -->
 
 ### YouTube
 
 | Scraper | dataset_id | Required | Optional | Discovery |
 |---|---|---|---|---|
 | Videos | `gd_lk56epmy2i5g7lzu0k` | `url` (url) | `discovery_input` (object), `subscribers` (number), `country` (text), `transcription_language` (text) | keyword, url, search_filters, hashtag, explore, podcast_url |
-| Comments | `gd_lk9q0ew71spt1mxywf` | `url` (url) | `load_replies` (number), `num_of_comments` (number), `sort_by` (text) | none |
+| Comments | `gd_lk9q0ew71spt1mxywf` | `url` (url) | `load_replies` (number), `num_of_comments` (number), `sort_by` (text), `include_comments` (array) | none |
 | Channels | `gd_lk538t2k2p1k3oos71` | `url` (url) | `discovery_input` (object) | keyword |
 
 ### Facebook
@@ -76,7 +78,7 @@ Twenty-five ready scrapers, grouped by platform so one look answers "what can I 
 |---|---|---|---|---|
 | Pages posts by profile URL | `gd_lkaxegm826bjpoo9m5` | `url` (url) | `num_of_posts` (number), `posts_to_not_include` (array), `start_date` (text), `end_date` (text), `include_profile_data` (boolean), `country` (text) | none |
 | Posts by group URL | `gd_lz11l67o2cb3r0lkj3` | `url` (url) | `num_of_posts` (number), `posts_to_not_include` (array), `start_date` (text), `end_date` (text), `user_to_not_include` (array) | none |
-| Comments | `gd_lkay758p1eanlolqw8` | `url` (url) | `get_all_replies` (boolean), `limit_records` (number), `comments_sort` (text) | none |
+| Comments | `gd_lkay758p1eanlolqw8` | `url` (url) | `get_all_replies` (boolean), `limit_records` (number), `comments_sort` (text), `include_comments` (array) | none |
 
 ### TikTok
 
@@ -124,11 +126,11 @@ Twenty-five ready scrapers, grouped by platform so one look answers "what can I 
 | Free People - products | `gd_mm1zqyo61zzvsb9ux` | `url` (url) | `all_variations` (boolean) | sitemap |
 | Zillow - property listings | `gd_lfqkr8wm13ixtbd8f5` | `url` (url) | none | url, input_filters |
 | Google Maps - reviews | `gd_luzfs1dn2oa0teb81` | `url` (url) | `days_limit` (number), `sort_by` (text) | none |
-| X - posts | `gd_lwxkxvnf1cynvib9co` | `url` (url) | `country` (text) | profile_url, profiles_array |
+| X - posts | `gd_lwxkxvnf1cynvib9co` | `url` (url) | `country` (text) | profile_url |
 | X - profiles | `gd_lwxmeb2u1cniijd7t4` | `url` (url) | `max_number_of_posts` (number) | user_name |
 
 
-<!-- end generated: skill-audit/tools/scraper-table.mjs, regenerate, do not edit by hand -->
+<!-- end generated: the maintainers' table tool (not in this repo); do not edit by hand -->
 
 **The name trap lives in the Facebook table.** "Facebook - Posts by post URL" (`gd_lyclm1571iy3mv57zw`) is a fourth Facebook scraper: one post's data from its direct link. It is not "Pages posts by profile URL". Similar names, different scrapers. Use the ids above, never guess from names.
 
@@ -150,19 +152,19 @@ Every REST call needs the header `Authorization: Bearer $BRIGHTDATA_API_KEY`.
 bdata pipelines run gd_l1vikfnt1wgvvqz95w collect_by_url https://www.linkedin.com/company/stripe
 ```
 
-**Without the CLI.** Three REST calls, because the API is asynchronous. A trigger returns an id, not data.
+**Without the CLI.** Three REST calls on the asynchronous path. A trigger returns an id, not data. (`POST /datasets/v3/scrape` is a one-call alternative for small jobs; past one minute it returns a 202 with a `snapshot_id`.)
 
 ```
 POST https://api.brightdata.com/datasets/v3/trigger?dataset_id=gd_lkaxegm826bjpoo9m5
      Content-Type: application/json
-     [{"url":"https://www.facebook.com/nasa"}]
+     {"input":[{"url":"https://www.facebook.com/nasa","num_of_posts":10}]}
      returns {"snapshot_id":"sd_..."}
 
-GET  https://api.brightdata.com/datasets/v3/progress/sd_...    poll until it reports ready
-GET  https://api.brightdata.com/datasets/v3/snapshot/sd_...    the records
+GET  https://api.brightdata.com/datasets/v3/progress/sd_...                 poll until it reports ready
+GET  https://api.brightdata.com/datasets/v3/snapshot/sd_...?format=json     the records (NDJSON without format)
 ```
 
-The body is always a JSON array. One object per input.
+The body is an object, `{"input":[...]}`, one object per input, plus optional `limit_per_input`. A bare array of inputs is also accepted but cannot carry `limit_per_input`, so never send a bare array to a discovery door. One URL can still return many billed records, so cap them with the scraper's own field (`num_of_posts` above) or `limit_per_input`.
 
 After a REST trigger, one CLI call polls to completion: `bdata pipelines status <snapshot_id> --wait`, then `bdata pipelines results <snapshot_id>`. The job id is the `snapshot_id` the trigger returned.
 
@@ -171,10 +173,10 @@ After a REST trigger, one CLI call polls to completion: `bdata pipelines status 
 | Question | Free move |
 |---|---|
 | What arguments does this scraper take on the CLI? | `bdata pipelines info <dataset_id> <method>` prints its fields and an example input. |
-| What does this scraper take, and what comes back? | `node ../scripts/find-scraper.mjs <gd_ id>`, one GET on the catalogue, schema printed without any flag. Per variant: required and optional inputs with types, output fields, most with a description, the sample input, the trigger line and the control-panel link. `--variant <door>` narrows it to one door and `--sample` prints the sample input as a paste-ready trigger body. |
+| What does this scraper take, and what comes back? | `node scripts/find-scraper.mjs <gd_ id>`, one GET on the catalogue, schema printed without any flag. Per variant: required and optional inputs with types, output fields (first 8, all with `--json`), most with a description, the trigger line and the control-panel link. `--variant <door>` narrows it to one door and `--sample` adds the sample input as a paste-ready trigger body. |
 | The catalogue does not carry the id | The empty-body probe: `POST https://api.brightdata.com/datasets/v3/trigger?dataset_id=<id>` with body `[{}]`. Required fields come back in the `errors` array, some optional fields, the text-typed ones, come back inside the `line` key as an empty-valued JSON object, and a download answers "This dataset does not support collection". Required fields certain, outputs unlisted. The script sends this probe itself, once, and only after the catalogue answered empty. |
 
-The probe is not universally free. Validation rejects `[{}]` only because a required field is missing, so a door with no required field passes it, and on an active account the probe can start a billed job. Six such doors exist in the catalogue on 2026-09-06, all of them discovery doors, Amazon products `discover_by_upc` and Walmart products `discover_by_sku` among them. That is why the catalogue comes first and the probe is the fallback, never the opening move.
+The probe is not universally free. Validation rejects `[{}]` only because a required field is missing, so a door with no required field passes it, and on an active account the probe can start a billed job. Seven such doors exist in the catalogue on 2026-10-28, Amazon products `discover_by_upc`, Walmart products `discover_by_sku` and World zipcodes `collect_by_url` among them. That is why the catalogue comes first and the probe is the fallback, never the opening move. If a probe does start a job, the script prints its snapshot id (in `--json` as `started_snapshot_id`): cancel it at once with `POST https://api.brightdata.com/datasets/v3/snapshot/<snapshot_id>/cancel`. Only a running snapshot can be cancelled, and a cancelled one delivers no data.
 
 The catalogue's `output_fields` are the scraper's active output fields, the same set `GET https://api.brightdata.com/datasets/<dataset_id>/metadata` returns (25 of 25 checked, 2026-09-06), so metadata is not needed for outputs. Metadata answers 404 for the 58 scrapers the catalogue carries and `/datasets/list` does not, the answer engines, Google SERP 100 Results, Google Flights and Google Hotel among them, so a 404 there is not a retirement signal.
 
@@ -182,6 +184,6 @@ For the 25 rows above the inputs are already listed. Do not probe them again. Re
 
 The catalogue's `sample_output` is empty for most variants and changes between calls. Never cite it.
 
-On Windows PowerShell 5.1, run the probe with `curl.exe` or node. `Invoke-WebRequest` hides the 400 response body.
+On Windows PowerShell 5.1, run the probe with `curl.exe` or node. `Invoke-WebRequest` throws on a 400 and leaves the body only in `$_.ErrorDetails.Message`.
 
 Output schemas are not bundled in this file on purpose. Ask the catalogue for the one scraper being called.

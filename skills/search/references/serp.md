@@ -134,7 +134,17 @@ Rows below are docs only.
 
 The CLI's `--engine` flag covers google (the default), bing and yandex. For anything else, use the REST call and put that engine's own search URL in `url`.
 
-Only Google comes back parsed by default. `--engine bing` returns the raw results page unless you add `--json` or `--pretty`, which ask for parsed JSON; pass `--country` too, or Bing may answer in another locale. Yandex has no parser, so its page comes back raw. The MCP `search_engine` tool returns Bing and Yandex as the whole page in markdown and applies `geo_location` to Google only.
+Only Google comes back parsed by default. `--engine bing` returns the raw results page unless you add `--json` or `--pretty`, which ask for parsed JSON; pass `--country` too, or Bing may answer in another locale. Yandex has no parser, so its page comes back raw. The MCP `search_engine` tool returns Bing and Yandex as the whole page in markdown and applies `geo_location` to Google only, and its Bing result links are `bing.com/ck/a` redirects, not the target URL.
+
+For clean Bing results, call REST with Bing's parsed format (docs: SERP API, Bing migration guide):
+
+```
+POST https://api.brightdata.com/request
+     {"search_engine":"bing","query":"<query>","data_format":"parsed_bing_api",
+      "format":"json","zone":"<your serp zone>"}
+```
+
+The answer has Bing API's shape: results are in `webPages.value`, each with a `url`.
 
 Rows below are docs only.
 

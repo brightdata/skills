@@ -77,7 +77,7 @@ Search takes those plus three of its own, all from `schemas/request.mjs`: `numRe
 ## A runnable example
 
 ```javascript
-// Fetch a page and a SERP. The token comes from the environment, never from source.
+// Fetch a page and a SERP. The key comes from the environment or the Bright Data CLI login, never from source.
 import { bdclient } from '@brightdata/sdk';
 
 // The client finds the key on its own: BRIGHTDATA_API_TOKEN,
@@ -99,7 +99,8 @@ try {
   const serp = await client.search.google('bright data node sdk', { format: 'json' });
   console.log(serp.status_code, serp.body.slice(0, 200));
 } finally {
-  // Always close, otherwise the undici pool keeps the process alive.
+  // Always close: an unclosed client leaks its undici pool and prints a
+  // "[brightdata-sdk] ... Transport(s) were not closed" warning at exit.
   await client.close();
 }
 ```
@@ -117,9 +118,9 @@ status(jobId: string): Promise<JobStatus>
 fetch(responseId: string): Promise<unknown[]>
 ```
 
-`collector` is a collector id such as `'c_abc123'`. `input` is one object or an array of them. The polling defaults differ by language and by unit, so read them side by side: Python waits 180 seconds with a 10 second interval, Node waits 500000 ms with a 10000 ms interval. That is about 8 minutes of patience in Node against 3 minutes in Python, from the same numbers written in different units. Note also that `run` takes an options object while Python takes `input` directly, so the two languages differ in shape as well as in defaults. Worth flagging to the user: the official Scraper Studio quickstart documents only REST, cURL and hand written `fetch`, never an SDK path, so these methods are ahead of the product docs.
+`collector` is a collector id such as `'c_abc123'`. `input` is one object or an array of them. The polling defaults differ by language and by unit, so read them side by side: Python waits 180 seconds with a 10 second interval, Node waits 500000 ms with a 10000 ms interval. That is about 8 minutes of patience in Node against 3 minutes in Python, from the same numbers written in different units. Note also that `run` takes an options object while Python takes `input` directly, so the two languages differ in shape as well as in defaults. Worth flagging to the user: the Scraper Studio quickstart shows only REST (cURL, Python `requests`, Node `fetch`); the SDK path is documented on the JavaScript SDK page (https://docs.brightdata.com/api-reference/SDK-JS, Scraper Studio section).
 
 ## Gotchas
 
-- Zones default to `sdk_unlocker` and `sdk_serp`, and `autoCreateZones` defaults to true, so the SDK creates them on first use.
+- Zones default to `sdk_unlocker` and `sdk_serp`, and `autoCreateZones` defaults to true, so the first `scrapeUrl` or `search` call that uses a zone checks for it and creates it when missing; constructing the client does not. A key that cannot create zones, such as one from agent registration, fails on that first call: pass `autoCreateZones: false` and the account's own zones, for example `new bdclient({ autoCreateZones: false, webUnlockerZone: 'agent_unlocker', serpZone: 'agent_serp' })`.
 - A batch call resolves rather than rejects on partial failure. Entries can be `BRDError`.

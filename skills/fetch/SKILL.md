@@ -7,7 +7,7 @@ description: 'Use when the user wants one known URL returned as content: "get me
 
 One URL in, one page out, as markdown, HTML, or a screenshot. Nothing is parsed for you.
 
-Every request is unblocked: IP rotation, browser fingerprints, cookies, CAPTCHA solving and automatic retries, from a country you choose. JavaScript rendering is the one capability that is off by default. The REST body can ask for it with the `render` parameter, and the CLI has no flag for it, so a CLI fetch never renders.
+Every request is unblocked: IP rotation, browser fingerprints, cookies, CAPTCHA solving and automatic retries, from a country you choose. JavaScript rendering can be forced with the REST body's `render` parameter. The CLI has no flag for it, so a CLI fetch cannot force rendering (a `-f screenshot` is still an image of the rendered page).
 
 ## The call
 
@@ -17,7 +17,7 @@ Every request is unblocked: IP rotation, browser fingerprints, cookies, CAPTCHA 
 bdata scrape https://example.com/article
 ```
 
-Markdown is the default. A first `bdata login` creates `cli_unlocker` and stores it as the zone default, so a fresh login needs no `--zone`. It never overwrites a default you already set. An account set up any other way carries its unlocker zone under another name (`agent_unlocker` from agent registration, `mcp_unlocker` from the MCP server, any name at all when a person made it by hand): find it by the entry whose `"type"` is `"unblocker"` in `bdata zones --json`, and pass that name. Override with `--zone <name>`, or `BRIGHTDATA_UNLOCKER_ZONE`, or `bdata config set default_zone_unlocker <name>`.
+Markdown is the default. A first `bdata login` tries to create `cli_unlocker` and, when no default is set, stores it as the zone default, so a fresh login on a normal account needs no `--zone`. It never overwrites a default you already set. A key from agent registration cannot create zones and its account has no `cli_unlocker`, so run `bdata config set default_zone_unlocker agent_unlocker` once. An account set up any other way carries its unlocker zone under another name (`agent_unlocker` from agent registration, `mcp_unlocker` from the MCP server, any name at all when a person made it by hand): find it by the entry whose `"type"` is `"unblocker"` in `bdata zones --json`, and pass that name. Override with `--zone <name>`, or `BRIGHTDATA_UNLOCKER_ZONE`, or `bdata config set default_zone_unlocker <name>`.
 
 If `bdata` is not recognized, npm's global directory is not on PATH, and the fix lives in the `agent-onboarding` skill's Install section.
 
@@ -74,6 +74,7 @@ Read the error first. A 403 from the target site is not on this list, because th
 | The message contains | What it means |
 |---|---|
 | `No Web Unlocker zone specified.` | No zone resolved. Take the name of the `"type":"unblocker"` entry in `bdata zones --json` and pass it as `--zone`, or save it once with `bdata config set default_zone_unlocker <name>`. Do not log in again: it replaces the stored key. |
+| `zone "<name>" not found` | The resolved zone does not exist on this account, often `cli_unlocker` on an account made by agent registration. Take the `"type":"unblocker"` entry from `bdata zones --json` and save it with `bdata config set default_zone_unlocker <name>`. |
 
 Two other refusals are not this skill's to fix. A missing or dead key (`No API key found`, or 401) means the machine is not logged in. A few targets need KYC on the account before Bright Data will serve them: sites that block themselves in robots.txt such as Reddit, government sites, sites on Bright Data's blocked list, and targets its compliance policy does not permit. Most sites need none of this. Both belong to the `agent-onboarding` skill, which carries the exact error codes. Send the user there, and never send anyone to KYC before a call has actually been refused.
 
@@ -88,4 +89,4 @@ Two other refusals are not this skill's to fix. A missing or dead key (`No API k
 
 A fetch whose real purpose is pulling data fields out of the page is a scrape ask. Hand it over.
 
-Never promise JavaScript rendering on a CLI fetch, and never reach for a browser or a proxy because a page returned 403. That is what this one call already handles.
+Never promise JavaScript rendering on a CLI markdown or HTML fetch; when a page needs it, use the REST call with `"render":"true"`. Never reach for a browser or a proxy because a page returned 403. That is what this one call already handles.

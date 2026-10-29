@@ -45,7 +45,7 @@ For volume, async mode is an opt-in zone setting (Advanced settings, "Asynchrono
 | CAPTCHA solving | On by default as part of the unblocking flow, and it can be turned off |
 | Retries | "Retries failed attempts with alternative configurations until the request succeeds" |
 | JavaScript rendering | Off by default. Add the `render` parameter to force a browser. |
-| Cookies | Custom cookies can be sent. Login and authentication cookies are not allowed. |
+| Cookies | Ignored by default. With the zone's "Custom headers & cookies" setting on, pre-approved cookies can be sent, and every request is then billed, failed ones included. Login and authentication cookies are not allowed. |
 | Geo targeting | Country targeting, plus `x-unblock-city` and `x-unblock-zipcode` on supported targets |
 
 What it does not do is give you fields. There is no schema, no field list, and no metadata endpoint. Everything after the response body is the user's code.
@@ -63,7 +63,7 @@ Most targets need none. Scraping APIs are not the proxy products. Only four erro
 | `policy_20000` | 403 | The target sits in a category Bright Data blocks. |
 | `policy_20050` | 403 | The target is not permitted by Bright Data's compliance policy. |
 
-All four clear the same way: the account completes KYC and describes the intended use to the compliance team.
+Three of the four clear through KYC (brightdata.com/cp/kyc) or the account manager. `policy_20000` is a category block with no KYC path in the docs: tell the user the target is blocked and stop.
 
 Read the error first. Send the user to brightdata.com/cp/kyc only after a call has actually been refused for one of these reasons, never up front. Details in the `agent-onboarding` skill.
 

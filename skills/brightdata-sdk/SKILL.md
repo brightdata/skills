@@ -33,3 +33,5 @@ The one fact this skill needs: both SDKs read `BRIGHTDATA_API_TOKEN` first, acce
 ## What both packages cover
 
 Page fetch, SERP search, per-platform scrapers, a crawler, dataset access, Browser API connect strings, and a Scraper Studio namespace. The shape differs by language: Python is async first and uses snake_case, Node.js uses camelCase and has to be closed, either with `close()` by hand or with `await using` on modern runtimes. Read the reference file rather than translating method names by hand.
+
+By default both SDKs create the zones `sdk_unlocker` and `sdk_serp` in the account when they are missing: Python when the client opens, Node on the first call that uses each zone. Tell the user before running code that will do that. Each reference file shows how to turn auto-creation off and use the account's own zones.

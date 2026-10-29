@@ -14,7 +14,7 @@ Answers the question "how do I call Bright Data from Python code the user keeps?
 
 ## The package
 
-`brightdata-sdk` on PyPI. Source at github.com/brightdata/sdk-python. Docs at https://docs.brightdata.com/api-reference/SDK. The distribution name is `brightdata-sdk` but the import name is `brightdata`, and installing `brightdata` instead gets an unofficial third party wrapper around Bright Data, which is a worse trap than an unrelated package because the wrong install still looks plausible.
+`brightdata-sdk` on PyPI. Source at github.com/brightdata/sdk-python. Docs at https://docs.brightdata.com/api-reference/SDK. The distribution name is `brightdata-sdk` but the import name is `brightdata`, and installing `brightdata` instead gets a different package, an unofficial wrapper whose PyPI page says "This is an unofficial SDK", which is a worse trap than an unrelated package because the wrong install still looks plausible.
 
 On the Python floor, the two sources disagree. The vendor's own `pyproject.toml` sets `requires-python = ">=3.10"`, while the published metadata that pip actually enforces (`Requires-Python`, fed by `setup.py`) says `>=3.9`.
 
@@ -41,7 +41,7 @@ Credentials belong to `agent-onboarding`. See its `references/auth.md` for paths
 2. `BRIGHTDATA_API_TOKEN`, then `BRIGHTDATA_API_KEY`
 3. the credentials stored by the Bright Data CLI at login
 
-`python-dotenv` is a hard dependency of the package, and `load_dotenv()` runs at import time in `client.py`, so a `.env` file is picked up without any extra step. Never pass a literal key in source.
+`python-dotenv` is a hard dependency of the package, and `load_dotenv()` runs at import time in `client.py`. It searches for `.env` upward from the installed `brightdata` package folder, not from the working directory, so a project `.env` is found only when the virtualenv lives inside the project (for example `./.venv`). Otherwise call `load_dotenv()` in your own entry file before creating the client. Never pass a literal key in source.
 
 ## Core methods
 
@@ -64,7 +64,7 @@ Also present: `client.discover()` for AI web search, `client.crawler.trigger()` 
 ## A runnable example
 
 ```python
-"""Fetch a page and a SERP. The token comes from the environment, never from source."""
+"""Fetch a page and a SERP. The key comes from the environment or the Bright Data CLI login, never from source."""
 
 import asyncio
 
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-For a plain script with no event loop, swap in `SyncBrightDataClient`, drop every `await`, turn `async with` into `with`, and turn `async def main()` into `def main()`. Then finish the swap at the bottom of the file: drop `import asyncio` and call `main()` directly, because `asyncio.run()` handed a plain function raises rather than running it.
+For a plain script with no event loop, swap in `SyncBrightDataClient`, drop every `await`, turn `async with` into `with`, and turn `async def main()` into `def main()`. Then finish the swap at the bottom of the file: drop `import asyncio` and call `main()` directly. Left as `asyncio.run(main())`, the sync `main()` runs to completion first and `asyncio.run` then raises `ValueError: a coroutine was expected, got None`.
 
 ## Scraper Studio
 
@@ -101,7 +101,7 @@ The package ships `client.scraper_studio` with `run`, `trigger`, `status` and `f
 await client.scraper_studio.run(collector, input, timeout=..., poll_interval=...)
 ```
 
-`collector` is a collector id such as `"c_abc123"`, and `input` is one dict or a list of dicts. A list is triggered one entry at a time and the records are concatenated. `trigger()` returns a `ScraperStudioJob` for manual polling. Worth flagging to the user: the official Scraper Studio quickstart documents only REST, cURL, `requests` and `fetch`, never an SDK path, so these methods are ahead of the product docs.
+`collector` is a collector id such as `"c_abc123"`, and `input` is one dict or a list of dicts. A list is triggered one entry at a time and the records are concatenated. `trigger()` returns a `ScraperStudioJob` for manual polling. Worth flagging to the user: the Scraper Studio quickstart shows only REST (cURL, `requests`, `fetch`); the SDK path is documented on the Python SDK page (https://docs.brightdata.com/api-reference/SDK, "Run your custom Scraper Studio scrapers").
 
 ## Gotchas
 

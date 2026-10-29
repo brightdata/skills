@@ -31,13 +31,13 @@
 
 ## Overview
 
-A skill is a folder with a SKILL.md plus reference files and scripts. Any agent that reads SKILL.md files can use these: Claude Code, Codex, Cursor, and others. Nothing here is tied to one agent.
+A skill is a folder with a SKILL.md and, where needed, reference files and scripts. Any agent that reads SKILL.md files can use these: Claude Code, Codex, Cursor, and others. Nothing here is tied to one agent.
 
 With the skills installed, an agent can:
 
 - **Scrape any site for structured data** with ready scrapers, or build a new scraper in Scraper Studio when none fits
-- **Buy a ready dataset** when the data is already collected, instead of scraping it
-- **Fetch any blocked page** through Web Unlocker as markdown, HTML, or a screenshot
+- **Find a ready dataset** when the data is already collected, and hand the purchase to a person instead of scraping it
+- **Fetch a blocked page** through Web Unlocker as markdown, HTML, or a screenshot
 - **Search Google and other engines** and get structured JSON, including the AI answer engines
 - **Drive a cloud browser** with the user's own Playwright, Puppeteer, or Selenium code
 - **Check balance and costs** before and after every job
@@ -45,7 +45,7 @@ With the skills installed, an agent can:
 
 ## Quick Start
 
-Add the skills to your project, for any coding agent (needs Node.js):
+Add the skills to your project, for any coding agent (needs Node.js and git):
 
 ```
 npx -y skills add brightdata/skills -y
@@ -53,15 +53,15 @@ npx -y skills add brightdata/skills -y
 
 For one skill, add `--skill <name>`, for example `--skill scrape`. In Windows PowerShell, use `npx.cmd` if scripts are blocked. No Node? Clone this repo and copy the folders under `skills/` into the folder where your agent reads skills (many agents use `.agents/skills`).
 
-Then start with `agent-onboarding`: it installs the Bright Data CLI and logs in once. The browser opens, the user approves, and the key never touches the chat.
+Then start with `agent-onboarding`: it installs the Bright Data CLI (needs Node.js 20 or later) and logs in once. The user approves in a browser, on this machine or any other device, and the key never touches the chat. Without Node it falls back to the REST API with `BRIGHTDATA_API_KEY`.
 
 ## The Skills
 
 | Skill | What it does |
 |-------|-------------|
 | [`agent-onboarding`](skills/agent-onboarding/SKILL.md) | Start here. Installs the CLI and the skills, logs in once, and routes every ask to the right skill |
-| [`scrape`](skills/scrape/SKILL.md) | Structured data from any site: ready scrapers, Scraper Studio, and free discovery scripts |
-| [`datasets`](skills/datasets/SKILL.md) | Buy a ready dataset from the Dataset Marketplace instead of scraping it |
+| [`scrape`](skills/scrape/SKILL.md) | Structured data from any site: ready scrapers, Scraper Studio, and scripts that look scrapers up in the catalogue |
+| [`datasets`](skills/datasets/SKILL.md) | Check whether the Dataset Marketplace already sells the data, and route the purchase to a person |
 | [`fetch`](skills/fetch/SKILL.md) | One URL in, unblocked page out: markdown, HTML, or a screenshot |
 | [`search`](skills/search/SKILL.md) | Anything that starts from a query: SERP API, Google verticals, the top-100 job, answer engines |
 | [`browser`](skills/browser/SKILL.md) | Point Playwright, Puppeteer, or Selenium code at the cloud browser |
@@ -76,11 +76,11 @@ The entry point. It installs everything, handles the one-time login without ever
 
 ## Scrape
 
-Structured data from any site. The skill checks what already exists before spending anything: a bundled top-25 table costs zero calls, and one free call searches the whole live catalogue. When a ready scraper fits, it runs it. When none fits, Scraper Studio builds one from a plain-language prompt, heals it when the site changes, and runs single URLs synchronously or whole URL lists as one batch.
+Structured data from any site. The skill checks what already exists before spending anything: a bundled top-25 table costs zero calls, and one free call searches the live scraper catalogue. When a ready scraper fits, it runs it. When none fits, Scraper Studio builds one from a plain-language prompt, heals it when the site changes, and runs single URLs synchronously or whole URL lists as one batch.
 
 ## Datasets
 
-Not scraping. When the data is already collected and sold as a download, a huge generic corpus, needed once, where a few months old is fine, the agent checks coverage with free calls and hands the purchase to a person in the control panel.
+Not scraping. When the data is already collected and sold as a download, a huge generic corpus, needed once, where a few months old is fine, the agent checks coverage with free reads (plus, for an id the catalogue does not list, one probe that can start a billed job) and hands the purchase to a person in the control panel.
 
 ## Fetch
 
@@ -88,7 +88,7 @@ One URL in, unblocked page out through Web Unlocker: markdown for reading, HTML 
 
 ## Search
 
-Anything that starts from a query. SERP API for structured results, the Google verticals (Maps, Shopping, News, and more), the top-100 job for deep rank tracking in one request, and the AI answer engines (ChatGPT, Perplexity, Gemini, Google AI Mode) with their verified dataset ids.
+Anything that starts from a query. SERP API for structured results (web, news, images and shopping tabs), the Google verticals with a scraper of their own (Maps, Shopping, Flights, Hotels, Images), the top-100 job for deep rank tracking in one request, and the AI answer engines (ChatGPT, Perplexity, Gemini, Google AI Mode) with their verified dataset ids.
 
 ## Browser
 
@@ -96,7 +96,7 @@ For the user's own browser automation code. The skill hands Playwright, Puppetee
 
 ## Billing
 
-Balance, charges by product and by zone, and what a job will cost before it runs. REST first, verified against the live cost APIs.
+Balance, charges by product and by zone, and what a job will cost before it runs. REST first; the reference marks which facts were checked against the live cost APIs.
 
 ## The Interface Guides
 

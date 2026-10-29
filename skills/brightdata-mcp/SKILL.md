@@ -37,7 +37,7 @@ Both `?token=` and `API_TOKEN` take the account API key. Find it the way the
 CLI does: `BRIGHTDATA_API_KEY` if set, else `api_key` in the `credentials.json`
 that `bdata login` writes (Linux `~/.config/brightdata-cli/`, macOS
 `~/Library/Application Support/brightdata-cli/`, Windows
-`%APPDATA%\brightdata-cli\`). After login the variable is normally empty and
+`%USERPROFILE%\AppData\Roaming\brightdata-cli\`). After login the variable is normally empty and
 the key is only in the file: that is a logged-in machine, not a missing key,
 so read it in code and never print it. To check that it exists, run
 `node scripts/check-auth.mjs` from the `agent-onboarding` skill (it never
@@ -52,8 +52,8 @@ are in that skill's `references/auth.md`). Neither exists: hand off to
 Records from a site the agent can name go to a pre-built scraper:
 `search_scrapers` to find it, `get_scraper_details` to see its inputs, then
 `run_scraper`. Page content goes to `scrape_as_markdown`. Raw unlocked HTML through `scrape_as_html`
-is the last resort, not the opening move. This is the misroute that costs the
-most credits and returns the worst data, so read the rule before writing prompts
+is the last resort, not the opening move. This is the misroute that burns the
+most tokens and returns the worst data, so read the rule before writing prompts
 or tool descriptions.
 
 ## References

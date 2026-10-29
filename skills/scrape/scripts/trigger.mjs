@@ -10,19 +10,23 @@
  *   node trigger.mjs gd_l1vikfch901nx3by4 https://www.instagram.com/nasa/
  *   node poll.mjs sd_...                         the id this printed
  *
- * THIS ONE SPENDS MONEY. find-scraper.mjs is free by construction: its probe is
- * an empty record the API rejects at validation before any work starts. This
- * script is the opposite - a success here queues a real collection and bills
- * for it. That is why it says what it is about to do, on stderr, before it does
- * it, and why it sends exactly one input and never a list.
+ * THIS ONE SPENDS MONEY. find-scraper.mjs only reads, except for one
+ * empty-record probe on an id the catalogue omits, which the API normally
+ * rejects at validation. This script is the opposite - a success here queues a
+ * real collection and bills for it, per delivered record. That is why it says
+ * what it is about to do, on stderr, before it does it, why it sends exactly
+ * one input and never a list, and why --limit exists: one input can still
+ * return many records, and --limit N caps them with limit_per_input=N.
  *
- * Usage:  node trigger.mjs <dataset_id> <input_url> [--json]
+ * Usage:  node trigger.mjs <dataset_id> <input_url> [--limit N] [--json]
  *         node trigger.mjs --help
  * Auth:   BRIGHTDATA_API_KEY env var, or the CLI's credentials.json.
  *         The key is never printed, not even on failure.
- * Output: the snapshot id alone on stdout, so it pipes straight into poll.mjs.
- *         The billing notice and the next step go to stderr, which keeps stdout
- *         clean in both modes and keeps --json parseable.
+ * Output: the snapshot id alone on stdout, so it can be captured and passed to
+ *         poll.mjs: id=$(node trigger.mjs <dataset_id> "<url>") && node poll.mjs "$id"
+ *         (PowerShell: $id = node trigger.mjs <dataset_id> "<url>"; if ($LASTEXITCODE -eq 0) { node poll.mjs $id })
+ *         The billing notice, the next step and every error go to stderr, which
+ *         keeps stdout clean in both modes and keeps --json parseable.
  * Exit:   0 the job started, 1 bad arguments, 2 auth, network or API failure.
  *
  * Node 18 or newer, no dependencies.
@@ -63,31 +67,38 @@ const REQUEST_TIMEOUT_MS = (() => {
   return Math.min(asked, MAX_TIMEOUT_MS);
 })();
 
-const USAGE = 'Usage: node trigger.mjs <dataset_id> <input_url> [--json]';
+const USAGE = 'Usage: node trigger.mjs <dataset_id> <input_url> [--limit N] [--json]';
 
 /** What -h and --help print. Its first line is the one every error path shows. */
 const USAGE_BLOCK = [
   USAGE,
   '  <dataset_id> the gd_ id of the scraper to run',
   '  <input_url>  the one page to collect, sent as [{"url": "<input_url>"}]',
+  '  --limit N    cap the records this input can return (limit_per_input=N).',
+  '               One URL can return many records (a profile\'s posts, a',
+  '               product\'s reviews), and every record is billed',
   '  --json       one JSON object on stdout instead of the snapshot id',
   '               shape: { ok, snapshot_id, error }',
   '  -h, --help   this block',
   '',
-  '  THIS SPENDS MONEY: a success starts a real collection and bills for it.',
-  '  find-scraper.mjs is the free half - run it first to check the inputs:',
+  '  THIS SPENDS MONEY: a success starts a real collection and bills for it,',
+  '  per delivered record. find-scraper.mjs is the lookup half - run it first',
+  '  to check the inputs:',
   '',
   '  example:  node find-scraper.mjs gd_l1vikfch901nx3by4 --schema',
-  '  example:  node trigger.mjs gd_l1vikfch901nx3by4 https://www.instagram.com/nasa/',
+  '  example:  node trigger.mjs gd_l1vikfch901nx3by4 "https://www.instagram.com/nasa/" --limit 10',
   '  then:     node poll.mjs <the snapshot id this printed>',
+  '',
+  '  never re-run after an error without reading it: a timeout or a 5xx can',
+  '  come after the job started, and a second run is a second billed job',
   '',
   '  a scraper whose required input is not "url" (a keyword, a hashtag, a',
   '  location) needs a different payload than this script sends, so trigger it',
   '  with the API directly - find-scraper.mjs --schema names the field',
   '',
-  '  in Windows PowerShell 5.1, pipe or redirect through cmd /c, or use',
-  '  PowerShell 7: 5.1 adds a UTF-8 BOM and CRLF to redirected native output,',
-  '  and strict JSON parsers reject that',
+  '  in Windows PowerShell 5.1, do not redirect or pipe the output: `>` writes',
+  '  UTF-16 with a BOM and a pipe re-encodes it as ASCII, so JSON parsers reject',
+  '  it. Use cmd /c or PowerShell 7.4+',
 ];
 
 const FIXES = [
@@ -105,18 +116,29 @@ const FIXES = [
  * would send it to the API as a dataset id or a URL. A lone "-" is left alone.
  */
 function parseArgs(argv) {
-  let datasetId = null, inputUrl = null, json = false, help = false, bad = null;
+  let datasetId = null, inputUrl = null, limit = null, json = false, help = false, bad = null;
 
-  for (const a of argv) {
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
     if (a === '--json') json = true;
     else if (a === '-h' || a === '--help') help = true;
+    else if (a === '--limit' || a.startsWith('--limit=')) {
+      // A positive whole number, as the API's limit_per_input (minimum 1) takes.
+      // A next argument that is itself a flag is not the value, so it stays in
+      // the walk and "--limit --json" still answers in JSON.
+      const next = argv[i + 1];
+      const v = a.startsWith('--limit=') ? a.slice('--limit='.length)
+        : next !== undefined && !(next.startsWith('-') && next.length > 1) ? argv[++i] : undefined;
+      if (v !== undefined && /^[1-9][0-9]*$/.test(v)) limit = Number(v);
+      else bad ??= `--limit needs a whole number of records, 1 or more${v === undefined ? '' : `, got "${v}"`}.`;
+    }
     else if (a.startsWith('-') && a.length > 1) bad ??= `Unknown flag ${a}.`;
     else if (datasetId === null) datasetId = a;
     else if (inputUrl === null) inputUrl = a;
     else bad ??= `Unexpected argument ${a}. This script sends exactly one input.`;
   }
 
-  return { datasetId, inputUrl, json, help, bad };
+  return { datasetId, inputUrl, limit, json, help, bad };
 }
 
 const ARGS = parseArgs(process.argv.slice(2));
@@ -183,6 +205,17 @@ function readApiKey() {
 // ---------------------------------------------------------------- http
 
 /**
+ * Take the key out of any text before it is printed. Used on transport errors
+ * and on every piece of API text this script quotes back, because a proxy can
+ * echo request headers into its own answer. Scrub before truncating: a slice
+ * taken first can leave a readable fragment.
+ */
+const scrub = (text, key) => (key ? String(text).split(key).join('<redacted>') : String(text));
+
+/** A short, scrubbed, one-line quote of what the API said. */
+const quote = (text, key, n) => scrub(text, key).replace(/\s+/g, ' ').trim().slice(0, n);
+
+/**
  * One authenticated request. This never throws.
  *
  * A transport failure comes back as status 0 with the reason in `netError`, so
@@ -197,7 +230,6 @@ function readApiKey() {
  * allowed to contain the key.
  */
 async function call(url, key, init = {}) {
-  const scrub = m => String(m).split(key).join('<redacted>');
   try {
     const res = await fetch(url, {
       ...init,
@@ -210,7 +242,7 @@ async function call(url, key, init = {}) {
     return { status: res.status, ok: res.ok, body, parsed, text, netError: null };
   } catch (e) {
     // Fetch failed, DNS died, the socket hung, or the timeout fired.
-    return { status: 0, ok: false, body: null, parsed: false, text: '', netError: scrub(e?.message ?? String(e)) };
+    return { status: 0, ok: false, body: null, parsed: false, text: '', netError: scrub(e?.message ?? String(e), key) };
   }
 }
 
@@ -223,17 +255,22 @@ async function call(url, key, init = {}) {
 const blank = () => ({ ok: false, snapshot_id: null, error: null });
 
 /**
- * A call that answered nothing. Always exit 2: the trigger was never answered,
- * so the caller must not read this as "the job did not start".
+ * The trigger did not hand back a snapshot id. Always exit 2.
+ *
+ * Never a bare "run this again": a dead socket, a timeout or a 5xx can arrive
+ * after the backend accepted the job, so a rerun can start a second billed job,
+ * and a 429 rerun in a loop gets the IP blocked. Each status says what is known.
  */
-function apiFailure(res, what) {
+const CHECK_FIRST = '  a job may or may not have started: open the scraper\'s Logs tab in the control panel and check for a new snapshot before triggering again';
+
+function apiFailure(res, what, key) {
   const base = blank();
   if (res.netError) {
     return { ...base, error: `network: ${res.netError}`, exit: 2, lines: [
       `${C.bad}x could not reach ${API}${C.off}`,
       `  ${res.netError} - the trigger was never answered, so this is not an auth failure`,
-      '  a job may or may not have started: check the account before running this again',
-      '  fix the network, proxy or DNS and run this again'] };
+      CHECK_FIRST,
+      '  then fix the network, proxy or DNS'] };
   }
   if (res.status === 401) {
     return { ...base, error: 'http_401', exit: 2, lines: [
@@ -241,16 +278,19 @@ function apiFailure(res, what) {
       '  nothing was triggered and nothing was billed',
       ...FIXES] };
   }
-  return { ...base, error: `http_${res.status}`, exit: 2, lines: [
-    `${C.bad}x HTTP ${res.status} from ${what}${C.off}`,
-    '  the trigger failed, so no snapshot id was returned',
-    '  check the status page and run this again'] };
+  const said = quote(res.text, key, 200);
+  const lines = [`${C.bad}x HTTP ${res.status} from ${what}${C.off}`, `  ${said || '(empty answer)'}`];
+  if (res.status >= 500) lines.push(CHECK_FIRST);
+  else if (res.status === 429) lines.push('  too many running jobs for this scraper: wait for one to finish, and do not retry in a loop (25 refusals in 5 minutes block the IP)');
+  else if (res.status === 404) lines.push('  unknown dataset id: run  node find-scraper.mjs <the id>  to check it');
+  else lines.push('  no snapshot id came back: fix what the answer says before triggering again');
+  return { ...base, error: `http_${res.status}`, exit: 2, lines };
 }
 
 // ---------------------------------------------------------------- main
 
 async function resolve() {
-  const { datasetId, inputUrl, help, bad } = ARGS;
+  const { datasetId, inputUrl, limit, help, bad } = ARGS;
 
   // ---- arguments
 
@@ -266,7 +306,7 @@ async function resolve() {
     return { ...blank(), error: 'bad_argument', exit: 1, lines: [
       `${C.bad}x this needs both a scraper and a page: <dataset_id> <input_url>${C.off}`,
       USAGE,
-      '  example:  node trigger.mjs gd_l1vikfch901nx3by4 https://www.instagram.com/nasa/',
+      '  example:  node trigger.mjs gd_l1vikfch901nx3by4 "https://www.instagram.com/nasa/"',
       '  no id yet? node find-scraper.mjs <part of the name>'] };
   }
 
@@ -310,16 +350,22 @@ async function resolve() {
   // Said on stderr before the POST, so --json still parses and a redirected
   // stdout still shows it. Everything above this line is free; everything
   // below it can cost money.
-  note(`${C.dim}triggering 1 job, 1 input (billed)${C.off}`);
+  note(`${C.dim}triggering 1 job, 1 input; it can return many records, billed per record${C.off}`);
+  note(limit === null
+    ? `${C.dim}no record cap: add --limit N to cap the records this input returns${C.off}`
+    : `${C.dim}capped at ${limit} record${limit === 1 ? '' : 's'} (limit_per_input=${limit})${C.off}`);
 
-  const url = `${API}/datasets/v3/trigger?dataset_id=${encodeURIComponent(datasetId)}`;
+  // limit_per_input rides on the query string: the bare-array body cannot carry
+  // it, and the API documents the query parameter as capping /trigger results.
+  const url = `${API}/datasets/v3/trigger?dataset_id=${encodeURIComponent(datasetId)}`
+    + (limit === null ? '' : `&limit_per_input=${limit}`);
   const res = await call(url, key, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify([{ url: inputUrl }]),
   });
 
-  if (res.netError || res.status === 401) return apiFailure(res, url);
+  if (res.netError || res.status === 401) return apiFailure(res, url, key);
 
   // A validation rejection is the most likely failure and the most fixable, so
   // it is read rather than reported as a bare status. Nothing was billed: the
@@ -327,21 +373,21 @@ async function resolve() {
   if (!res.ok && res.parsed && res.body?.type === 'validation') {
     const required = (Array.isArray(res.body.errors) ? res.body.errors : [])
       .filter(e => Array.isArray(e))
-      .map(e => `${e[0]}: ${e[1]}`);
+      .map(e => scrub(`${e[0]}: ${e[1]}`, key));
     return { ...blank(), error: 'validation_rejected', exit: 2, lines: [
       `${C.bad}x the API rejected the input, so no job started and nothing was billed${C.off}`,
       ...required.map(r => `  ${r}`),
       `  run:  node find-scraper.mjs ${datasetId} --schema   to see what this scraper takes`] };
   }
 
-  if (!res.ok) return apiFailure(res, url);
+  if (!res.ok) return apiFailure(res, url, key);
 
   if (!res.parsed) {
     // A 2xx that is not JSON. A job may well have started, so this must not
     // read as a clean failure - the operator has to go and look.
     return { ...blank(), error: 'unparseable_body', exit: 2, lines: [
       `${C.bad}x the trigger answered HTTP ${res.status} in a shape that was not understood${C.off}`,
-      `  ${res.text.slice(0, 120) || '(empty answer)'}`,
+      `  ${quote(res.text, key, 120) || '(empty answer)'}`,
       '  A JOB MAY HAVE STARTED: check the account before running this again'] };
   }
 
@@ -349,14 +395,15 @@ async function resolve() {
   if (!snapshotId) {
     return { ...blank(), error: 'no_snapshot_id', exit: 2, lines: [
       `${C.bad}x the trigger succeeded but named no snapshot_id, so there is nothing to poll${C.off}`,
-      `  ${res.text.slice(0, 120) || '(empty answer)'}`,
+      `  ${quote(res.text, key, 120) || '(empty answer)'}`,
       '  A JOB MAY HAVE STARTED: check the account before running this again'] };
   }
 
   const id = String(snapshotId);
 
-  // The id alone on stdout, so it pipes into poll.mjs. The next step is a note
-  // on stderr rather than a second stdout line, for the same reason.
+  // The id alone on stdout, so it can be captured and handed to poll.mjs. The
+  // next step is a note on stderr rather than a second stdout line, for the
+  // same reason.
   note(`${C.ok}started${C.off}${C.dim}  next: node poll.mjs ${id}${C.off}`);
 
   return { ...blank(), ok: true, snapshot_id: id, exit: 0, lines: [id] };
@@ -364,8 +411,16 @@ async function resolve() {
 
 const { lines, exit, ...result } = await resolve();
 
-if (JSON_OUT) console.log(JSON.stringify(result, null, 2));
-else for (const l of lines) console.log(l);
+// stdout carries the answer only: the snapshot id, the --json object or the
+// help block. Every failure line goes to stderr, so id=$(node trigger.mjs ...)
+// never captures error text, and --json keeps its warnings (such as "a job may
+// or may not have started") instead of dropping them. --help wins over --json.
+if (ARGS.help) for (const l of lines) console.log(l);
+else if (JSON_OUT) {
+  console.log(JSON.stringify(result, null, 2));
+  if (exit !== 0) for (const l of lines) console.error(l);
+} else if (exit === 0) for (const l of lines) console.log(l);
+else for (const l of lines) console.error(l);
 
 // process.exitCode, never process.exit(): exiting while a fetch socket is
 // still closing crashes Node on Windows (libuv assertion, exit 0xC0000409).

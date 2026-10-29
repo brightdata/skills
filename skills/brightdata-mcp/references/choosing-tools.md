@@ -73,8 +73,10 @@ tool per site.
 `get_html`, `scroll`, `scroll_to_ref`, `wait_for_ref`, `network_requests`.
 
 There are no `web_data_*` tools any more: the pre-built scrapers replaced them.
-An old config that still names one in `tools=` or `TOOLS` is accepted and turns
-on the six scraper tools instead.
+An old config that still names one in `tools=` or `TOOLS` is accepted: it turns
+on the six scraper tools instead, except `web_data_chatgpt_ai_insights` and
+`web_data_perplexity_ai_insights`, which turn on `chatgpt_ai_insights` and
+`perplexity_ai_insights`.
 
 ## Tools with a prerequisite
 
@@ -84,8 +86,9 @@ guess a `dataset_id` or a field name. Call `search_scrapers` once per site and
 reuse the `dataset_id`.
 
 `extract` is Local only, and it asks the client for a model completion through
-MCP sampling. Clients that do not implement sampling fail with `No active
-session available for sampling`. Prefer a pre-built scraper or
+MCP sampling. Clients that do not implement sampling return an error from the
+client side (often JSON-RPC `Method not found`); `No active session available
+for sampling` appears only when no client session is registered. Prefer a pre-built scraper or
 `scrape_as_markdown` plus your own parsing when you do not control the client.
 On Remote that is not a preference but the only route, since the tool is not
 registered there at all.
@@ -116,5 +119,5 @@ record it returns can also carry fields that `list_dataset_fields` never reports
 metadata entry marked inactive. Treat its output as the filterable fields, not
 as the full shape of a record.
 
-Unlocking a big page to hand-parse it is the expensive path in both credits and
-tokens.
+Unlocking a big page to hand-parse it is the expensive path in tokens, and it is
+no cheaper in credits.

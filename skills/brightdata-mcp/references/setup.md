@@ -71,7 +71,8 @@ tool that a listed group already includes changes nothing. Leave out `GROUPS`
 and `TOOLS` entirely to get every tool.
 
 The `type` and `url` field names belong to the client, not to Bright Data.
-Claude Code, Cursor, and VS Code accept that shape. Claude Desktop takes the
+Claude Code and Cursor accept that shape. VS Code's `.vscode/mcp.json` uses
+`servers` as the top-level key instead of `mcpServers`. Claude Desktop takes the
 same URL through Settings, Connectors, Add custom connector. Remote also serves
 SSE at `https://mcp.brightdata.com/sse?token=<YOUR_API_KEY>` for clients that
 need it.
@@ -148,8 +149,9 @@ connection, so a missing token looks like a dead server, not a tool error.
 
 ## First run
 
-Both variants list your active zones and create missing ones: the zone the page
-tools use, `mcp_unlocker`, and a browser zone `mcp_browser`. Rename them with
+Both variants list your active zones and create missing ones: the Web Unlocker
+zone the page and search tools use, `mcp_unlocker`, and a browser zone
+`mcp_browser`. Rename them with
 `WEB_UNLOCKER_ZONE` and `BROWSER_ZONE` on Local, or `unlocker=` and `browser=`
 on Remote. Zone creation failures only log, so a server that started
 is not proof the zones exist.
@@ -180,8 +182,9 @@ Group ids:
 | `ecommerce`, `finance`, `research`, `app_stores`, `travel`, `code` | the 6 scraper tools, the same as `scrapers` |
 
 The site-named groups are kept so older configs keep working. Since the
-pre-built scrapers replaced the per-site tools, they no longer differ from
-`scrapers`, so prefer `scrapers` in new configs. A thirteenth id, `custom`,
+pre-built scrapers replaced the per-site tools, they now give the same 6
+scraper tools as `scrapers` (`social` and `business` also add the 2 dataset
+tools), so prefer `scrapers` in new configs. A thirteenth id, `custom`,
 resolves to the three base tools and nothing else. Use `tools` for bespoke
 picks.
 
@@ -195,7 +198,7 @@ Local has no `PRO_MODE`. Every tool is already on by default.
 | `API_TOKEN` | none | Required. Server exits without it. |
 | `GROUPS` | none | Comma separated group ids. |
 | `TOOLS` | none | Comma separated tool names, added on top of groups. |
-| `WEB_UNLOCKER_ZONE` | `mcp_unlocker` | Zone for the page tools. Point at your own zone to leave the free tier pool. |
+| `WEB_UNLOCKER_ZONE` | `mcp_unlocker` | Web Unlocker zone for the page and search tools (`search_engine`, `search_engine_batch`, `scrape_as_markdown`, `scrape_batch`, `scrape_as_html`, `extract`). Point at your own zone to leave the free tier pool. |
 | `BROWSER_ZONE` | `mcp_browser` | Scraping Browser zone. |
 | `RATE_LIMIT` | unlimited | Format `100/1h` or `50/30m`. Bad format throws at startup. |
 | `BASE_TIMEOUT` | no limit | Seconds. Covers search_engine, search_engine_batch, scrape_as_markdown, scrape_batch, list_dataset_fields and search_dataset. Not scrape_as_html, extract, the scraper tools or the browser tools. |

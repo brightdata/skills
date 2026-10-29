@@ -28,7 +28,7 @@
  * Exit:   0 ready   1 key works, but no zone for that skill
  *         2 key missing, malformed or rejected: log in
  *         3 could not check (network, server, unreadable answer): NOT a login problem
- *         4 bad usage (unknown skill)
+ *         4 bad usage (unknown skill, or a BRIGHTDATA_API_BASE that is not an https brightdata.com host)
  * --json: {ok, for, zones, found, missing, cli, error} - ok is the ready
  *         verdict, found maps each zone type to the zone name to use for it,
  *         missing lists the zone types the skill could use and none exist,
@@ -47,7 +47,8 @@ const API = (() => {
     let host = ''; try { host = new URL(base).hostname; } catch {}
     if (!base.startsWith('https://') || !(host === 'brightdata.com' || host.endsWith('.brightdata.com'))) {
         console.error('Refusing BRIGHTDATA_API_BASE: only https brightdata.com hosts may receive the API key.');
-        process.exit(1);
+        // Bad usage (4), not "no zone" (1): nothing about the account was checked.
+        process.exit(4);
     }
     return base;
 })();
@@ -99,10 +100,11 @@ const FIXES = [
 ];
 
 /**
- * Read JSON tolerating a UTF-8 BOM (Windows editors add one). The BOM is
- * written as the \uFEFF escape because a literal one is invisible in a regex.
+ * A UTF-8 BOM at the start of credentials.json (Windows editors add one). The
+ * CLI parses the file as is, so a BOM makes it find no key at all. The BOM is
+ * written as the \uFEFF escape because a literal one is invisible in a string.
  */
-const readJson = p => JSON.parse(readFileSync(p, 'utf8').replace(/^\uFEFF/, ''));
+const BOM = '\uFEFF';
 
 const C = process.stdout.isTTY && !JSON_OUT
   ? { ok: '\x1b[32m', bad: '\x1b[31m', dim: '\x1b[90m', off: '\x1b[0m' }
@@ -116,21 +118,28 @@ const C = process.stdout.isTTY && !JSON_OUT
  */
 const KEY_SHAPE = /^[\x21-\x7e]+$/;
 
-/** Find the key, in the same order the CLI resolves it in. */
+/**
+ * Find the key: BRIGHTDATA_API_KEY first, then credentials.json, like the CLI.
+ * The candidate paths are wider than the CLI's (it reads only the one for its
+ * own OS). Returns the key, null, or { bom: true } for a credentials.json the
+ * CLI cannot read because it starts with a BOM.
+ */
 function findApiKey() {
   if (process.env.BRIGHTDATA_API_KEY) return process.env.BRIGHTDATA_API_KEY.trim();
   const paths = [
-    process.env.APPDATA && join(process.env.APPDATA, 'brightdata-cli', 'credentials.json'),
-    // The CLI builds the Windows directory from the user profile, not %APPDATA%,
-    // so an unset or redirected APPDATA still lands on the real file here.
+    // The CLI builds the Windows directory from the user profile, so that path
+    // comes first; %APPDATA% is only a fallback for an unusual profile layout.
     join(homedir(), 'AppData', 'Roaming', 'brightdata-cli', 'credentials.json'),
+    process.env.APPDATA && join(process.env.APPDATA, 'brightdata-cli', 'credentials.json'),
     join(homedir(), 'Library', 'Application Support', 'brightdata-cli', 'credentials.json'),
     join(homedir(), '.config', 'brightdata-cli', 'credentials.json'),
   ].filter(Boolean);
   for (const p of paths) {
     if (!existsSync(p)) continue;
     try {
-      const k = readJson(p).api_key;
+      const raw = readFileSync(p, 'utf8');
+      if (raw.startsWith(BOM)) return { bom: true };
+      const k = JSON.parse(raw).api_key;
       if (k) return k.trim();
     } catch { /* corrupt file, try the next candidate */ }
   }
@@ -140,15 +149,18 @@ function findApiKey() {
 /**
  * Read the API key without ever printing it.
  *
- * Returns { key, illegal }. `illegal` means a value was found and cannot be
- * used, which is a different fact from finding nothing: the fix is to repair
- * the credential, not to log in again. The value is never returned or quoted.
+ * Returns { key, illegal, bom }. `illegal` means a value was found and cannot
+ * be used, and `bom` means the credentials file starts with a BOM, which the
+ * CLI cannot read. Both are different facts from finding nothing: the fix is
+ * to repair the credential, not to log in again. The value is never returned
+ * or quoted.
  */
 function readApiKey() {
   const found = findApiKey();
-  if (!found) return { key: null, illegal: false };
-  if (!KEY_SHAPE.test(found)) return { key: null, illegal: true };
-  return { key: found, illegal: false };
+  if (!found) return { key: null, illegal: false, bom: false };
+  if (found.bom) return { key: null, illegal: false, bom: true };
+  if (!KEY_SHAPE.test(found)) return { key: null, illegal: true, bom: false };
+  return { key: found, illegal: false, bom: false };
 }
 
 /**
@@ -204,7 +216,13 @@ const pickZone = (zones, type) => {
  * from it, so the caller cannot print the secret by accident.
  */
 async function check() {
-  const { key, illegal } = readApiKey();
+  const { key, illegal, bom } = readApiKey();
+  if (bom) {
+    return { ok: false, zones: null, missing: null, error: 'bad_api_key', lines: [
+      `${C.bad}x the CLI cannot read a credentials.json that starts with a BOM${C.off}`,
+      '  rewrite it as UTF-8 without BOM, holding {"api_key": "<key>"}, or log in again:',
+      ...FIXES] };
+  }
   if (illegal) {
     // Never quotes the value, not even a prefix.
     return { ok: false, zones: null, missing: null, error: 'bad_api_key', lines: [

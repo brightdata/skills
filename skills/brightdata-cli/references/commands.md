@@ -78,7 +78,7 @@ bdata config set default_zone_serp <unlocker-zone-name>
 
 ## A key from agent registration
 
-An account created through agent registration has its own zones (`agent_unlocker`, `agent_serp`, `agent_browser_api`), and its key cannot create zones. `bdata login --api-key` still sets `default_zone_unlocker` to `cli_unlocker`, a zone that account does not have, so `scrape` and `search` fail until the defaults point at the account's own zones:
+An account created through agent registration has its own zones (`agent_unlocker`, `agent_serp`, `agent_browser_api`), and its key cannot create zones. The CLI's zone defaults use `cli_` names (`bdata login` sets `default_zone_unlocker` to `cli_unlocker`), which that account does not have, so `scrape` and `search` fail until the defaults point at the account's own zones:
 
 ```
 bdata config set default_zone_unlocker agent_unlocker
@@ -87,9 +87,11 @@ bdata config set default_zone_serp agent_serp
 
 `bdata browser` takes `--zone agent_browser_api` for the same reason.
 
+To pass that key to the CLI without putting it on a shell line, follow the agent-onboarding skill's references/auth.md, section "A key from registration".
+
 ## Output
 
-Pass `--json --pretty` whenever something parses the output. `-o <path>` writes a file and picks the format from the extension: `.json`, `.md`, `.html` or `.csv`.
+Pass `--json --pretty` whenever something parses the output. In CLI 0.4.1 `budget balance`, `budget zones` and `budget zone` print text even with these flags (only bare `bdata budget --json` returns JSON), and `budget` has no `-o`. `-o <path>` writes a file; for structured results it picks the format from the extension (`.json`, `.md`, `.html` or `.csv`), while `scrape` writes the page in the format `-f` chose, so `-o page.html` without `-f html` saves markdown.
 
 `scrape -f json` returns the response with its metadata (status, headers) and the page body, not parsed fields. For parsed fields, use `pipelines`.
 
@@ -97,7 +99,7 @@ Pass `--json --pretty` whenever something parses the output. `-o <path>` writes 
 
 ## Build and fix a scraper
 
-For a site no pre-built scraper covers. Scraper Studio writes the scraper from a plain-language description, runs it, and repairs it when the page changes: `scraper create <url> "<description>"`, `scraper run <collector_id>`, `scraper heal`, `scraper approve`. `create` can take several minutes. Flags are in `bdata scraper <command> --help`.
+For a site no pre-built scraper covers. Scraper Studio writes the scraper from a plain-language description, runs it, and repairs it when the page changes: `scraper create <url> "<description>"`, `scraper run <collector_id> <url>`, `scraper heal <collector_id> "<what broke>"`, `scraper approve <collector_id>`. `create` can take several minutes. Flags are in `bdata scraper <command> --help`.
 
 ## Drive a browser
 
@@ -112,7 +114,11 @@ bdata browser snapshot --session shop --interactive
 
 Install the Bright Data skills into any coding agent with `npx -y skills add brightdata/skills -y`, or one skill with `--skill <name>`. `bdata skill add` installs only the names built into the CLI release, so it can lag behind this repo.
 
-`bdata add mcp --agent <claude-code,cursor,codex>` with `--project` or `--global` registers the MCP server in that agent's config. Show the user what it will change before running it.
+`bdata add mcp --agent <claude-code,cursor,codex>` with `--global` or `--project` writes a `bright-data` server entry, with the API key in plain text, into that agent's config. Without a TTY, pass `--agent`, plus `--global` or `--project` for Claude Code or Cursor.
+
+In CLI 0.4.1 only Claude Code `--global` (`~/.claude.json`) and Cursor `--global` or `--project` (`~/.cursor/mcp.json`, `.cursor/mcp.json`) land where the agent reads them. Claude Code `--project` writes `.claude/settings.json`, which Claude Code does not read for servers (it reads `.mcp.json`). Codex gets `~/.codex/mcp.json`, while Codex reads `[mcp_servers.<name>]` tables in `~/.codex/config.toml`, and Codex with `--project` exits with an error. For those, set the server up with the `brightdata-mcp` skill.
+
+Show the user what it will change before running it.
 
 ## Not in the CLI
 

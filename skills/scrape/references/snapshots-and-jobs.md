@@ -2,7 +2,7 @@
 
 Answers the question "the call came back with an id instead of data, so what do I do with it".
 
-Both scraping paths are asynchronous. Neither returns records from the trigger. They return different kinds of id, and the two are read through different endpoints. Getting this wrong is the most common way an agent stalls.
+Both scraping paths are asynchronous by default. Their trigger endpoints return an id, not records. The synchronous doors (`POST /dca/crawl`, `POST /datasets/v3/scrape`) return records only when the job finishes inside their window, and an id otherwise. The two paths return different kinds of id, and the two are read through different endpoints. Getting this wrong is the most common way an agent stalls.
 
 ## Which id is this
 
@@ -21,7 +21,7 @@ Two endpoints, both authenticated with `Authorization: Bearer $BRIGHTDATA_API_KE
 
 ```
 GET https://api.brightdata.com/datasets/v3/progress/<snapshot_id>    poll until it reports ready
-GET https://api.brightdata.com/datasets/v3/snapshot/<snapshot_id>    the records
+GET https://api.brightdata.com/datasets/v3/snapshot/<snapshot_id>?format=json    the records (NDJSON without format)
 ```
 
 Do not download early, and do not poll in a tight loop.
@@ -29,6 +29,8 @@ Do not download early, and do not poll in a tight loop.
 A poll timeout only stops the waiting. The job keeps running on Bright Data's side, so polling the same id again later picks it up with nothing lost and nothing billed twice.
 
 For a large batch job, do not sit blocking in one poll call - hand the user the snapshot id, say it is running, and check it again later.
+
+To stop a running snapshot, and its billing, send `POST https://api.brightdata.com/datasets/v3/snapshot/<snapshot_id>/cancel`. A cancelled snapshot delivers no data, and one that has finished collecting cannot be cancelled.
 
 From the CLI, wait for the job, then read the records:
 
@@ -69,13 +71,13 @@ Batch collections stay downloadable for 16 days, real-time collections for 7. Af
 
 ## Delivery options, and the line the agent does not cross
 
-Results do not have to come back through the API. Both paths can deliver to a webhook, to email, or to S3, Google Cloud Storage, Azure, Snowflake or SFTP.
+Results do not have to come back through the API. Both paths can deliver to a webhook, S3, Google Cloud Storage, Azure, Snowflake or SFTP. Web Scraper API adds Google Cloud Pub/Sub, and Scraper Studio adds email.
 
 The rules are short.
 
 | Rule | Why |
 |---|---|
-| Delivery is configured once, by a person, in the control panel | It is account plumbing, not a per-call argument |
+| Delivery is set up once, by a person, in the control panel | The API also takes per-request delivery (`endpoint` or `deliver`), but the agent never uses it: it is account plumbing |
 | The agent never configures it | The agent has no business writing to someone's bucket |
 | The agent never asks for cloud credentials | An S3 key or a Snowflake password has no place in a chat transcript |
 | The default is local | The agent polls, downloads, and writes files in the user's project |
@@ -90,6 +92,8 @@ If a user asks for results in their warehouse, the honest answer is that they se
 node scripts/poll.mjs sd_abc123 --out records.json
 node scripts/poll.mjs <collection_id>
 ```
+
+Script paths are relative to the scrape skill's folder.
 
 It works out which kind of id it has from the prefix, polls with backoff, prints progress to stderr so stdout stays pipeable, and reads the API key from `BRIGHTDATA_API_KEY` or the CLI's `credentials.json` without ever printing it. Node 18 or newer, no dependencies.
 

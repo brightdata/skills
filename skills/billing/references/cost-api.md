@@ -14,7 +14,7 @@ No parameters. Returns 200 with a flat object of dollar amounts. Live shape:
 {"balance": 0, "credit": 0, "prepayment": 0, "pending_costs": 0}
 ```
 
-Read `pending_costs` for money owed. Code written against the documented `pending_balance` reads undefined. Treat any missing field as absent, not as zero.
+Read `pending_costs` for money owed; the docs now match the live shape. Code that reads `pending_balance`, as `bdata budget balance` 0.4.1 does, gets undefined and shows $0.00. Treat any missing field as absent, not as zero.
 
 A missing or invalid key returns **401 with a short plain-text body** (live), such as `Invalid credentials` for a bad key or `User authentication is required` when the header is missing. The body is `text/html`, not JSON, so parsing it as JSON will fail. Branch on the status code.
 
@@ -99,7 +99,7 @@ Invoke-RestMethod -Method Post -Uri "https://api.brightdata.com/costs/export/jso
   -ContentType "application/json" -Body $body
 ```
 
-Change the two dates for the window you want, and remember `to` is exclusive. A whole month is the 1st of that month to the 1st of the next. **Month to date is the 1st of this month to the 1st of next month**, which is exactly what the body above asks for. Never put today's date in `to`, because that silently drops today.
+Change the two dates for the window you want, and remember `to` is exclusive. A whole month is the 1st of that month to the 1st of the next. **For month to date, set `from` to the 1st of this month and `to` to the 1st of next month.** The body above asks for all of August 2026. Never put today's date in `to`, because that silently drops today.
 
 ### The JSON response
 
@@ -156,6 +156,7 @@ Treat `can_make_requests` as a hint and never as proof. Live, it came back `fals
 | Zone list | [Get all zones](https://docs.brightdata.com/api-reference/account-management-api/get-all-zones) |
 | Zone info | [Get zone info](https://docs.brightdata.com/api-reference/account-management-api/Get_Zone_info) |
 | Account status | [Get account status](https://docs.brightdata.com/api-reference/account-management-api/Get_account_status) |
+| The account's own plan prices | [Get pricing plans](https://docs.brightdata.com/api-reference/account-management-api/Get_pricing_plans) |
 | Snapshots | [Get snapshots](https://docs.brightdata.com/api-reference/scrapers/management-apis/get-snapshots) |
 
 Billing concepts:
