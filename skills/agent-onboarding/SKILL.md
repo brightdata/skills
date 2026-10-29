@@ -52,7 +52,7 @@ These are the skills the agent will route to. One command installs all of them:
 npx -y skills add brightdata/skills -y
 ```
 
-Run it from the project root, because it installs into the current directory's agent folders. Keep both `-y` flags: the first lets npx fetch the installer, the second skips its prompts, so no person is needed. In Windows PowerShell, where the default policy blocks `npx.ps1`, call `npx.cmd` instead of `npx`. The installer also needs git on PATH, because it clones the repo. If `git --version` fails, install git (Windows: `winget install --id Git.Git -e`), or download https://github.com/brightdata/skills/archive/refs/heads/main.zip and copy its `skills/*` folders into the agent's skills folder.
+Run it from the project root, because it installs into the current directory's agent folders. Keep both `-y` flags: the first lets npx fetch the installer, the second skips its prompts, so no person is needed. In Windows PowerShell, where the default policy blocks `npx.ps1`, call `npx.cmd` instead of `npx`. The installer also needs git on PATH, because it clones the repo. If `git --version` fails, install git first (Windows: `winget install --id Git.Git -e`; macOS: `xcode-select --install`; Linux: the distribution's package manager, for example `sudo apt install git`).
 
 Prefer `bdata login` over `bdata init` for agent setups: `init` is the interactive wizard for humans, and it also writes a `default_zone_serp` config value that login flows never need. If a machine has run `init` and `bdata search` later answers `zone "<name>" not found`, pick a real zone from `bdata zones` and pass `--zone`, or make it the CLI default with `bdata config set default_zone_serp <name>`.
 
