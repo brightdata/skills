@@ -72,7 +72,7 @@ Useful ChatGPT output fields, all six in the catalogue's `output_fields` on 2026
 
 ## CLI, REST and two SDK methods
 
-The CLI runs an answer engine like any scraper, by its dataset id: `bdata pipelines run <dataset_id> <method> --<field> <value>`, with the fields from `bdata pipelines info`. Without the CLI, use REST with the dataset id, or the scrape skill's `scripts/trigger.mjs`.
+The CLI runs an answer engine like any scraper, by its dataset id: `bdata pipelines run <dataset_id> <method> --<field> <value>`, with the fields from `bdata pipelines info`. Without the CLI, use REST with the dataset id and a body that carries both `url` and `prompt`. The scrape skill's `scripts/trigger.mjs` sends only a `url`, so it does not fit these scrapers.
 
 The `@brightdata/sdk` JavaScript client has `client.scrape.chatGPT.search()` and `client.scrape.perplexity.search()`. No SDK method is published for Gemini or Google AI Mode, so those are REST for now.
 

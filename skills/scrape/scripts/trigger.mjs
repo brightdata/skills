@@ -6,9 +6,12 @@
  * a snapshot id into records. This script is the step between them - the
  * trigger POST, with the same auth, timeout and no-leak rules as its siblings:
  *
- *   node find-scraper.mjs instagram --schema     what it takes
- *   node trigger.mjs gd_l1vikfch901nx3by4 https://www.instagram.com/nasa/
- *   node poll.mjs sd_...                         the id this printed
+ *   node scripts/find-scraper.mjs instagram --schema   what it takes
+ *   node scripts/trigger.mjs gd_l1vikfch901nx3by4 https://www.instagram.com/nasa/
+ *   node scripts/poll.mjs sd_...                       the id this printed
+ *
+ * Run all three from the scrape skill's folder: every path in their help and
+ * hints is relative to it.
  *
  * THIS ONE SPENDS MONEY. find-scraper.mjs only reads, except for one
  * empty-record probe on an id the catalogue omits, which the API normally
@@ -16,15 +19,17 @@
  * real collection and bills for it, per delivered record. That is why it says
  * what it is about to do, on stderr, before it does it, why it sends exactly
  * one input and never a list, and why --limit exists: one input can still
- * return many records, and --limit N caps them with limit_per_input=N.
+ * return many records. --limit N is sent as limit_per_input=N, which the docs
+ * document for discovery requests; this script sends a URL input, so check the
+ * record count of the first run.
  *
- * Usage:  node trigger.mjs <dataset_id> <input_url> [--limit N] [--json]
- *         node trigger.mjs --help
+ * Usage:  node scripts/trigger.mjs <dataset_id> <input_url> [--limit N] [--json]
+ *         node scripts/trigger.mjs --help
  * Auth:   BRIGHTDATA_API_KEY env var, or the CLI's credentials.json.
  *         The key is never printed, not even on failure.
  * Output: the snapshot id alone on stdout, so it can be captured and passed to
- *         poll.mjs: id=$(node trigger.mjs <dataset_id> "<url>") && node poll.mjs "$id"
- *         (PowerShell: $id = node trigger.mjs <dataset_id> "<url>"; if ($LASTEXITCODE -eq 0) { node poll.mjs $id })
+ *         poll.mjs: id=$(node scripts/trigger.mjs <dataset_id> "<url>") && node scripts/poll.mjs "$id"
+ *         (PowerShell: $id = node scripts/trigger.mjs <dataset_id> "<url>"; if ($LASTEXITCODE -eq 0) { node scripts/poll.mjs $id })
  *         The billing notice, the next step and every error go to stderr, which
  *         keeps stdout clean in both modes and keeps --json parseable.
  * Exit:   0 the job started, 1 bad arguments, 2 auth, network or API failure.
@@ -67,16 +72,17 @@ const REQUEST_TIMEOUT_MS = (() => {
   return Math.min(asked, MAX_TIMEOUT_MS);
 })();
 
-const USAGE = 'Usage: node trigger.mjs <dataset_id> <input_url> [--limit N] [--json]';
+const USAGE = 'Usage: node scripts/trigger.mjs <dataset_id> <input_url> [--limit N] [--json]';
 
 /** What -h and --help print. Its first line is the one every error path shows. */
 const USAGE_BLOCK = [
   USAGE,
   '  <dataset_id> the gd_ id of the scraper to run',
   '  <input_url>  the one page to collect, sent as [{"url": "<input_url>"}]',
-  '  --limit N    cap the records this input can return (limit_per_input=N).',
+  '  --limit N    sent as limit_per_input=N, documented for discovery requests.',
   '               One URL can return many records (a profile\'s posts, a',
-  '               product\'s reviews), and every record is billed',
+  '               product\'s reviews), and every record is billed, so check',
+  '               the record count of the first run',
   '  --json       one JSON object on stdout instead of the snapshot id',
   '               shape: { ok, snapshot_id, error }',
   '  -h, --help   this block',
@@ -85,9 +91,9 @@ const USAGE_BLOCK = [
   '  per delivered record. find-scraper.mjs is the lookup half - run it first',
   '  to check the inputs:',
   '',
-  '  example:  node find-scraper.mjs gd_l1vikfch901nx3by4 --schema',
-  '  example:  node trigger.mjs gd_l1vikfch901nx3by4 "https://www.instagram.com/nasa/" --limit 10',
-  '  then:     node poll.mjs <the snapshot id this printed>',
+  '  example:  node scripts/find-scraper.mjs gd_l1vikfch901nx3by4 --schema',
+  '  example:  node scripts/trigger.mjs gd_l1vikfch901nx3by4 "https://www.instagram.com/nasa/" --limit 10',
+  '  then:     node scripts/poll.mjs <the snapshot id this printed>',
   '',
   '  never re-run after an error without reading it: a timeout or a 5xx can',
   '  come after the job started, and a second run is a second billed job',
@@ -97,8 +103,13 @@ const USAGE_BLOCK = [
   '  with the API directly - find-scraper.mjs --schema names the field',
   '',
   '  in Windows PowerShell 5.1, do not redirect or pipe the output: `>` writes',
-  '  UTF-16 with a BOM and a pipe re-encodes it as ASCII, so JSON parsers reject',
-  '  it. Use cmd /c or PowerShell 7.4+',
+  '  UTF-16 with a BOM, which JSON parsers reject. A pipe turns non-ASCII text',
+  '  into "?" in a code page 437 console, and in a UTF-8 console it adds a BOM',
+  '  that JSON parsers reject. Use cmd /c or PowerShell 7.4+',
+  '',
+  '  run from the scrape skill\'s folder: the paths above are relative to it',
+  '  BRIGHTDATA_REQUEST_TIMEOUT_MS sets the per-request timeout in ms',
+  '  (default 15000, at most 3600000)',
 ];
 
 const FIXES = [
@@ -282,7 +293,7 @@ function apiFailure(res, what, key) {
   const lines = [`${C.bad}x HTTP ${res.status} from ${what}${C.off}`, `  ${said || '(empty answer)'}`];
   if (res.status >= 500) lines.push(CHECK_FIRST);
   else if (res.status === 429) lines.push('  too many running jobs for this scraper: wait for one to finish, and do not retry in a loop (25 refusals in 5 minutes block the IP)');
-  else if (res.status === 404) lines.push('  unknown dataset id: run  node find-scraper.mjs <the id>  to check it');
+  else if (res.status === 404) lines.push(`  unknown dataset id: run  node scripts/find-scraper.mjs ${ARGS.datasetId}  to check it`);
   else lines.push('  no snapshot id came back: fix what the answer says before triggering again');
   return { ...base, error: `http_${res.status}`, exit: 2, lines };
 }
@@ -306,8 +317,8 @@ async function resolve() {
     return { ...blank(), error: 'bad_argument', exit: 1, lines: [
       `${C.bad}x this needs both a scraper and a page: <dataset_id> <input_url>${C.off}`,
       USAGE,
-      '  example:  node trigger.mjs gd_l1vikfch901nx3by4 "https://www.instagram.com/nasa/"',
-      '  no id yet? node find-scraper.mjs <part of the name>'] };
+      '  example:  node scripts/trigger.mjs gd_l1vikfch901nx3by4 "https://www.instagram.com/nasa/"',
+      '  no id yet? node scripts/find-scraper.mjs <part of the name>'] };
   }
 
   // Both checks below are free and run before the billed call.
@@ -323,7 +334,7 @@ async function resolve() {
       `${C.bad}x "${inputUrl}" is not an http(s) URL, and this script sends it as one${C.off}`,
       '  it posts [{"url": "<input_url>"}], so the scraper has to take a url',
       '  a scraper that takes a keyword, a hashtag or a location needs a different',
-      '  payload: node find-scraper.mjs ' + datasetId + ' --schema names the field',
+      '  payload: node scripts/find-scraper.mjs ' + datasetId + ' --schema names the field',
       USAGE] };
   }
 
@@ -352,8 +363,8 @@ async function resolve() {
   // below it can cost money.
   note(`${C.dim}triggering 1 job, 1 input; it can return many records, billed per record${C.off}`);
   note(limit === null
-    ? `${C.dim}no record cap: add --limit N to cap the records this input returns${C.off}`
-    : `${C.dim}capped at ${limit} record${limit === 1 ? '' : 's'} (limit_per_input=${limit})${C.off}`);
+    ? `${C.dim}no --limit, so no limit_per_input is sent${C.off}`
+    : `${C.dim}sending limit_per_input=${limit} (documented for discovery requests; check the record count of the first run)${C.off}`);
 
   // limit_per_input rides on the query string: the bare-array body cannot carry
   // it, and the API documents the query parameter as capping /trigger results.
@@ -377,7 +388,7 @@ async function resolve() {
     return { ...blank(), error: 'validation_rejected', exit: 2, lines: [
       `${C.bad}x the API rejected the input, so no job started and nothing was billed${C.off}`,
       ...required.map(r => `  ${r}`),
-      `  run:  node find-scraper.mjs ${datasetId} --schema   to see what this scraper takes`] };
+      `  run:  node scripts/find-scraper.mjs ${datasetId} --schema   to see what this scraper takes`] };
   }
 
   if (!res.ok) return apiFailure(res, url, key);
@@ -404,7 +415,7 @@ async function resolve() {
   // The id alone on stdout, so it can be captured and handed to poll.mjs. The
   // next step is a note on stderr rather than a second stdout line, for the
   // same reason.
-  note(`${C.ok}started${C.off}${C.dim}  next: node poll.mjs ${id}${C.off}`);
+  note(`${C.ok}started${C.off}${C.dim}  next: node scripts/poll.mjs ${id}${C.off}`);
 
   return { ...blank(), ok: true, snapshot_id: id, exit: 0, lines: [id] };
 }
@@ -412,7 +423,7 @@ async function resolve() {
 const { lines, exit, ...result } = await resolve();
 
 // stdout carries the answer only: the snapshot id, the --json object or the
-// help block. Every failure line goes to stderr, so id=$(node trigger.mjs ...)
+// help block. Every failure line goes to stderr, so id=$(node scripts/trigger.mjs ...)
 // never captures error text, and --json keeps its warnings (such as "a job may
 // or may not have started") instead of dropping them. --help wins over --json.
 if (ARGS.help) for (const l of lines) console.log(l);

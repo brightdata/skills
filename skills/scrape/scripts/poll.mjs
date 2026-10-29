@@ -7,21 +7,24 @@
  * find-scraper.mjs says which scraper to use, trigger.mjs starts the job, and
  * this is the last step of the same chain:
  *
- *   node find-scraper.mjs instagram --schema     what it takes
- *   node trigger.mjs gd_l1vikfch901nx3by4 https://www.instagram.com/nasa/
- *   node poll.mjs sd_...                         the id that printed
+ *   node scripts/find-scraper.mjs instagram --schema   what it takes
+ *   node scripts/trigger.mjs gd_l1vikfch901nx3by4 https://www.instagram.com/nasa/
+ *   node scripts/poll.mjs sd_...                       the id that printed
+ *
+ * Run all three from the scrape skill's folder: every path in their help and
+ * hints is relative to it.
  *
  * THIS ONE SPENDS NOTHING. Every call here is a free read of work that was
  * already paid for at trigger time. A poll that gives up costs nothing either:
  * it stops the waiting, not the job, and the same id still works later.
  *
- * Usage:  node poll.mjs <snapshot_or_job_id> [--out FILE] [--timeout SECONDS] [--json]
- *         node poll.mjs --help
+ * Usage:  node scripts/poll.mjs <snapshot_or_job_id> [--out FILE] [--timeout SECONDS] [--json]
+ *         node scripts/poll.mjs --help
  * Auth:   BRIGHTDATA_API_KEY env var, or the CLI's credentials.json.
  *         The key is never printed, not even on failure.
  * Output: the records on stdout, or into --out. Progress, warnings and errors
  *         go to stderr, so the happy path stays pipeable:
- *           node poll.mjs sd_abc | jq '.[0]'
+ *           node scripts/poll.mjs sd_abc | jq '.[0]'
  * Exit:   0 records delivered, 1 bad arguments or no result, 2 auth, network or
  *         API failure. Same three codes as find-scraper.mjs and trigger.mjs.
  *
@@ -80,7 +83,7 @@ const BODY_TIMEOUT_MS = REQUEST_TIMEOUT_MS * 10;
  */
 const NOT_FOUND_GRACE_MS = 20_000;
 
-const USAGE = 'Usage: node poll.mjs <snapshot_or_job_id> [--out FILE] [--timeout SECONDS] [--json]';
+const USAGE = 'Usage: node scripts/poll.mjs <snapshot_or_job_id> [--out FILE] [--timeout SECONDS] [--json]';
 
 /** What -h and --help print. Its first line is the one every error path shows. */
 const USAGE_BLOCK = [
@@ -100,13 +103,18 @@ const USAGE_BLOCK = [
   '  reads it. Giving up costs nothing either - the job keeps running and the',
   '  same id still works later.',
   '',
-  '  example:  node poll.mjs sd_abc123',
-  '  example:  node poll.mjs sd_abc123 --out records.json --timeout 900',
-  '  no id yet? node trigger.mjs <dataset_id> "<url>"',
+  '  example:  node scripts/poll.mjs sd_abc123',
+  '  example:  node scripts/poll.mjs sd_abc123 --out records.json --timeout 900',
+  '  no id yet? node scripts/trigger.mjs <dataset_id> "<url>"',
   '',
   '  in Windows PowerShell 5.1, do not redirect or pipe the output: `>` writes',
-  '  UTF-16 with a BOM and a pipe re-encodes it as ASCII, so JSON parsers reject',
-  '  it. Use cmd /c, PowerShell 7.4+, or --out FILE',
+  '  UTF-16 with a BOM, which JSON parsers reject. A pipe turns non-ASCII text',
+  '  into "?" in a code page 437 console, and in a UTF-8 console it adds a BOM',
+  '  that JSON parsers reject. Use cmd /c, PowerShell 7.4+, or --out FILE',
+  '',
+  '  run from the scrape skill\'s folder: the paths above are relative to it',
+  '  BRIGHTDATA_REQUEST_TIMEOUT_MS sets the per-request header timeout in ms',
+  '  (default 30000, at most 600000); a body download gets ten times that',
 ];
 
 const FIXES = [
@@ -167,8 +175,8 @@ const C = process.stderr.isTTY && !JSON_OUT
 // ---------------------------------------------------------------- output
 
 /**
- * A reader is allowed to stop reading. `node poll.mjs sd_x | head -1` closes
- * the pipe as soon as head has its line, and the next write raises EPIPE on
+ * A reader is allowed to stop reading. `node scripts/poll.mjs sd_x | head -1`
+ * closes the pipe as soon as head has its line, and the next write raises EPIPE on
  * stdout. With no handler that is an unhandled stream error: Node prints a raw
  * stack over the user's terminal and exits non-zero, which reads as a failure
  * of the poll rather than as head doing exactly what it was asked to do.
@@ -344,16 +352,16 @@ const WRONG_KIND = [
       `${C.bad}x ${id} is a collector template, not a job - run it first with bdata scraper run${C.off}`,
       '  a c_ id comes from bdata scraper create and names a template, not a run',
       '  run:  bdata scraper run ' + id + ' "<url>"   it polls and prints the records itself',
-      '  for many URLs: bdata scraper run ' + id + ' --urls a,b,c, then poll the collection id it prints (Batch job: ...)',
+      '  for many URLs: bdata scraper run ' + id + ' --urls a,b,c   it waits and prints the records too; only if it gives up, poll the collection id it printed (Batch job: j_...) with this script',
     ],
   },
   {
     test: /^gd_/i,
     error: 'dataset_id',
     lines: id => [
-      `${C.bad}x ${id} is a dataset id, not a job - trigger it first, node trigger.mjs <id> "<url>"${C.off}`,
+      `${C.bad}x ${id} is a dataset id, not a job - trigger it first, node scripts/trigger.mjs <id> "<url>"${C.off}`,
       '  a gd_ id names a scraper. Running it is what produces something to poll',
-      `  run:  node trigger.mjs ${id} "<url>"`,
+      `  run:  node scripts/trigger.mjs ${id} "<url>"`,
       '  then poll the sd_ snapshot id that prints',
     ],
   },
@@ -613,8 +621,8 @@ async function resolve() {
     return { ...blank(id), error: 'bad_argument', exit: 1, lines: [
       `${C.bad}x this needs the id a trigger gave back${C.off}`,
       USAGE,
-      '  example:  node poll.mjs sd_abc123',
-      '  no id yet? node trigger.mjs <dataset_id> "<url>"'] };
+      '  example:  node scripts/poll.mjs sd_abc123',
+      '  no id yet? node scripts/trigger.mjs <dataset_id> "<url>"'] };
   }
 
   // --json replaces the records on stdout with a report about them, so on its
@@ -623,7 +631,7 @@ async function resolve() {
     return { ...blank(id), error: 'bad_argument', exit: 1, lines: [
       `${C.bad}x --json puts a report on stdout, so the records need a file: add --out FILE${C.off}`,
       USAGE,
-      '  example:  node poll.mjs ' + id + ' --out records.json --json'] };
+      '  example:  node scripts/poll.mjs ' + id + ' --out records.json --json'] };
   }
 
   // The parent directory is checked before the download: a missing folder found
@@ -719,7 +727,8 @@ async function poll(id, out, timeoutSec, key) {
     `${C.bad}x the answer started arriving and could not be read to the end${C.off}`,
     `  ${res.bodyError}`,
     '  retrying downloads the same body, so this will not pass by itself',
-    '  ask the API for fewer records, or take delivery to a file destination instead'] });
+    route.dca ? '  ask the API for fewer records, or take delivery to a file destination instead'
+      : '  download it in parts (batch_size and part on the snapshot URL), or take delivery to a file destination instead'] });
 
   /**
    * Is the job still going? Asked again after a download refuses, because the
@@ -774,13 +783,13 @@ async function poll(id, out, timeoutSec, key) {
       case 'failed':
         return at({ error: 'job_failed', exit: 2, lines: [
           `${C.bad}x the job reports "${verdict.state}", so there are no records to wait for${C.off}`,
-          ...(verdict.message ? [`  ${verdict.message}`] : []),
+          ...(verdict.message ? [`  ${excerpt(verdict.message, key)}`] : []),
           '  trigger it again once the input is fixed. Nothing further is billed by waiting'] });
 
       case 'error':
         return at({ error: 'api_error', exit: 2, lines: [
           `${C.bad}x the API answered HTTP ${res.status} and said:${C.off}`,
-          `  ${verdict.message}`,
+          `  ${excerpt(verdict.message, key)}`,
           '  that is the API\'s own words, not a guess from the status code'] });
 
       default:
@@ -811,7 +820,7 @@ async function poll(id, out, timeoutSec, key) {
         `${C.bad}x gave up waiting after ${timeoutSec}s${C.off}`,
         '  this stopped the waiting, not the job: it is still running on Bright Data\'s side',
         '  nothing is lost and nothing is billed twice',
-        `  poll the same id again later, or raise the ceiling: node poll.mjs ${id} --timeout ${Math.round(timeoutSec * 2)}`] });
+        `  poll the same id again later, or raise the ceiling: node scripts/poll.mjs ${id} --timeout ${Math.round(timeoutSec * 2)}`] });
     }
 
     const res = await get(route.progress, key);
@@ -846,7 +855,7 @@ async function poll(id, out, timeoutSec, key) {
         const message = messageOf(res.body);
         return at({ error: 'job_failed', exit: 2, lines: [
           `${C.bad}x the job reports "${state}", so there are no records to wait for${C.off}`,
-          ...(message ? [`  ${message}`] : []),
+          ...(message ? [`  ${excerpt(message, key)}`] : []),
           '  trigger it again once the input is fixed. Nothing further is billed by waiting'] });
       }
 

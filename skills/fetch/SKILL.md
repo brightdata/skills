@@ -19,7 +19,7 @@ bdata scrape https://example.com/article
 
 Markdown is the default. A first `bdata login` tries to create `cli_unlocker` and, when no default is set, stores it as the zone default, so a fresh login on a normal account needs no `--zone`. It never overwrites a default you already set. A key from agent registration cannot create zones and its account has no `cli_unlocker`, so run `bdata config set default_zone_unlocker agent_unlocker` once. An account set up any other way carries its unlocker zone under another name (`agent_unlocker` from agent registration, `mcp_unlocker` from the MCP server, any name at all when a person made it by hand): find it by the entry whose `"type"` is `"unblocker"` in `bdata zones --json`, and pass that name. Override with `--zone <name>`, or `BRIGHTDATA_UNLOCKER_ZONE`, or `bdata config set default_zone_unlocker <name>`.
 
-If `bdata` is not recognized, npm's global directory is not on PATH, and the fix lives in the `agent-onboarding` skill's Install section.
+If `bdata` is not recognized, the CLI is not installed or npm's global directory is not on PATH; both fixes live in the `agent-onboarding` skill's Install section.
 
 **REST.** The same request, for any machine with no CLI.
 

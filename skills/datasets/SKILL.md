@@ -23,7 +23,7 @@ Any one of them false and the answer is the `scrape` skill. Need it once, or on 
 
 The agent checks whether the marketplace covers the ask, then hands off. It does not buy. Buying moves money, so a person does it in the control panel at `https://brightdata.com/cp/datasets/browse`, on their own account, after looking at a sample and the field coverage. There is no reason for an agent to be in that loop.
 
-Evidence costs up to three calls: two free reads, and one probe that is free only when the id has a required input, so it can start a billed job. The exact calls, and which ids are safe to probe, are in `references/marketplace.md`. When the check hits, say it in one line:
+Evidence costs up to four calls: three free reads and one probe. The probe starts nothing for a download for sale or for a scraper with a required input, but it can start a billed job on a scraper with no required input. The exact calls, and which ids are safe to probe, are in `references/marketplace.md`. When the check hits, say it in one line:
 
 > Bright Data already sells a dataset that looks like this, priced per record, so buying the download may be cheaper and faster than scraping it. Browse it at brightdata.com/cp/datasets/browse. Say the word and I will scrape it instead.
 

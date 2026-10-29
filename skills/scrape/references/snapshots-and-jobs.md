@@ -71,7 +71,7 @@ Batch collections stay downloadable for 16 days, real-time collections for 7. Af
 
 ## Delivery options, and the line the agent does not cross
 
-Results do not have to come back through the API. Both paths can deliver to a webhook, S3, Google Cloud Storage, Azure, Snowflake or SFTP. Web Scraper API adds Google Cloud Pub/Sub, and Scraper Studio adds email.
+Results do not have to come back through the API. Both paths can push them to a webhook, to email, or to storage: Amazon S3, Google Cloud Storage, Google Cloud Pub/Sub, Azure, Snowflake, Alibaba Cloud OSS or SFTP. Scraper Studio also lists OCI PAR.
 
 The rules are short.
 

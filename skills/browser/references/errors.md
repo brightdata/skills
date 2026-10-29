@@ -9,7 +9,7 @@ A 407 at connect is proxy authentication. It is not a driver bug and not a netwo
 | The 407 carries | Meaning | Action |
 |---|---|---|
 | `client_10000` | Wrong zone password or wrong customer id (same code for both) | Read `x-brd-err-msg`, re-read that piece from the API, retry once |
-| `client_10001` | Invalid authentication (HTTP status message `Invalid Auth`); the docs name no narrower cause | Re-check the whole username shape and the password, retry once |
+| `client_10001` | A request parameter inside the username is malformed, for example the country `usa` instead of `us` (HTTP status message `Invalid Auth`); it fails even with the right zone and password | Fix the parameter format before changing credentials, retry once |
 | `client_10002` | Zone not found or not active | Re-find the zone by type `browser_api` (below), retry once |
 | `client_10010` | No credentials in the URL | The endpoint was empty or lost its `user:pass@`; check what the script passed |
 | `client_10020` | Account suspended | Stop. The user reactivates it at brightdata.com/cp/setting/billing (`billing` skill) |
@@ -46,7 +46,7 @@ Free, read-only, no session started.
 |---|---|
 | No entry with `"type":"browser_api"` at all | Not a string problem, and not an account problem yet. Read the note under this table. |
 | The zone in your string is listed, but its `type` is not `browser_api` | Wrong zone type. A Web Unlocker zone will not accept a CDP connect. Use the name of the `browser_api` entry instead. |
-| The zone in your string is listed with `"type":"browser_api"` | The zone is fine. With a 407 `client_10000` the customer id or the password is wrong; any other code points at the account (see the 407 table above). |
+| The zone in your string is listed with `"type":"browser_api"` | The zone is fine. With a 407 `client_10000` the customer id or the password is wrong, with `client_10001` a parameter in the username is malformed, and with `client_10010` the credentials are missing from the URL; the other codes point at the account (see the 407 table above). |
 
 Match the zone by its type, not its name: it is `cli_browser` after `bdata login`, `agent_browser_api` after agent registration, `mcp_browser` from the MCP server, and any name a person chose. This listing returns active zones only, so an absent row cannot tell a zone that was never created from one that exists but is no longer active, which is the same inactive case the `zone_not_found` row above names. The remedy is the same either way, after the user agrees (it changes their account): one free call, `POST https://api.brightdata.com/zone` with body `{"zone":{"name":"cli_browser","type":"browser_api"},"plan":{"type":"browser_api"}}`. Do not run `bdata login` for this, it replaces the stored key. A key from agent registration cannot create zones, so on such an account make the zone in the Control Panel. Only when the creation itself comes back `kyc_required` or `business_account_required` is this an account problem for `agent-onboarding`.
 

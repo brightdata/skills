@@ -7,9 +7,12 @@
  * takes and returns, door by door. That used to be three calls and two
  * response shapes nobody remembers. This script is that whole path:
  *
- *   node find-scraper.mjs instagram                       what is in the catalogue
- *   node find-scraper.mjs instagram.com                   the same, by domain
- *   node find-scraper.mjs gd_l1vikfch901nx3by4 --schema   what it takes and returns
+ *   node scripts/find-scraper.mjs instagram                       what is in the catalogue
+ *   node scripts/find-scraper.mjs instagram.com                   the same, by domain
+ *   node scripts/find-scraper.mjs gd_l1vikfch901nx3by4 --schema   what it takes and returns
+ *
+ * Run it from the scrape skill's folder: every path in its help and hints is
+ * relative to it.
  *
  * One endpoint answers nearly all of it. GET /datasets/v3/scrapers lists every
  * ready scraper with its input schema, output fields, sample input and
@@ -31,8 +34,8 @@
  * been seen, and the script reports it with the snapshot id to cancel, in
  * --json as started_snapshot_id.
  *
- * Usage:  node find-scraper.mjs <query> [--schema] [--variant <name>] [--sample] [--json] [--refresh]
- *         node find-scraper.mjs --help
+ * Usage:  node scripts/find-scraper.mjs <query> [--schema] [--variant <name>] [--sample] [--json] [--refresh]
+ *         node scripts/find-scraper.mjs --help
  *         <query> is a gd_ dataset id, a domain, or part of a scraper name.
  * Auth:   BRIGHTDATA_API_KEY env var, or the CLI's credentials.json.
  *         The key is never printed, not even on failure.
@@ -106,7 +109,7 @@ const PREVIEW = 8;
 const CACHE_PATH = join(tmpdir(), 'brightdata-scrapers.json');
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
-const USAGE = 'Usage: node find-scraper.mjs <query> [--schema] [--variant <name>] [--sample] [--json] [--refresh]';
+const USAGE = 'Usage: node scripts/find-scraper.mjs <query> [--schema] [--variant <name>] [--sample] [--json] [--refresh]';
 
 /** What -h and --help print. Its first line is the one every error path shows. */
 const USAGE_BLOCK = [
@@ -116,7 +119,9 @@ const USAGE_BLOCK = [
   '               (the sample input with --sample, and always in --json)',
   '  --variant    one door only: collect_by_url, or a discovery suffix such as keyword or user_name',
   '               (default with --schema: print every variant the scraper has)',
-  '  --sample     print sample_input as a paste-ready trigger body (with --schema)',
+  '  --sample     print the catalogue\'s sample_input (with --schema). It is a bare',
+  '               array, often of several inputs: send one, wrapped as',
+  '               {"input":[...]} with limit_per_input on a discovery door',
   '  --json       one JSON object on stdout instead of the human listing',
   '               shape: { ok, query, matches[{id,name,domain,category,scraper_type}], skipped_internal,',
   '                        schema{variants{<scraper_type>{required,optional,outputs,sample_input,link,trigger}},',
@@ -138,17 +143,22 @@ const USAGE_BLOCK = [
   '  exit codes: 0 = listed or ready to trigger, 1 = no result or not a',
   '  scraper, 2 = auth, network or API failure, or the probe started a job',
   '',
-  '  example:  node find-scraper.mjs instagram',
-  '  example:  node find-scraper.mjs instagram.com',
-  '  example:  node find-scraper.mjs gd_l1vikfch901nx3by4 --schema',
-  '  example:  node find-scraper.mjs gd_l1vikfch901nx3by4 --schema --variant user_name --sample',
+  '  example:  node scripts/find-scraper.mjs instagram',
+  '  example:  node scripts/find-scraper.mjs instagram.com',
+  '  example:  node scripts/find-scraper.mjs gd_l1vikfch901nx3by4 --schema',
+  '  example:  node scripts/find-scraper.mjs gd_l1vikfch901nx3by4 --schema --variant user_name --sample',
   '',
   `  a name search reads the bulk catalogue from ${CACHE_PATH}, kept for 24 h;`,
   '  an id is one small filtered read, a domain one or two; neither touches the cache',
   '',
   '  in Windows PowerShell 5.1, do not redirect or pipe the output: `>` writes',
-  '  UTF-16 with a BOM and a pipe re-encodes it as ASCII, so JSON parsers reject',
-  '  it. Use cmd /c or PowerShell 7.4+',
+  '  UTF-16 with a BOM, which JSON parsers reject. A pipe turns non-ASCII text',
+  '  into "?" in a code page 437 console, and in a UTF-8 console it adds a BOM',
+  '  that JSON parsers reject. Use cmd /c or PowerShell 7.4+',
+  '',
+  '  run from the scrape skill\'s folder: the paths above are relative to it',
+  '  BRIGHTDATA_REQUEST_TIMEOUT_MS sets the per-request timeout in ms',
+  '  (default 15000, 60000 for the bulk catalogue, at most 3600000)',
 ];
 
 const FIXES = [
@@ -587,11 +597,12 @@ function pickVariant(asked, variants) {
  *   Content-Type: application/json
  *   [{}]
  *
- * The call is free for every scraper the catalogue lists: the API validates
- * the record before it starts any work, an empty record fails validation
- * wherever a field is required, and every listed scraper requires at least
- * one on its default door. The rejection is the point: it is the only other
- * place the API states a scraper's input contract.
+ * The call is free whenever the scraper's default door requires a field: the
+ * API validates the record before it starts any work, and an empty record
+ * fails validation wherever a field is required. Not every door does (World
+ * zipcodes, gd_licvqc95ta2552qxu, requires none), which is why the probe is
+ * only the fallback. The rejection is the point: it is the only other place
+ * the API states a scraper's input contract.
  *
  * It is sent in one situation only: the query was a gd_ id, the catalogue
  * endpoint answered [] for it, and no type or discover_by is on the URL. A
@@ -637,7 +648,7 @@ async function probeSchema(id, key) {
   // its own key rather than by any text inside it. The sniff matches a phrase
   // anywhere in the raw body, so a validation message that merely quoted that
   // phrase would otherwise be read as "this is not a scraper".
-  if (body?.type === 'validation') return readValidation(body);
+  if (body?.type === 'validation') return readValidation(body, key);
 
   if (body?.snapshot_id) {
     // The empty-body probe is rejected at validation. If a job started anyway,
@@ -682,7 +693,7 @@ const pairText = e => (Array.isArray(e) ? `${asText(e[0])}: ${asText(e[1])}` : a
  * as a required field, the conclusion is "the wording moved", not "this scraper
  * needs no input".
  */
-function readValidation(body) {
+function readValidation(body, key) {
   const errors = Array.isArray(body.errors) ? body.errors : [];
 
   // A Set because two rules can reject the same field, arriving as one pair
@@ -696,7 +707,8 @@ function readValidation(body) {
     .map(e => e[0]))];
 
   if (errors.length > 0 && requiredNames.length === 0) {
-    return { unrecognized: errors.map(pairText) };
+    // Quoted back, so scrubbed: a proxy can echo the Authorization header.
+    return { unrecognized: errors.map(e => scrub(pairText(e), key)) };
   }
 
   // `line` is a JSON string in every answer seen so far. Accept a plain object
@@ -755,7 +767,7 @@ function probeVerdict(query, id, probe) {
       '  the catalogue does not list that id and the trigger does not know it either',
       `  ${C.dim}${probe.unknown || '(empty answer)'}${C.off}`,
       '  check the id, or search by name or domain instead:',
-      '  node find-scraper.mjs <part of the name>'] } };
+      '  node scripts/find-scraper.mjs <part of the name>'] } };
   }
 
   if (probe.other) {
@@ -864,9 +876,9 @@ async function resolve() {
     return { ...blank(query), error: 'no_query', exit: 1, lines: [
       `${C.bad}x give me something to look for: a gd_ id, a domain, or part of a scraper name${C.off}`,
       USAGE,
-      '  example:  node find-scraper.mjs instagram',
-      '  example:  node find-scraper.mjs instagram.com',
-      '  example:  node find-scraper.mjs gd_l1vikfch901nx3by4 --schema'] };
+      '  example:  node scripts/find-scraper.mjs instagram',
+      '  example:  node scripts/find-scraper.mjs instagram.com',
+      '  example:  node scripts/find-scraper.mjs gd_l1vikfch901nx3by4 --schema'] };
   }
 
   // ---- credentials
@@ -976,7 +988,7 @@ async function resolve() {
     const lines = [`${C.bad}x no match for "${query}"${C.off}`];
     if (looksLikeDomain(want)) {
       lines.push('  no scraper lists that domain, with or without a leading www.',
-        '  search by name instead, for example the part before the dot:  node find-scraper.mjs <part of the name>');
+        '  search by name instead, for example the part before the dot:  node scripts/find-scraper.mjs <part of the name>');
     } else {
       lines.push('  try a shorter or more general word, for example a platform name on its own');
     }

@@ -65,7 +65,7 @@ Most targets need none. Scraping APIs are not the proxy products. Only four erro
 
 Three of the four clear through KYC (brightdata.com/cp/kyc) or the account manager. `policy_20000` is a category block with no KYC path in the docs: tell the user the target is blocked and stop.
 
-Read the error first. Send the user to brightdata.com/cp/kyc only after a call has actually been refused for one of these reasons, never up front. Details in the `agent-onboarding` skill.
+Read the error first. Send the user to brightdata.com/cp/kyc only after a call has actually been refused with one of the three KYC codes above, never up front. Details in the `agent-onboarding` skill.
 
 ## The warning that matters most
 

@@ -119,5 +119,6 @@ record it returns can also carry fields that `list_dataset_fields` never reports
 metadata entry marked inactive. Treat its output as the filterable fields, not
 as the full shape of a record.
 
-Unlocking a big page to hand-parse it is the expensive path in tokens, and it is
-no cheaper in credits.
+Unlocking a big page to hand-parse it is the expensive path in tokens. In
+credits it is one request per page against one per record from a scraper, so it
+is cheaper only on pages that hold many records, and the parsing is still yours.

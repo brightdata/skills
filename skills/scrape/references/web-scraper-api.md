@@ -52,7 +52,7 @@ POST https://api.brightdata.com/datasets/v3/trigger?dataset_id=gd_lu702nij2f790t
      {"input":[{"search_keyword":"#artist","country":""}],"limit_per_input":10}
 ```
 
-That body is a real trigger, billed per record. A discovery door's record count is open-ended, so always send `limit_per_input`, which caps the records per input (10 here). `node scripts/find-scraper.mjs gd_lu702nij2f790tmv9h --variant keyword` prints that door alone, trigger line included, and `--sample` prints the catalogue's sample input as a paste-ready body.
+That body is a real trigger, billed per record. A discovery door's record count is open-ended, so always send `limit_per_input`, which caps the records per input (10 here). `node scripts/find-scraper.mjs gd_lu702nij2f790tmv9h --variant keyword` prints that door alone, trigger line included, and `--sample` prints the catalogue's sample input. It is a bare array that can hold several inputs: send one input, wrapped as `{"input":[...],"limit_per_input":10}`, never the bare array.
 
 Older discovery scrapers that were separate catalogue rows with their own ids still exist. Some still trigger, but the catalogue no longer carries them, and the script's probe fallback is what still finds them. Prefer the door on the current id.
 
@@ -164,7 +164,7 @@ GET  https://api.brightdata.com/datasets/v3/progress/sd_...                 poll
 GET  https://api.brightdata.com/datasets/v3/snapshot/sd_...?format=json     the records (NDJSON without format)
 ```
 
-The body is an object, `{"input":[...]}`, one object per input, plus optional `limit_per_input`. A bare array of inputs is also accepted but cannot carry `limit_per_input`, so never send a bare array to a discovery door. One URL can still return many billed records, so cap them with the scraper's own field (`num_of_posts` above) or `limit_per_input`.
+The body is an object, `{"input":[...]}`, one object per input, plus optional `limit_per_input`. A bare array of inputs is also accepted but cannot carry `limit_per_input`, so never send a bare array to a discovery door. One URL can still return many billed records, so cap them with the scraper's own count field (`num_of_posts` above). `limit_per_input` is documented for discovery requests; on a URL door, check the record count of the first run. `scripts/trigger.mjs --limit` sends it as the `limit_per_input` query parameter, because the script's bare-array body cannot carry it.
 
 After a REST trigger, one CLI call polls to completion: `bdata pipelines status <snapshot_id> --wait`, then `bdata pipelines results <snapshot_id>`. The job id is the `snapshot_id` the trigger returned.
 
@@ -173,7 +173,7 @@ After a REST trigger, one CLI call polls to completion: `bdata pipelines status 
 | Question | Free move |
 |---|---|
 | What arguments does this scraper take on the CLI? | `bdata pipelines info <dataset_id> <method>` prints its fields and an example input. |
-| What does this scraper take, and what comes back? | `node scripts/find-scraper.mjs <gd_ id>`, one GET on the catalogue, schema printed without any flag. Per variant: required and optional inputs with types, output fields (first 8, all with `--json`), most with a description, the trigger line and the control-panel link. `--variant <door>` narrows it to one door and `--sample` adds the sample input as a paste-ready trigger body. |
+| What does this scraper take, and what comes back? | `node scripts/find-scraper.mjs <gd_ id>`, one GET on the catalogue, schema printed without any flag. Per variant: required and optional inputs with types, output fields (first 8, all with `--json`), most with a description, the trigger line and the control-panel link. `--variant <door>` narrows it to one door and `--sample` adds the catalogue's sample input (a bare array; wrap the one input you send in `{"input":[...]}` with `limit_per_input` before using it on a discovery door). |
 | The catalogue does not carry the id | The empty-body probe: `POST https://api.brightdata.com/datasets/v3/trigger?dataset_id=<id>` with body `[{}]`. Required fields come back in the `errors` array, some optional fields, the text-typed ones, come back inside the `line` key as an empty-valued JSON object, and a download answers "This dataset does not support collection". Required fields certain, outputs unlisted. The script sends this probe itself, once, and only after the catalogue answered empty. |
 
 The probe is not universally free. Validation rejects `[{}]` only because a required field is missing, so a door with no required field passes it, and on an active account the probe can start a billed job. Seven such doors exist in the catalogue on 2026-10-28, Amazon products `discover_by_upc`, Walmart products `discover_by_sku` and World zipcodes `collect_by_url` among them. That is why the catalogue comes first and the probe is the fallback, never the opening move. If a probe does start a job, the script prints its snapshot id (in `--json` as `started_snapshot_id`): cancel it at once with `POST https://api.brightdata.com/datasets/v3/snapshot/<snapshot_id>/cancel`. Only a running snapshot can be cancelled, and a cancelled one delivers no data.

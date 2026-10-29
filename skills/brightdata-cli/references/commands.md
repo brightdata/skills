@@ -116,7 +116,16 @@ Install the Bright Data skills into any coding agent with `npx -y skills add bri
 
 `bdata add mcp --agent <claude-code,cursor,codex>` with `--global` or `--project` writes a `bright-data` server entry, with the API key in plain text, into that agent's config. Without a TTY, pass `--agent`, plus `--global` or `--project` for Claude Code or Cursor.
 
-In CLI 0.4.1 only Claude Code `--global` (`~/.claude.json`) and Cursor `--global` or `--project` (`~/.cursor/mcp.json`, `.cursor/mcp.json`) land where the agent reads them. Claude Code `--project` writes `.claude/settings.json`, which Claude Code does not read for servers (it reads `.mcp.json`). Codex gets `~/.codex/mcp.json`, while Codex reads `[mcp_servers.<name>]` tables in `~/.codex/config.toml`, and Codex with `--project` exits with an error. For those, set the server up with the `brightdata-mcp` skill.
+In CLI 0.4.1 only Claude Code `--global` (`~/.claude.json`) and Cursor `--global` or `--project` (`~/.cursor/mcp.json`, `.cursor/mcp.json`) land where the agent reads them. Claude Code `--project` writes `.claude/settings.json`, which Claude Code does not read for servers (it reads `.mcp.json`; the `brightdata-mcp` skill's references/setup.md has that block). Codex always gets `~/.codex/mcp.json` (`--agent codex --project` exits with an error, and in a list with another agent Codex still gets that global file), while Codex reads `[mcp_servers.<name>]` tables in `~/.codex/config.toml`, or `.codex/config.toml` in a trusted project. For Codex, show the user this table and let them add it with their key:
+
+```toml
+[mcp_servers.bright-data]
+command = "npx"
+args = ["@brightdata/mcp"]
+
+[mcp_servers.bright-data.env]
+API_TOKEN = "<YOUR_API_KEY>"
+```
 
 Show the user what it will change before running it.
 
