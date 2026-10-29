@@ -49,6 +49,6 @@ Flags are in `bdata <command> --help`. What the help text leaves out (the key or
 
 ## Rules
 
-- Pass `--json --pretty` whenever the output gets parsed. For billing use bare `bdata budget --json`; in CLI 0.4.1 `budget balance`, `budget zones` and `budget zone` ignore both flags and print text. `-o <path>` writes a file: for structured results the extension (`.json`, `.md`, `.html`, `.csv`) picks the format, while `scrape` keeps the format `-f` chose, so `-o page.html` needs `-f html`.
+- Pass `--json --pretty` whenever the output gets parsed. For billing use bare `bdata budget --json`; in CLI 0.4.1 `budget balance`, `budget zones` and `budget zone` print text. `-o <path>` writes a file: for structured results the extension (`.json`, `.md`, `.html`, `.csv`) picks the format, while `scrape` keeps the format `-f` chose, so `-o page.html` needs `-f html`.
 - Never print the API key. The CLI owns the file it sits in.
 - There is no schedule command. Recurring runs are set up in the control panel.

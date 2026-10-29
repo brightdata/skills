@@ -56,7 +56,7 @@ That body is a real trigger, billed per record. A discovery door's record count 
 
 Older discovery scrapers that were separate catalogue rows with their own ids still exist. Some still trigger, but the catalogue no longer carries them, and the script's probe fallback is what still finds them. Prefer the door on the current id.
 
-Two catalogue cautions, both verified 2026-09-06. First, `GET /datasets/list` carries 1755 rows and the scrapers catalogue 1006. A row in the list that the catalogue does not carry is a download for sale (749, a trigger answers "This dataset does not support collection", route those to the marketplace reference), one of the 56 live scrapers the catalogue omits, which the probe finds, or a row that is not ready yet (2). Counts as of 2026-09-06. Second, the list carries rows whose names mark them as internal or test entries. The scrapers catalogue carries none of those, and the script's name search skips any that appear.
+Two catalogue cautions, both verified 2026-09-06. First, `GET /datasets/list` carries 1755 rows and the scrapers catalogue 1006. A row in the list that the catalogue does not carry is a download for sale (749, a trigger answers "This dataset does not support collection", route those to the marketplace reference), one of the 56 live scrapers the catalogue omits, which the probe finds, or a row that is not ready yet (2). Counts as of 2026-09-06. Second, the list also carries rows that are not offered for use. The scrapers catalogue carries none of those, and the script's name search skips any that appear.
 
 ## 25 ready scrapers, grouped by platform
 

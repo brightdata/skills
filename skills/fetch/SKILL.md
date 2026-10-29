@@ -49,7 +49,7 @@ For code the user keeps, the SDK wraps this same call in one line: `const html =
 
 One honest note on the markdown: links come back exactly as the page wrote them, so a relative link like `/pricing` stays relative and points nowhere once the text leaves the site. That is fine when the output feeds a model, an index or a RAG store. For a standalone document a person will read and click, resolve the links against the page URL first, and say that you did.
 
-The other flags that exist: `--country <code>`, `--async`, `-o <path>`, `--json`, `--pretty`, `--timing`, and `--mobile`, which the CLI advertises but parses and never sends, so it is a silent no-op.
+The other flags that exist: `--country <code>`, `--async`, `-o <path>`, `--json`, `--pretty`, `--timing`, and `--mobile`, which has no effect in the current CLI release.
 
 ## Example - one blocked article
 

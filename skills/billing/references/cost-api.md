@@ -143,7 +143,7 @@ Docs only, not verified live: the export is rate limited to 1,000 requests a min
 
 **GET /status** returns **200** with `status`, `customer`, `can_make_requests`, `auth_fail_reason` and `ip` (live). It is a free way to ask whether the account can work, which beats firing a billable request to find out.
 
-Treat `can_make_requests` as a hint and never as proof. Live, it came back `false` with an `auth_fail_reason` of `zone_not_found` on an account that was successfully billing traffic in the same minute. A `false` here means one lookup behind the endpoint failed, not that the account is unable to work, so never report it to a user as a blocked or broken account and never stop work on the strength of it alone. Only a `true` is worth much, and even then the real answer comes from the cost reads above.
+Treat `can_make_requests` as a hint and never as proof. A `false` with an `auth_fail_reason` such as `zone_not_found` describes one lookup, not the account as a whole, so confirm with a real call before telling the user the account is blocked, and never stop work on the strength of it alone. Only a `true` is worth much, and even then the real answer comes from the cost reads above.
 
 ## The docs pages behind these endpoints
 

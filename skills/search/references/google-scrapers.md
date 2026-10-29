@@ -86,7 +86,7 @@ GET  https://api.brightdata.com/datasets/v3/snapshot/<snapshot_id>?format=json
 
 The schema also accepts `uule`, `tbs`, `tbm`, `nfpr` and `index`.
 
-The docs page marks nothing required and does not list `url`. The live probe and the catalogue both name `url` as the only required field, so trust them. Send the others anyway, because a bare domain with no keyword is not a useful job.
+The live probe and the catalogue both name `url` as the only required field. Send the others anyway, because a bare domain with no keyword is not a useful job.
 
 After a REST trigger, the CLI can wait for it and read the records:
 
